@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Community | Famipet</title>
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="../css/community.css">
+    <link rel="stylesheet" href="../css/sidebar.css">
+
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <!-- Google Font -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <!-- =====================================================
+         UNIVERSAL Famipet SIDEBAR
+         Uses the same sidebar as the other Famipet pages.
+    ====================================================== -->
+
+    <div id="sidebar-container"></div>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main class="main-content ann-main">
+
+        <!-- TOP HEADER -->
+
+        <header class="page-header">
+
+            <div class="header-title">
+
+                <h1>
+                    Community
+                    <span>♥</span>
+                </h1>
+
+                <p>
+                    Connect, share and learn with fellow pet lovers.
+                    🐾
+                </p>
+
+            </div>
+
+
+            <div class="header-actions">
+
+                <!-- SEARCH -->
+
+                <div class="search-box">
+
+                    <input
+                        type="text"
+                        id="communitySearch"
+                        placeholder="Search posts, people, groups..."
+                    >
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                </div>
+
+
+                <!-- THEME -->
+<!-- 
+                <button
+                    class="header-icon"
+                    id="themeBtn"
+                    aria-label="Theme"
+                >
+                    <i class="fa-regular fa-sun"></i>
+                </button>
+
+
+                <button
+                    class="header-icon"
+                    aria-label="Dark mode"
+                >
+                    <i class="fa-regular fa-moon"></i>
+                </button> -->
+
+
+                <!-- NOTIFICATION -->
+
+                <button
+                    class="header-icon notification"
+                    id="notificationBtn"
+                >
+
+                    <i class="fa-regular fa-bell"></i>
+
+                    <span>3</span>
+
+                </button>
+
+
+                <!-- NEW POST -->
+
+                <button
+                    class="new-post-btn"
+                    id="newPostBtn"
+                >
+
+                    <i class="fa-solid fa-plus"></i>
+
+                    New Post
+
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- =================================================
+             STATISTICS
+        ================================================== -->
+
+        <section class="community-stats">
+
+            <!-- MEMBERS -->
+
+            <div class="stat-card purple">
+
+                <div class="stat-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+
+                <div>
+                    <span>Members</span>
+                    <strong>1,248</strong>
+                    <small>Active community</small>
+                </div>
+
+            </div>
+
+
+            <!-- GROUPS -->
+
+            <div class="stat-card green">
+
+                <div class="stat-icon">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+
+                <div>
+                    <span>Groups</span>
+                    <strong>24</strong>
+                    <small>Active groups</small>
+                </div>
+
+            </div>
+
+
+            <!-- DISCUSSIONS -->
+
+            <div class="stat-card orange">
+
+                <div class="stat-icon">
+                    <i class="fa-regular fa-message"></i>
+                </div>
+
+                <div>
+                    <span>Discussions</span>
+                    <strong>156</strong>
+                    <small>This month</small>
+                </div>
+
+            </div>
+
+
+            <!-- STORIES -->
+
+            <div class="stat-card pink">
+
+                <div class="stat-icon">
+                    <i class="fa-regular fa-heart"></i>
+                </div>
+
+                <div>
+                    <span>Stories Shared</span>
+                    <strong>89</strong>
+                    <small>This month</small>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             COMMUNITY GRID
+        ================================================== -->
+
+        <div class="community-layout">
+
+            <!-- =============================================
+                 LEFT
+            ============================================== -->
+
+            <section class="community-feed">
+
+                <!-- CREATE POST -->
+
+                <div class="create-post">
+
+                    <div class="profile-small">
+
+                        <img
+                            src="../assets/images/dashboard/user-profile.svg"
+                            alt="Profile"
+                        >
+
+                    </div>
+
+                    <div class="post-input-area">
+
+                        <input
+                            type="text"
+                            id="postText"
+                            placeholder="What's on your mind about your furry friend?"
+                        >
+
+                        <div class="post-tools">
+
+                            <button
+                                class="tool-btn photo"
+                                id="photoBtn"
+                            >
+
+                                <i class="fa-regular fa-image"></i>
+
+                                Photo/Video
+
+                            </button>
+
+
+                            <button
+                                class="tool-btn question"
+                                id="questionBtn"
+                            >
+
+                                <i class="fa-regular fa-circle-question"></i>
+
+                                Ask Question
+
+                            </button>
+
+
+                            <button
+                                class="tool-btn story"
+                                id="storyBtn"
+                            >
+
+                                <i class="fa-regular fa-heart"></i>
+
+                                Share Story
+
+                            </button>
+
+
+                            <button
+                                class="post-btn"
+                                id="postBtn"
+                            >
+                                Post
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FILTER TABS -->
+
+                <div class="post-tabs">
+
+                    <button
+                        class="tab active"
+                        data-filter="all"
+                    >
+                        All Posts
+                    </button>
+
+                    <button
+                        class="tab"
+                        data-filter="discussion"
+                    >
+                        Discussions
+                    </button>
+
+                    <button
+                        class="tab"
+                        data-filter="story"
+                    >
+                        Stories
+                    </button>
+
+                    <button
+                        class="tab"
+                        data-filter="question"
+                    >
+                        Questions
+                    </button>
+
+                    <button
+                        class="tab"
+                        data-filter="tip"
+                    >
+                        Tips & Advice
+                    </button>
+
+                </div>
+
+
+                <!-- POSTS -->
+
+                <div id="postsContainer">
+
+                    <!-- POST 1 -->
+
+                    <article
+                        class="post-card"
+                        data-type="story"
+                    >
+
+                        <div class="post-header">
+
+                            <div class="post-user">
+
+                                         <div class="avatar-placeholder">
+                                    PM
+                                </div>
+
+                                <div>
+                                    <strong>Priya Mehta</strong>
+
+                                    <span>
+                                        2 hours ago • Story
+                                    </span>
+                                </div>
+
+                            </div>
+
+
+                            <button class="more-post">
+                                <i class="fa-solid fa-ellipsis"></i>
+                            </button>
+
+                        </div>
+
+
+                        <div class="post-body">
+
+                            <div class="post-content">
+
+                                <h2>
+                                    Adopted Bruno 3 months ago! 💕
+                                </h2>
+
+                                <p>
+                                    Bruno has completely changed our lives.
+                                    From being a shy little pup to the most
+                                    playful companion. Adoption is truly amazing!
+                                </p>
+
+
+                                <div class="post-tags">
+
+                                    <span class="purple-tag">
+                                        Adoption
+                                    </span>
+
+                                    <span class="green-tag">
+                                        Golden Retriever
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <img
+                                class="post-image"
+                                src="../assets/images/dashboard/golden-retriever.png"
+                                alt="Bruno"
+                            >
+
+                        </div>
+
+
+                        <div class="post-footer">
+
+                            <button class="like-btn">
+                                <i class="fa-regular fa-heart"></i>
+                                <span>45</span>
+                            </button>
+
+                            <button class="comment-btn">
+                                <i class="fa-regular fa-comment"></i>
+                                <span>12</span>
+                            </button>
+
+                            <button class="share-btn">
+                                <i class="fa-solid fa-share"></i>
+                                <span>3</span>
+                            </button>
+
+                            <span class="comments">
+                                12 Comments
+                            </span>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- POST 2 -->
+
+                    <article
+                        class="post-card"
+                        data-type="question"
+                    >
+
+                        <div class="post-header">
+
+                            <div class="post-user">
+
+                                <div class="avatar-placeholder">
+                                    RV
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        Rahul Verma
+                                    </strong>
+
+                                    <span>
+                                        5 hours ago • Question
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <button class="more-post">
+
+                                <i class="fa-solid fa-ellipsis"></i>
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="post-body">
+
+                            <div class="post-content">
+
+                                <h2>
+                                    How to manage puppy separation anxiety?
+                                </h2>
+
+                                <p>
+                                    My 4 month old Labrador gets anxious
+                                    when I leave for office.
+                                </p>
+
+                                <p>
+                                    Any tips from experienced pet parents?
+                                </p>
+
+
+                                <div class="post-tags">
+
+                                    <span class="green-tag">
+                                        Puppy Care
+                                    </span>
+
+                                    <span class="pink-tag">
+                                        Behavior
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <img
+                                class="post-image"
+                                src="../assets/images/dashboard/golden-retriever.png"
+                                alt="Puppy"
+                            >
+
+                        </div>
+
+
+                        <div class="post-footer">
+
+                            <button>
+                                <i class="fa-regular fa-heart"></i>
+                                <span>28</span>
+                            </button>
+
+                            <button class="comment-btn">
+                                <i class="fa-regular fa-comment"></i>
+                                <span>18</span>
+                            </button>
+
+                            <button class="share-btn">
+                                <i class="fa-solid fa-share"></i>
+                                <span>2</span>
+                            </button>
+
+                            <span class="comments">
+                                18 Comments
+                            </span>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+            <!-- =============================================
+                 RIGHT SIDEBAR
+            ============================================== -->
+
+            <aside class="community-right">
+
+                <!-- POPULAR GROUPS -->
+
+                <div class="right-card">
+
+                    <div class="right-card-header">
+
+                        <h2>
+                            Popular Groups
+                        </h2>
+
+                        <button>
+                            View All
+                        </button>
+
+                    </div>
+
+
+                    <div class="groups-list">
+
+                        <div class="group-item">
+
+                            <div class="group-image">
+                                🐶
+                            </div>
+
+                            <div class="group-info">
+
+                                <strong>
+                                    Dog Lovers Club
+                                </strong>
+
+                                <span>
+                                    845 members
+                                </span>
+
+                            </div>
+
+                            <button class="join-btn">
+                                Join
+                            </button>
+
+                        </div>
+
+
+                        <div class="group-item">
+
+                            <div class="group-image">
+                                🐱
+                            </div>
+
+                            <div class="group-info">
+
+                                <strong>
+                                    Cat Parents
+                                </strong>
+
+                                <span>
+                                    623 members
+                                </span>
+
+                            </div>
+
+                            <button class="join-btn">
+                                Join
+                            </button>
+
+                        </div>
+
+
+                        <div class="group-item">
+
+                            <div class="group-image">
+                                🐕
+                            </div>
+
+                            <div class="group-info">
+
+                                <strong>
+                                    Puppy Training Tips
+                                </strong>
+
+                                <span>
+                                    512 members
+                                </span>
+
+                            </div>
+
+                            <button class="join-btn">
+                                Join
+                            </button>
+
+                        </div>
+
+
+                        <div class="group-item">
+
+                            <div class="group-image">
+                                🩺
+                            </div>
+
+                            <div class="group-info">
+
+                                <strong>
+                                    Pet Health Support
+                                </strong>
+
+                                <span>
+                                    478 members
+                                </span>
+
+                            </div>
+
+                            <button class="join-btn">
+                                Join
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HELPFUL TIPS -->
+
+                <div class="tips-card">
+
+                    <div class="tips-header">
+
+                        <h2>
+                            Helpful Tips
+                        </h2>
+
+                        <span>
+                            🐾
+                        </span>
+
+                    </div>
+
+                    <p>
+                        Introduce new pets slowly and always
+                        supervise their first interactions.
+                    </p>
+
+                    <div class="tips-animals">
+                        🐕 🐈
+                    </div>
+
+                </div>
+
+            </aside>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =========================================================
+     JS
+========================================================= -->
+
+
+<!-- =========================================================
+     CREATE POST MODAL
+========================================================= -->
+
+<div class="post-modal-overlay" id="postModal">
+    <div class="post-modal">
+
+        <div class="post-modal-header">
+            <div>
+                <h2>Create a Community Post</h2>
+                <p>Share something with your fellow pet parents.</p>
+            </div>
+
+            <button class="modal-close-btn" id="closePostModal" type="button" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="modal-user">
+            <img src="../assets/images/dashboard/user-profile.svg" alt="Mahek Shaikh">
+            <div>
+                <strong>Mahek Shaikh</strong>
+                <span>Pet Parent</span>
+            </div>
+        </div>
+
+        <label class="modal-label" for="modalPostTitle">Title</label>
+        <input
+            type="text"
+            id="modalPostTitle"
+            class="modal-input"
+            maxlength="100"
+            placeholder="Give your post a title..."
+        >
+
+        <label class="modal-label" for="modalPostType">Post Type</label>
+        <select id="modalPostType" class="modal-input">
+            <option value="discussion">Discussion</option>
+            <option value="story">Story</option>
+            <option value="question">Question</option>
+            <option value="tip">Tips & Advice</option>
+        </select>
+
+        <label class="modal-label" for="modalPostContent">Your post</label>
+        <textarea
+            id="modalPostContent"
+            class="modal-textarea"
+            maxlength="1000"
+            placeholder="What's on your mind about your furry friend?"
+        ></textarea>
+
+        <div class="modal-photo-area">
+            <label class="modal-photo-btn" for="postImageInput">
+                <i class="fa-regular fa-image"></i>
+                Add Photo
+            </label>
+
+            <input type="file" id="postImageInput" accept="image/*" hidden>
+
+            <button class="remove-photo-btn hidden" id="removePostImage" type="button">
+                <i class="fa-solid fa-xmark"></i>
+                Remove
+            </button>
+        </div>
+
+        <div class="post-image-preview hidden" id="postImagePreviewWrap">
+            <img id="postImagePreview" alt="Selected post image">
+        </div>
+
+        <div class="post-modal-actions">
+            <button class="cancel-modal-btn" id="cancelPostModal" type="button">
+                Cancel
+            </button>
+
+            <button class="publish-post-btn" id="publishPostBtn" type="button">
+                <i class="fa-solid fa-paper-plane"></i>
+                Publish Post
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- =========================================================
+     COMMENTS MODAL
+========================================================= -->
+
+<div class="post-modal-overlay" id="commentsModal">
+    <div class="post-modal comments-modal">
+
+        <div class="post-modal-header">
+            <div>
+                <h2>Comments</h2>
+                <p id="commentsPostTitle">Join the conversation.</p>
+            </div>
+
+            <button class="modal-close-btn" id="closeCommentsModal" type="button" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="comments-list" id="commentsList"></div>
+
+        <div class="comment-composer">
+            <input
+                type="text"
+                id="commentInput"
+                maxlength="300"
+                placeholder="Write a comment..."
+            >
+            <button id="addCommentBtn" type="button">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+<script src="../js/community.js"></script>
+<script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+<script src="../js/theme.js"></script>
+
+</body>
+</html>

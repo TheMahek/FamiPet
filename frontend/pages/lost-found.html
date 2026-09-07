@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Lost & Found | Famipet</title>
+
+    <!-- PAGE CSS -->
+    <link
+        rel="stylesheet"
+        href="../css/lost-found.css"
+    >
+
+    <!-- UNIVERSAL SIDEBAR -->
+    <link
+        rel="stylesheet"
+        href="../css/sidebar.css"
+    >
+
+    <!-- FONT AWESOME -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <!-- GOOGLE FONT -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- LUCIDE -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+
+<body>
+
+<div class="app-container">
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <div id="sidebar-container"></div>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main class="main-content ann-main">
+
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <header class="page-header">
+
+            <div class="header-title">
+
+                <h1>
+                    Lost &amp; Found
+                    <span class="title-paw">
+                        <i class="fa-solid fa-paw"></i>
+                    </span>
+                </h1>
+
+                <p>
+                    Help pets find their way back home.
+                </p>
+
+            </div>
+
+
+            <div class="header-actions">
+
+                <div class="search-box">
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input
+                        type="text"
+                        id="lostFoundSearch"
+                        placeholder="Search lost or found pets..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <button
+                    class="header-icon"
+                    id="notificationBtn"
+                    type="button"
+                    aria-label="Notifications"
+                >
+
+                    <i class="fa-regular fa-bell"></i>
+
+                    <span id="notificationCount">3</span>
+
+                </button>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =================================================
+             HERO
+        ================================================== -->
+
+        <section class="lost-hero">
+
+
+            <!-- HERO TEXT -->
+
+            <div class="hero-content">
+
+                <span class="hero-label">
+                    FIND • REUNITE • CARE
+                </span>
+
+
+                <h2>
+                    Every Pet deserves
+                    <span>to be home.</span>
+                </h2>
+
+
+                <p>
+                    Report a lost pet or help reunite a pet
+                    with their loving family.
+                </p>
+
+            </div>
+
+
+
+            <!-- HERO IMAGE -->
+
+            <div class="hero-image-wrapper">
+
+                <div class="hero-image-backdrop"></div>
+
+                <img
+                    src="../assets/images/lost-found/petimg.png"
+                    alt="Pets being reunited"
+                    class="hero-pet-image"
+                >
+
+                <span class="hero-decoration decoration-one">
+                    <i class="fa-solid fa-heart"></i>
+                </span>
+
+                <span class="hero-decoration decoration-two">
+                    <i class="fa-solid fa-paw"></i>
+                </span>
+
+            </div>
+
+
+
+            <!-- REPORT ACTIONS -->
+
+            <div class="hero-actions">
+
+
+                <button
+                    class="report-card lost"
+                    id="reportLostBtn"
+                    type="button"
+                >
+
+                    <div class="report-icon">
+
+                        <i class="fa-solid fa-magnifying-glass"></i>
+
+                    </div>
+
+                    <div class="report-text">
+
+                        <strong>
+                            Report a Lost Pet
+                        </strong>
+
+                        <span>
+                            Let us know about your lost pet
+                        </span>
+
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </button>
+
+
+
+                <button
+                    class="report-card found"
+                    id="reportFoundBtn"
+                    type="button"
+                >
+
+                    <div class="report-icon">
+
+                        <i class="fa-solid fa-paw"></i>
+
+                    </div>
+
+                    <div class="report-text">
+
+                        <strong>
+                            Report a Found Pet
+                        </strong>
+
+                        <span>
+                            Help reunite them
+                        </span>
+
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </button>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             FILTER BAR
+        ================================================== -->
+
+        <section class="filter-bar">
+
+
+            <div class="filter-tabs">
+
+                <button
+                    class="filter-tab active"
+                    data-status="all"
+                    type="button"
+                >
+                    All
+                </button>
+
+
+                <button
+                    class="filter-tab"
+                    data-status="lost"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-paw"></i>
+
+                    Lost Pets
+
+                </button>
+
+
+                <button
+                    class="filter-tab"
+                    data-status="found"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-paw"></i>
+
+                    Found Pets
+
+                </button>
+
+            </div>
+
+
+
+            <div class="filter-selects">
+
+
+                <select id="typeFilter">
+
+                    <option value="all">
+                        All Types
+                    </option>
+
+                    <option value="dog">
+                        Dogs
+                    </option>
+
+                    <option value="cat">
+                        Cats
+                    </option>
+
+                    <option value="other">
+                        Other
+                    </option>
+
+                </select>
+
+
+                <select id="locationFilter">
+
+                    <option value="all">
+                        All Locations
+                    </option>
+
+                    <option value="andheri">
+                        Andheri
+                    </option>
+
+                    <option value="borivali">
+                        Borivali
+                    </option>
+
+                    <option value="thane">
+                        Thane
+                    </option>
+
+                    <option value="dadar">
+                        Dadar
+                    </option>
+
+                </select>
+
+
+                <select id="sortFilter">
+
+                    <option value="recent">
+                        Sort: Recent
+                    </option>
+
+                    <option value="oldest">
+                        Sort: Oldest
+                    </option>
+
+                    <option value="name">
+                        Sort: Name
+                    </option>
+
+                </select>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             PET GRID
+        ================================================== -->
+
+        <section
+            class="pets-grid"
+            id="petsGrid"
+        >
+
+
+            <!-- =================================================
+                 CARD 1
+            ================================================== -->
+
+            <article
+    class="pet-card"
+    data-status="lost"
+    data-type="dog"
+    data-location="andheri"
+    data-date="2026-08-28"
+    data-poster="Rahul Sharma"
+    data-phone="9876543210"
+    data-email="rahul@example.com"
+>
+
+                <div class="pet-image">
+
+                    <img
+                        src="../assets/images/adoption/pet1.jpg"
+                        alt="Golden Retriever"
+                    >
+
+                    <span class="status lost">
+                        LOST
+                    </span>
+
+                    <span class="location-tag">
+
+                        <i class="fa-solid fa-location-dot"></i>
+
+                        Andheri, Mumbai
+
+                    </span>
+
+                </div>
+
+
+                <div class="pet-info">
+
+                    <h3>
+                        Golden Retriever
+                    </h3>
+
+
+                    <div class="pet-meta">
+
+                        <span>
+                            <i class="fa-solid fa-mars"></i>
+                            Male
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            2 Years
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            Golden
+                        </span>
+
+                    </div>
+
+
+                    <div class="pet-date">
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                        Lost on 28 Aug 2026
+
+                    </div>
+
+
+                    <p>
+                        He is very friendly and wearing
+                        a blue collar.
+                    </p>
+
+
+                    <button
+                        class="details-btn"
+                        type="button"
+                    >
+
+                        View Details
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </div>
+
+            </article>
+
+
+
+            <!-- =================================================
+                 CARD 2
+            ================================================== -->
+
+            <article
+                class="pet-card"
+                data-status="found"
+                data-type="cat"
+                data-location="borivali"
+                data-date="2026-08-27"
+                data-name="Domestic Cat"
+                data-poster="Priya Patel"
+                data-phone="8765432109"
+                data-email="priya@example.com"
+            >
+
+                <div class="pet-image">
+
+                    <img
+                        src="../assets/images/adoption/pet2.jpg"
+                        alt="Domestic Cat"
+                    >
+
+                    <span class="status found">
+                        FOUND
+                    </span>
+
+                    <span class="location-tag">
+
+                        <i class="fa-solid fa-location-dot"></i>
+
+                        Borivali, Mumbai
+
+                    </span>
+
+                </div>
+
+
+                <div class="pet-info">
+
+                    <h3>
+                        Domestic Cat
+                    </h3>
+
+
+                    <div class="pet-meta">
+
+                        <span>
+                            <i class="fa-solid fa-venus"></i>
+                            Female
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            6 Months
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            White &amp; Grey
+                        </span>
+
+                    </div>
+
+
+                    <div class="pet-date">
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                        Found on 27 Aug 2026
+
+                    </div>
+
+
+                    <p>
+                        Found near the subway.
+                        Very calm and clean.
+                    </p>
+
+
+                    <button
+                        class="details-btn found-btn"
+                        type="button"
+                    >
+
+                        View Details
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </div>
+
+            </article>
+
+
+
+            <!-- =================================================
+                 CARD 3
+            ================================================== -->
+
+            <article
+                class="pet-card"
+                data-status="lost"
+                data-type="dog"
+                data-location="thane"
+                data-date="2026-08-26"
+                data-name="Beagle"
+                data-poster="Rahul Sharma"
+                data-phone="9876543210"
+                data-email="rahul@example.com"
+            >
+
+                <div class="pet-image">
+
+                    <img
+                        src="../assets/images/adoption/pet3.jpg"
+                        alt="Beagle"
+                    >
+
+                    <span class="status lost">
+                        LOST
+                    </span>
+
+                    <span class="location-tag">
+
+                        <i class="fa-solid fa-location-dot"></i>
+
+                        Thane, Mumbai
+
+                    </span>
+
+                </div>
+
+
+                <div class="pet-info">
+
+                    <h3>
+                        Beagle
+                    </h3>
+
+
+                    <div class="pet-meta">
+
+                        <span>
+                            <i class="fa-solid fa-mars"></i>
+                            Male
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            1.5 Years
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            Tricolor
+                        </span>
+
+                    </div>
+
+
+                    <div class="pet-date">
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                        Lost on 26 Aug 2026
+
+                    </div>
+
+
+                    <p>
+                        Lost during evening walk near
+                        the park.
+                    </p>
+
+
+                    <button
+                        class="details-btn"
+                        type="button"
+                    >
+
+                        View Details
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </div>
+
+            </article>
+
+
+
+            <!-- =================================================
+                 CARD 4
+            ================================================== -->
+
+            <article
+                class="pet-card"
+                data-status="found"
+                data-type="dog"
+                data-location="dadar"
+                data-date="2026-08-25"
+                data-name="Indie Puppy"
+                data-poster="Anjali Mehta"
+                data-phone="7654321098"
+                data-email="anjali@example.com"
+
+            >
+
+                <div class="pet-image">
+
+                    <img
+                        src="../assets/images/adoption/pet4.jpg"
+                        alt="Indie Puppy"
+                    >
+
+                    <span class="status found">
+                        FOUND
+                    </span>
+
+                    <span class="location-tag">
+
+                        <i class="fa-solid fa-location-dot"></i>
+
+                        Dadar, Mumbai
+
+                    </span>
+
+                </div>
+
+
+                <div class="pet-info">
+
+                    <h3>
+                        Indie Puppy
+                    </h3>
+
+
+                    <div class="pet-meta">
+
+                        <span>
+                            <i class="fa-solid fa-mars"></i>
+                            Male
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            3 Months
+                        </span>
+
+                        <b>•</b>
+
+                        <span>
+                            Black
+                        </span>
+
+                    </div>
+
+
+                    <div class="pet-date">
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                        Found on 25 Aug 2026
+
+                    </div>
+
+
+                    <p>
+                        Very playful and hungry.
+                        Please help find the owner.
+                    </p>
+
+
+                    <button
+                        class="details-btn found-btn"
+                        type="button"
+                    >
+
+                        View Details
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+
+        <!-- =================================================
+             NO RESULTS
+        ================================================== -->
+
+        <div
+            class="no-results"
+            id="noResults"
+        >
+
+            <div class="no-results-icon">
+
+                <i class="fa-solid fa-paw"></i>
+
+            </div>
+
+            <h3>
+                No pets found
+            </h3>
+
+            <p>
+                Try changing your search or filters.
+            </p>
+
+            <button
+                id="clearFiltersBtn"
+                class="clear-filters-btn"
+                type="button"
+            >
+                Clear Filters
+            </button>
+
+        </div>
+
+
+
+        <!-- =================================================
+             TIP
+        ================================================== -->
+
+        <section class="help-tip">
+
+            <div class="tip-icon">
+
+                <i class="fa-regular fa-lightbulb"></i>
+
+            </div>
+
+            <p>
+
+                <strong>
+                    Tip:
+                </strong>
+
+                If you see a pet that looks like yours,
+                please contact the poster immediately.
+
+            </p>
+
+
+            <div class="tip-paws">
+
+                <i class="fa-solid fa-paw"></i>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+====================================================== -->
+
+<script src="../js/lost-found.js"></script>
+
+<script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+<script src="../js/theme.js"></script>
+
+</body>
+
+</html>

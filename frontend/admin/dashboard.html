@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet Admin - Dashboard</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body data-page="dashboard">
+
+  <div class="admin-wrap">
+
+    <aside class="admin-sidebar" id="adminSidebar"></aside>
+
+    <main class="admin-main">
+
+      <header class="admin-topbar">
+        <div>
+          <h2>Admin Dashboard <span>🌸</span></h2>
+          <p>Overview of your Famipet platform.</p>
+        </div>
+        <div class="admin-actions">
+          <div class="admin-user-chip">
+            <img id="adminAvatar" src="../assets/images/dashboard/user-profile.svg" alt="Admin" />
+            <div>
+              <strong id="adminUserName">Admin</strong>
+              <small>Administrator</small>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats-grid" id="statsGrid">
+        <div class="admin-loading admin-card">Loading statistics...</div>
+      </section>
+
+      <section class="admin-card" style="margin-bottom:1.4rem;">
+        <h4 style="margin-bottom:1rem;color:#1e293b;">
+          <i class="fa-solid fa-clock-rotate-left" style="color:#ff5c8a;margin-right:0.4rem;"></i>
+          Recent Users
+        </h4>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentUsersBody">
+              <tr><td colspan="4" class="admin-loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/admin-dashboard.js"></script>
+</body>
+</html>

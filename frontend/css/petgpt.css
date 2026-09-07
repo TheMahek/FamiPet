@@ -1,0 +1,2264 @@
+/* =========================================================
+   Famipet - PETGPT
+   COMPLETE CLEAN CSS
+========================================================= */
+
+
+/* =========================================================
+   ROOT
+========================================================= */
+
+:root {
+
+    --bg: #faf9fd;
+
+    --white: #ffffff;
+
+    --text: #17223b;
+
+    --text-light: #65738e;
+
+    --muted: #8b97ad;
+
+    --pink: #ff5d86;
+
+    --pink-light: #ffe8ef;
+
+    --purple: #8d68d8;
+
+    --purple-light: #eee6ff;
+
+    --purple-soft: #f6f1ff;
+
+    --border: #ebe7f3;
+
+    --shadow:
+        0 8px 28px rgba(65, 48, 100, 0.07);
+
+    --shadow-small:
+        0 4px 16px rgba(65, 48, 100, 0.05);
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+
+    box-sizing: border-box;
+
+}
+
+
+html,
+body {
+
+    width: 100%;
+
+    height: 100%;
+
+    margin: 0;
+
+    padding: 0;
+
+}
+
+
+body {
+
+    background: var(--bg);
+
+    color: var(--text);
+
+    font-family: "Poppins", sans-serif;
+
+    overflow: hidden !important;
+
+}
+
+
+button,
+input {
+
+    font-family: inherit;
+
+}
+
+
+/* =========================================================
+   APP CONTAINER
+========================================================= */
+
+.app-container {
+
+    width: 100%;
+
+    height: 100vh;
+
+    display: flex;
+
+    flex-direction: row;
+
+    overflow: hidden !important;
+
+}
+
+
+/* =========================================================
+   SIDEBAR COLUMN
+========================================================= */
+
+.app-container > #sidebar-container {
+
+    width: 288px !important;
+
+    min-width: 288px !important;
+
+    flex: 0 0 288px !important;
+
+    height: 100vh;
+
+    position: relative;
+
+    z-index: 1000;
+
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.app-container > .main-content,
+.app-container > .main-content.ann-main {
+
+    width: auto !important;
+
+    min-width: 0 !important;
+
+    height: 100vh !important;
+
+    min-height: 0 !important;
+
+    flex: 1 1 auto !important;
+
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    overflow: hidden !important;
+
+    position: relative;
+
+    background: var(--bg);
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.petgpt-header {
+
+    width: 100%;
+
+    height: 82px;
+
+    min-height: 82px;
+
+    padding:
+        15px 30px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-start;
+
+}
+
+
+/* =========================================================
+   HEADER TITLE
+========================================================= */
+
+.header-title {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+
+}
+
+
+.petgpt-title-icon {
+
+    width: 48px;
+
+    height: 48px;
+
+    border-radius: 15px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            145deg,
+            #eee5ff,
+            #f5ecff
+        );
+
+    color: var(--purple);
+
+    flex-shrink: 0;
+
+}
+
+
+.petgpt-title-icon svg {
+
+    width: 25px;
+
+    height: 25px;
+
+}
+
+
+.header-title h1 {
+
+    margin: 0;
+
+    font-size: 28px;
+
+    line-height: 1.15;
+
+    font-weight: 700;
+
+    color: var(--text);
+
+}
+
+
+.header-title p {
+
+    margin: 4px 0 0;
+
+    color: var(--text-light);
+
+    font-size: 13px;
+
+}
+
+
+/* =========================================================
+   ONLINE BADGE
+========================================================= */
+
+.online-badge {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    margin-left: 2px;
+
+    padding:
+        5px 9px;
+
+    border-radius: 20px;
+
+    background: #effaf4;
+
+    color: #42a86b;
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+}
+
+
+.online-badge span {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #49c477;
+
+}
+
+
+/* =========================================================
+   REMOVE HEADER CONTROLS
+========================================================= */
+
+.header-actions,
+.search-box,
+.sun-btn,
+.moon-btn,
+.notification-btn,
+.header-btn {
+
+    display: none !important;
+
+}
+
+
+/* =========================================================
+   PETGPT LAYOUT
+========================================================= */
+
+.petgpt-layout {
+
+    width: 100%;
+
+    height:
+        calc(100vh - 82px);
+
+    min-height: 0;
+
+    padding:
+        0 30px 18px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        300px;
+
+    gap: 20px;
+
+    overflow: hidden !important;
+
+}
+
+
+/* =========================================================
+   CHAT SECTION
+========================================================= */
+
+.chat-section {
+
+    width: 100%;
+
+    height: 100%;
+
+    min-height: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden !important;
+
+    position: relative;
+
+    background: var(--white);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 24px;
+
+    box-shadow: var(--shadow);
+
+}
+
+
+/* =========================================================
+   WELCOME CARD
+========================================================= */
+
+.welcome-card {
+
+    width: calc(100% - 36px);
+
+    height: 210px;
+
+    min-height: 210px;
+
+    margin:
+        18px;
+
+    margin-bottom: 8px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            120deg,
+            #f4efff,
+            #fff0f7
+        );
+
+    border:
+        1px solid #eee3fa;
+
+    display: flex;
+
+    align-items: center;
+
+    position: relative;
+
+    overflow: hidden;
+
+    flex-shrink: 0;
+
+}
+
+
+/* =========================================================
+   ROBOT AREA
+========================================================= */
+
+.robot-area {
+
+    width: 320px;
+
+    height: 100%;
+
+    position: relative;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: center;
+
+}
+
+
+/* =========================================================
+   HEART BUBBLE
+========================================================= */
+
+/* .heart-bubble {
+
+    position: absolute;
+
+    top: 18px;
+
+    right: 65px;
+
+    width: 65px;
+
+    height: 65px;
+
+    border-radius: 50%;
+
+    background: #ffffff;
+
+    color: var(--pink);
+
+    font-size: 30px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    box-shadow:
+        0 5px 18px
+        rgba(100, 70, 130, 0.10);
+
+    z-index: 5;
+
+} */
+
+
+/* =========================================================
+   LARGE PETGPT IMAGE
+========================================================= */
+
+.petgpt-image {
+
+    width: 280px;
+
+    height: 205px;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: center;
+
+}
+
+
+.petgpt-image img {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: contain;
+
+    object-position: center bottom;
+
+    display: block;
+
+}
+
+
+/* =========================================================
+   WELCOME CONTENT
+========================================================= */
+
+.welcome-content {
+
+    flex: 1;
+
+    min-width: 0;
+
+    padding:
+        20px 30px 20px 0;
+
+    position: relative;
+
+    z-index: 2;
+
+}
+
+
+.welcome-content h2 {
+
+    margin:
+        0 0 8px;
+
+    color: #7950ce;
+
+    font-size: 27px;
+
+    font-weight: 700;
+
+}
+
+
+.welcome-main {
+
+    margin:
+        0 0 10px;
+
+    font-size: 17px;
+
+    color: var(--text);
+
+    font-weight: 500;
+
+}
+
+
+.welcome-sub {
+
+    margin: 0;
+
+    max-width: 520px;
+
+    color: #65738e;
+
+    font-size: 14px;
+
+    line-height: 1.8;
+
+}
+
+
+/* =========================================================
+   WELCOME DECORATION
+========================================================= */
+
+.welcome-decoration {
+
+    position: absolute;
+
+    right: 18px;
+
+    top: 40px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    color: #b8a4d7;
+
+    font-size: 25px;
+
+    opacity: 0.55;
+
+}
+
+
+/* =========================================================
+   CHAT MESSAGES
+   ONLY THIS AREA SCROLLS
+========================================================= */
+
+.chat-messages {
+
+    flex:
+        1 1 auto;
+
+    min-height: 0;
+
+    height: auto;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+
+    padding:
+        5px 20px 15px;
+
+    scroll-behavior: smooth;
+
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.chat-messages::-webkit-scrollbar,
+.petgpt-right-panel::-webkit-scrollbar {
+
+    width: 6px;
+
+}
+
+
+.chat-messages::-webkit-scrollbar-track,
+.petgpt-right-panel::-webkit-scrollbar-track {
+
+    background: transparent;
+
+}
+
+
+.chat-messages::-webkit-scrollbar-thumb,
+.petgpt-right-panel::-webkit-scrollbar-thumb {
+
+    background: #ddd3ed;
+
+    border-radius: 10px;
+
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.message {
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 10px;
+
+    margin:
+        10px 0 18px;
+
+}
+
+
+.ai-message {
+
+    justify-content: flex-start;
+
+}
+
+
+.user-message {
+
+    justify-content: flex-end;
+
+}
+
+
+/* =========================================================
+   MESSAGE BUBBLE
+========================================================= */
+
+.message-bubble {
+
+    max-width: 72%;
+
+    padding:
+        13px 17px;
+
+    border-radius: 17px;
+
+    border:
+        1px solid var(--border);
+
+    background: #ffffff;
+
+    box-shadow:
+        0 4px 14px
+        rgba(70, 50, 100, 0.035);
+
+    color: var(--text);
+
+    font-size: 13px;
+
+    line-height: 1.65;
+
+}
+
+
+.message-bubble p {
+
+    margin:
+        0 0 5px;
+
+}
+
+
+.message-bubble p:last-of-type {
+
+    margin-bottom: 0;
+
+}
+
+
+.message-bubble small {
+
+    display: block;
+
+    text-align: right;
+
+    margin-top: 7px;
+
+    color: #8c97aa;
+
+    font-size: 9px;
+
+}
+
+
+/* =========================================================
+   AI BUBBLE
+========================================================= */
+
+.ai-message .message-bubble {
+
+    background: #ffffff;
+
+}
+
+
+/* =========================================================
+   USER BUBBLE
+========================================================= */
+
+.user-message .message-bubble {
+
+    background:
+        linear-gradient(
+            135deg,
+            #f1eaff,
+            #f8efff
+        );
+
+    border-color: #e5d9f7;
+
+}
+
+
+/* =========================================================
+   CHECKS
+========================================================= */
+
+.checks {
+
+    color: #8764d2;
+
+    font-weight: 700;
+
+    margin-left: 3px;
+
+}
+
+
+/* =========================================================
+   USER AVATAR
+========================================================= */
+
+.user-avatar {
+
+    width: 44px;
+
+    height: 44px;
+
+    min-width: 44px;
+
+    min-height: 44px;
+
+    border-radius: 50%;
+
+    overflow: hidden;
+
+    flex-shrink: 0;
+
+    background: #ffe9f0;
+
+    border:
+        1px solid #f2dce4;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+}
+
+
+.user-avatar img {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    display: block;
+
+}
+
+
+/* =========================================================
+   AI AVATAR
+========================================================= */
+
+.ai-avatar {
+
+    width: 44px;
+
+    height: 44px;
+
+    min-width: 44px;
+
+    min-height: 44px;
+
+    border-radius: 50%;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #f0e9ff;
+
+    border:
+        1px solid #e2d8f6;
+
+}
+
+
+/* =========================================================
+   MINI ROBOT
+========================================================= */
+
+.mini-robot {
+
+    position: relative;
+
+    width: 28px;
+
+    height: 23px;
+
+    border:
+        2px solid #9a7bd5;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+}
+
+
+/* =========================================================
+   MINI ROBOT EYES
+========================================================= */
+
+.mini-eye {
+
+    width: 4px;
+
+    height: 4px;
+
+    background: #8d68d8;
+
+    border-radius: 50%;
+
+}
+
+
+/* =========================================================
+   MINI ROBOT SMILE
+========================================================= */
+
+.mini-smile {
+
+    position: absolute;
+
+    width: 9px;
+
+    height: 4px;
+
+    border-bottom:
+        2px solid #8d68d8;
+
+    border-radius:
+        0 0 10px 10px;
+
+    bottom: 4px;
+
+}
+
+
+/* =========================================================
+   TYPING DOTS
+========================================================= */
+
+.typing-dots {
+
+    display: flex;
+
+    gap: 4px;
+
+    align-items: center;
+
+}
+
+
+.typing-dots span {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #9a7bd5;
+
+    animation:
+        typing 1s infinite ease-in-out;
+
+}
+
+
+.typing-dots span:nth-child(2) {
+
+    animation-delay: 0.15s;
+
+}
+
+
+.typing-dots span:nth-child(3) {
+
+    animation-delay: 0.3s;
+
+}
+
+
+@keyframes typing {
+
+    0%,
+    60%,
+    100% {
+
+        transform: translateY(0);
+
+        opacity: 0.5;
+
+    }
+
+    30% {
+
+        transform: translateY(-4px);
+
+        opacity: 1;
+
+    }
+
+}
+
+
+/* =========================================================
+   CHAT INPUT AREA
+   ALWAYS STAYS AT BOTTOM
+========================================================= */
+
+.chat-input-area {
+
+    width: 100%;
+
+    flex:
+        0 0 auto;
+
+    min-height: 104px;
+
+    padding:
+        10px 18px 15px;
+
+    background: #ffffff;
+
+    border-top:
+        1px solid #eeeaf3;
+
+    position: relative;
+
+    z-index: 20;
+
+}
+
+
+/* =========================================================
+   INPUT WRAPPER
+========================================================= */
+
+.input-wrapper {
+
+    width: 100%;
+
+    height: 55px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid #e4dced;
+
+    border-radius: 17px;
+
+    padding:
+        5px 7px 5px 20px;
+
+    background: #ffffff;
+
+}
+
+
+.input-wrapper input {
+
+    flex: 1;
+
+    min-width: 0;
+
+    height: 100%;
+
+    border: none;
+
+    outline: none;
+
+    background: transparent;
+
+    color: var(--text);
+
+    font-size: 13px;
+
+}
+
+
+.input-wrapper input::placeholder {
+
+    color: #91a0b8;
+
+}
+
+
+/* =========================================================
+   SEND BUTTON
+========================================================= */
+
+.send-btn {
+
+    width: 48px;
+
+    height: 48px;
+
+    min-width: 48px;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background: #eee4ff;
+
+    color: #8966d5;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition:
+        0.2s ease;
+
+}
+
+
+.send-btn svg {
+
+    width: 23px;
+
+    height: 23px;
+
+}
+
+
+.send-btn:hover {
+
+    background: #e5d7ff;
+
+    transform: translateY(-1px);
+
+}
+
+
+/* =========================================================
+   QUICK QUESTIONS
+========================================================= */
+
+.quick-questions {
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-wrap: nowrap;
+
+    overflow-x: auto;
+
+    overflow-y: hidden;
+
+    padding-top: 9px;
+
+}
+
+
+.quick-questions::-webkit-scrollbar {
+
+    height: 0;
+
+}
+
+
+.quick-question {
+
+    flex:
+        0 0 auto;
+
+    padding:
+        8px 15px;
+
+    border:
+        1px solid #e3d8f1;
+
+    border-radius: 20px;
+
+    background: #ffffff;
+
+    color: #68758f;
+
+    font-size: 10px;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+    transition:
+        0.2s ease;
+
+}
+
+
+.quick-question:hover {
+
+    background: #f5efff;
+
+    border-color: #cdb8ec;
+
+    color: #7958c4;
+
+}
+
+
+/* =========================================================
+   RIGHT PANEL
+========================================================= */
+
+.petgpt-right-panel {
+
+    width: 100%;
+
+    height:
+        calc(100% - 12px);
+
+    min-height: 0;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 18px;
+
+    transform:
+        translateY(-12px);
+
+    padding-top: 0;
+
+}
+
+
+/* =========================================================
+   SIDE CARD
+========================================================= */
+
+.side-card {
+
+    width: 100%;
+
+    flex:
+        0 0 auto;
+
+    padding:
+        20px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 20px;
+
+    background: #ffffff;
+
+    box-shadow: var(--shadow-small);
+
+}
+
+
+/* =========================================================
+   CARD HEADING
+========================================================= */
+
+.card-heading {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 17px;
+
+}
+
+
+.card-heading h3 {
+
+    margin: 0;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+    color: var(--text);
+
+}
+
+
+/* =========================================================
+   HEADING ICON
+========================================================= */
+
+.heading-icon {
+
+    width: 40px;
+
+    height: 40px;
+
+    min-width: 40px;
+
+    border-radius: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+}
+
+
+.heading-icon svg {
+
+    width: 20px;
+
+    height: 20px;
+
+}
+
+
+.heading-icon.purple {
+
+    background: #eee5ff;
+
+    color: #8966d5;
+
+}
+
+
+.heading-icon.yellow {
+
+    background: #fff5d9;
+
+}
+
+
+.heading-icon.pink {
+
+    background: #ffe8ef;
+
+    color: #ff5d86;
+
+}
+
+
+/* =========================================================
+   TOPICS
+========================================================= */
+
+.topic-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+
+}
+
+
+.topic-item {
+
+    width: 100%;
+
+    min-height: 42px;
+
+    border: none;
+
+    background: transparent;
+
+    border-radius: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding:
+        5px 7px;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    color: var(--text);
+
+    transition:
+        0.2s ease;
+
+}
+
+
+.topic-item span {
+
+    width: 36px;
+
+    height: 36px;
+
+    min-width: 36px;
+
+    border-radius: 11px;
+
+    background: #faf6ff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 17px;
+
+}
+
+
+.topic-item strong {
+
+    font-size: 11px;
+
+    font-weight: 500;
+
+}
+
+
+.topic-item:hover {
+
+    background: #f7f2ff;
+
+}
+
+
+/* =========================================================
+   PET CARE CARD
+========================================================= */
+
+.care-card {
+
+    min-height: 250px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #fbf6ff,
+            #f7efff
+        );
+
+    position: relative;
+
+    overflow: hidden;
+
+}
+
+
+.care-card > p {
+
+    margin:
+        0;
+
+    color: #65738e;
+
+    font-size: 12px;
+
+    line-height: 1.8;
+
+    max-width: 220px;
+
+}
+
+
+/* =========================================================
+   WATER BOWL
+========================================================= */
+
+.water-bowl {
+
+    position: relative;
+
+    width: 130px;
+
+    height: 65px;
+
+    margin:
+        35px auto 0;
+
+    border-radius:
+        20px 20px 35px 35px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #a47be1,
+            #8757ce
+        );
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    box-shadow:
+        0 10px 18px
+        rgba(116, 82, 170, 0.15);
+
+}
+
+
+.water-bowl::before {
+
+    content: "";
+
+    position: absolute;
+
+    top: 8px;
+
+    left: 13px;
+
+    right: 13px;
+
+    height: 25px;
+
+    border-radius: 50%;
+
+    background: #e9e2ff;
+
+}
+
+
+.water {
+
+    position: absolute;
+
+    top: 6px;
+
+    font-size: 15px;
+
+    z-index: 2;
+
+}
+
+
+.bowl-paw {
+
+    position: relative;
+
+    z-index: 3;
+
+    margin-top: 23px;
+
+    font-size: 15px;
+
+}
+
+
+/* =========================================================
+   EMERGENCY CARD
+========================================================= */
+
+.emergency-card {
+
+    background:
+        linear-gradient(
+            145deg,
+            #fffafd,
+            #fff3f6
+        );
+
+}
+
+
+.helpline-text {
+
+    margin:
+        0 0 3px;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+}
+
+
+.phone-number {
+
+    display: block;
+
+    color: var(--pink);
+
+    font-size: 20px;
+
+    font-weight: 600;
+
+    margin-bottom: 20px;
+
+}
+
+
+.clinic-text {
+
+    margin:
+        0 0 10px;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+}
+
+
+/* =========================================================
+   FIND CLINIC BUTTON
+========================================================= */
+
+.find-clinic-btn {
+
+    width: 100%;
+
+    height: 40px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background: #ffe5ed;
+
+    color: var(--pink);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        0.2s ease;
+
+}
+
+
+.find-clinic-btn svg {
+
+    width: 15px;
+
+    height: 15px;
+
+}
+
+
+.find-clinic-btn:hover {
+
+    background: var(--pink);
+
+    color: #ffffff;
+
+}
+
+
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+@media (min-width: 851px) {
+
+    .app-container {
+
+        display: flex !important;
+
+        flex-direction: row !important;
+
+        height: 100vh !important;
+
+        overflow: hidden !important;
+
+    }
+
+
+    .app-container > #sidebar-container {
+
+        width: 288px !important;
+
+        min-width: 288px !important;
+
+        flex:
+            0 0 288px !important;
+
+    }
+
+
+    .app-container > .main-content {
+
+        width: auto !important;
+
+        flex:
+            1 1 auto !important;
+
+        height: 100vh !important;
+
+        overflow: hidden !important;
+
+    }
+
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1200px) {
+
+    .petgpt-layout {
+
+        grid-template-columns:
+            minmax(0, 1fr)
+            260px;
+
+        padding:
+            0 20px 15px;
+
+    }
+
+
+    .robot-area {
+
+        width: 250px;
+
+    }
+
+
+    .petgpt-image {
+
+        width: 185px;
+
+    }
+
+
+    .message-bubble {
+
+        max-width: 75%;
+
+    }
+
+
+    .welcome-content {
+
+        padding-right: 20px;
+
+    }
+
+}
+
+
+/* =========================================================
+   SMALLER TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .petgpt-layout {
+
+        grid-template-columns: 1fr;
+
+        overflow-y: auto !important;
+
+    }
+
+
+    .petgpt-right-panel {
+
+        height: auto;
+
+        transform: none;
+
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, 1fr);
+
+        overflow: visible;
+
+    }
+
+
+    .chat-section {
+
+        min-height: 650px;
+
+        height: 650px;
+
+    }
+
+
+    .care-card {
+
+        min-height: 220px;
+
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 850px) {
+
+    html,
+    body {
+
+        overflow: hidden !important;
+
+    }
+
+
+    .app-container {
+
+        display: block !important;
+
+        width: 100%;
+
+        height: 100vh;
+
+        overflow: hidden !important;
+
+    }
+
+
+    .app-container > #sidebar-container {
+
+        width: 0 !important;
+
+        min-width: 0 !important;
+
+        height: 0 !important;
+
+        flex: none !important;
+
+    }
+
+
+    .app-container > .main-content,
+    .app-container > .main-content.ann-main {
+
+        width: 100% !important;
+
+        height: 100vh !important;
+
+        overflow: hidden !important;
+
+    }
+
+
+    .petgpt-header {
+
+        height: 70px;
+
+        min-height: 70px;
+
+        padding:
+            10px 16px;
+
+    }
+
+
+    .petgpt-layout {
+
+        width: 100%;
+
+        height:
+            calc(100vh - 70px);
+
+        padding:
+            0 12px 12px;
+
+        display: block;
+
+        overflow: hidden !important;
+
+    }
+
+
+    .chat-section {
+
+        width: 100%;
+
+        height: 100%;
+
+        min-height: 0;
+
+        border-radius: 20px;
+
+    }
+
+
+    .petgpt-right-panel {
+
+        display: none !important;
+
+    }
+
+
+    .welcome-card {
+
+        height: 175px;
+
+        min-height: 175px;
+
+        margin:
+            12px;
+
+        width: calc(100% - 24px);
+
+    }
+
+
+    .robot-area {
+
+        width: 150px;
+
+    }
+
+
+    .petgpt-image {
+
+        width: 135px;
+
+        height: 155px;
+
+    }
+
+
+    .heart-bubble {
+
+        width: 45px;
+
+        height: 45px;
+
+        font-size: 22px;
+
+        right: 35px;
+
+        top: 15px;
+
+    }
+
+
+    .welcome-content {
+
+        padding:
+            15px 15px 15px 0;
+
+    }
+
+
+    .welcome-content h2 {
+
+        font-size: 21px;
+
+    }
+
+
+    .welcome-main {
+
+        font-size: 12px;
+
+    }
+
+
+    .welcome-sub {
+
+        font-size: 10px;
+
+        line-height: 1.6;
+
+    }
+
+
+    .welcome-decoration {
+
+        display: none;
+
+    }
+
+
+    .message-bubble {
+
+        max-width: 78%;
+
+        font-size: 11px;
+
+    }
+
+
+    .user-avatar,
+    .ai-avatar {
+
+        width: 37px;
+
+        height: 37px;
+
+        min-width: 37px;
+
+        min-height: 37px;
+
+    }
+
+
+    .chat-input-area {
+
+        padding:
+            8px 10px 12px;
+
+    }
+
+
+    .quick-question {
+
+        font-size: 9px;
+
+        padding:
+            7px 11px;
+
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .petgpt-header {
+
+        padding:
+            10px 12px;
+
+    }
+
+
+    .petgpt-title-icon {
+
+        width: 42px;
+
+        height: 42px;
+
+    }
+
+
+    .header-title h1 {
+
+        font-size: 23px;
+
+    }
+
+
+    .header-title p,
+    .online-badge {
+
+        display: none;
+
+    }
+
+
+    .welcome-card {
+
+        height: 160px;
+
+        min-height: 160px;
+
+    }
+
+
+    .robot-area {
+
+        width: 120px;
+
+    }
+
+
+    .petgpt-image {
+
+        width: 115px;
+
+        height: 135px;
+
+    }
+
+
+    .welcome-content h2 {
+
+        font-size: 18px;
+
+    }
+
+
+    .welcome-main {
+
+        font-size: 11px;
+
+    }
+
+
+    .welcome-sub {
+
+        font-size: 9px;
+
+    }
+
+
+    .message-bubble {
+
+        max-width: 82%;
+
+        padding:
+            10px 12px;
+
+        font-size: 10px;
+
+    }
+
+
+    .message {
+
+        gap: 6px;
+
+    }
+
+
+    .input-wrapper {
+
+        height: 50px;
+
+        padding-left: 14px;
+
+    }
+
+
+    .send-btn {
+
+        width: 42px;
+
+        height: 42px;
+
+        min-width: 42px;
+
+    }
+
+}
+
+
+/* =========================================================
+   EXTRA SMALL
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .petgpt-layout {
+
+        padding:
+            0 8px 8px;
+
+    }
+
+
+    .welcome-card {
+
+        margin:
+            8px;
+
+        width:
+            calc(100% - 16px);
+
+    }
+
+
+    .robot-area {
+
+        display: none;
+
+    }
+
+
+    .welcome-content {
+
+        padding:
+            18px;
+
+    }
+
+
+    .welcome-content h2 {
+
+        font-size: 20px;
+
+    }
+
+
+    .welcome-main {
+
+        font-size: 12px;
+
+    }
+
+
+    .welcome-sub {
+
+        font-size: 9px;
+
+    }
+
+
+    .chat-messages {
+
+        padding:
+            5px 10px 10px;
+
+    }
+
+}

@@ -1,0 +1,1845 @@
+/* =========================================================
+   PAGE LAYOUT
+========================================================= */
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+.app-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+#sidebar-container {
+    flex: 0 0 288px;
+}
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 100vh;
+}
+
+/* =========================================================
+   Famipet APPOINTMENTS PAGE
+   Theme: Soft Blue + Lavender
+========================================================= */
+
+:root {
+
+    --appointment-bg: #f3f6fa;
+
+    --white: #ffffff;
+
+    --blue: #5b9bd5;
+    --blue-dark: #477fae;
+    --blue-light: #e3f0fc;
+
+    --purple: #9b8fd3;
+    --purple-light: #eae4f7;
+
+    --pink: #e58baa;
+    --pink-light: #f8e5eb;
+
+    --orange: #f2a65a;
+    --orange-light: #fff0dd;
+
+    --text-dark: #243b53;
+    --text-muted: #687b8c;
+    --text-light: #94a4b1;
+
+    --border: #e4ebf0;
+
+    --radius: 20px;
+
+    --shadow:
+        0 8px 25px rgba(54, 79, 101, 0.06);
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.main-content {
+    background: var(--appointment-bg);
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 2rem 2.5rem 1.3rem;
+}
+
+.page-title-group h1 {
+    margin: 0;
+
+    font-size: 2rem;
+    font-weight: 800;
+
+    color: var(--text-dark);
+}
+
+.page-title-group h1 i {
+    color: var(--blue);
+    margin-left: 0.3rem;
+}
+
+.subtitle {
+    margin-top: 0.5rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.82rem;
+}
+
+.top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+.search-box {
+    width: 255px;
+
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+
+    padding: 0.7rem 1rem;
+
+    background: white;
+
+    border: 1px solid var(--border);
+    border-radius: 50px;
+
+    box-shadow: 0 3px 12px rgba(50, 70, 90, 0.03);
+
+    transition: 0.25s ease;
+}
+
+.search-box:focus-within {
+    border-color: #a9cdec;
+
+    box-shadow:
+        0 0 0 4px rgba(91, 155, 213, 0.1);
+}
+
+.search-box i {
+    color: var(--text-light);
+}
+
+.search-box input {
+    width: 100%;
+
+    border: none;
+    outline: none;
+
+    font-family: inherit;
+
+    font-size: 0.78rem;
+
+    color: var(--text-dark);
+}
+
+.search-box input::placeholder {
+    color: var(--text-light);
+}
+
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+.notification-wrapper {
+    position: relative;
+}
+
+.notification-btn {
+    position: relative;
+
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: white;
+
+    border: 1px solid var(--border);
+    border-radius: 50%;
+
+    color: var(--text-muted);
+
+    cursor: pointer;
+
+    transition: 0.25s ease;
+}
+
+.notification-btn:hover {
+    color: var(--blue);
+    border-color: #b9d5eb;
+
+    transform: translateY(-2px);
+}
+
+.notification-btn .badge {
+    position: absolute;
+
+    top: 3px;
+    right: 3px;
+
+    width: 16px;
+    height: 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #e53935;
+    color: white;
+
+    font-size: 0.58rem;
+    font-weight: 800;
+}
+
+
+/* Notification panel */
+
+.notification-panel {
+    position: absolute;
+
+    top: calc(100% + 0.7rem);
+    right: 0;
+
+    width: 330px;
+
+    padding: 0.8rem;
+
+    background: white;
+
+    border: 1px solid var(--border);
+    border-radius: 16px;
+
+    box-shadow:
+        0 18px 45px rgba(36, 59, 83, 0.14);
+
+    z-index: 100;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform: translateY(-6px);
+
+    transition: 0.2s ease;
+}
+
+.notification-panel.open {
+    opacity: 1;
+    visibility: visible;
+
+    transform: translateY(0);
+}
+
+.notification-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 0.35rem 0.35rem 0.7rem;
+
+    border-bottom: 1px solid #eef2f5;
+}
+
+.notification-panel-header strong {
+    display: block;
+
+    color: var(--text-dark);
+
+    font-size: 0.78rem;
+}
+
+.notification-panel-header span {
+    display: block;
+
+    margin-top: 0.15rem;
+
+    color: var(--text-light);
+
+    font-size: 0.6rem;
+}
+
+.notification-panel-header button {
+    border: none;
+    background: transparent;
+
+    color: var(--blue-dark);
+
+    font-family: inherit;
+
+    font-size: 0.6rem;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.notification-item {
+    display: flex;
+    gap: 0.65rem;
+
+    padding: 0.75rem 0.35rem;
+
+    border-bottom: 1px solid #f0f3f6;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-dot {
+    width: 8px;
+    height: 8px;
+
+    flex: 0 0 8px;
+
+    margin-top: 0.35rem;
+
+    border-radius: 50%;
+
+    background: #e53935;
+}
+
+.notification-item.read .notification-dot {
+    background: #d8e0e6;
+}
+
+.notification-item strong {
+    display: block;
+
+    font-size: 0.66rem;
+
+    color: var(--text-dark);
+}
+
+.notification-item p {
+    margin-top: 0.18rem;
+
+    font-size: 0.58rem;
+    line-height: 1.45;
+
+    color: var(--text-muted);
+}
+
+.notification-empty {
+    padding: 1rem;
+
+    text-align: center;
+
+    color: var(--text-muted);
+
+    font-size: 0.65rem;
+}
+
+
+/* =========================================================
+   BOOK BUTTON
+========================================================= */
+
+.book-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    padding: 0.72rem 1.15rem;
+
+    border: none;
+    border-radius: 50px;
+
+    background: var(--blue);
+    color: white;
+
+    font-family: inherit;
+
+    font-size: 0.78rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 7px 18px rgba(91, 155, 213, 0.25);
+
+    transition: 0.25s ease;
+}
+
+.book-btn:hover {
+    background: var(--blue-dark);
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.appointment-page {
+    padding: 0 2.5rem 2rem;
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
+.appointment-stats {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 1rem;
+
+    margin-bottom: 1.3rem;
+}
+
+.appointment-stat-card {
+    display: flex;
+    align-items: center;
+
+    gap: 0.8rem;
+
+    padding: 1rem;
+
+    background: white;
+
+    border: 1px solid var(--border);
+
+    border-radius: 18px;
+
+    box-shadow: var(--shadow);
+
+    transition: 0.25s ease;
+}
+
+.appointment-stat-card:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 13px 30px rgba(54, 79, 101, 0.09);
+}
+
+.stat-icon {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 14px;
+
+    font-size: 1rem;
+}
+
+.stat-icon.blue {
+    background: var(--blue-light);
+    color: var(--blue);
+}
+
+.stat-icon.purple {
+    background: var(--purple-light);
+    color: var(--purple);
+}
+
+.stat-icon.orange {
+    background: var(--orange-light);
+    color: var(--orange);
+}
+
+.stat-icon.pink {
+    background: var(--pink-light);
+    color: var(--pink);
+}
+
+.appointment-stat-card span {
+    display: block;
+
+    font-size: 0.67rem;
+
+    color: var(--text-muted);
+}
+
+.appointment-stat-card strong {
+    display: block;
+
+    margin-top: 0.15rem;
+
+    font-size: 1.35rem;
+
+    color: var(--text-dark);
+}
+
+.appointment-stat-card small {
+    display: block;
+
+    margin-top: 0.12rem;
+
+    font-size: 0.57rem;
+
+    color: var(--text-light);
+}
+
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.appointment-main-grid {
+    display: grid;
+
+    grid-template-columns: 1.45fr 0.85fr;
+
+    gap: 1rem;
+
+    margin-bottom: 1rem;
+}
+
+.appointment-lower-grid {
+    display: grid;
+
+    grid-template-columns: 1.45fr 0.85fr;
+
+    gap: 1rem;
+
+    margin-bottom: 1rem;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.appointment-card {
+    background: white;
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+
+    overflow: hidden;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 1.15rem 1.3rem;
+
+    border-bottom: 1px solid #edf1f4;
+}
+
+.section-label {
+    display: block;
+
+    margin-bottom: 0.2rem;
+
+    color: var(--blue);
+
+    font-size: 0.6rem;
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
+}
+
+.card-header h2 {
+    margin: 0;
+
+    font-size: 1rem;
+
+    color: var(--text-dark);
+}
+
+.view-all-btn {
+    border: none;
+    background: transparent;
+
+    color: var(--blue-dark);
+
+    font-family: inherit;
+
+    font-size: 0.65rem;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.view-all-btn:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   UPCOMING
+========================================================= */
+
+.upcoming-list {
+    padding: 0 1.3rem;
+}
+
+.appointment-item {
+    display: flex;
+    align-items: center;
+
+    gap: 0.9rem;
+
+    padding: 1rem 0;
+
+    border-bottom: 1px solid #edf1f4;
+}
+
+.appointment-item:last-child {
+    border-bottom: none;
+}
+
+.pet-photo {
+    width: 72px;
+    height: 72px;
+
+    flex: 0 0 72px;
+
+    overflow: hidden;
+
+    border-radius: 17px;
+
+    background: var(--blue-light);
+}
+
+.pet-photo img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.appointment-info {
+    flex: 1;
+}
+
+.appointment-info h3 {
+    margin: 0 0 0.25rem;
+
+    font-size: 0.9rem;
+
+    color: var(--text-dark);
+}
+
+.appointment-type {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    margin-bottom: 0.35rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.65rem;
+}
+
+.appointment-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.appointment-details span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.6rem;
+}
+
+.appointment-details i {
+    width: 12px;
+
+    color: var(--text-light);
+}
+
+.status-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    gap: 0.7rem;
+}
+
+.status-badge {
+    padding: 0.3rem 0.65rem;
+
+    border-radius: 50px;
+
+    background: #e8f6f2;
+    color: #3a9b86;
+
+    font-size: 0.58rem;
+    font-weight: 700;
+}
+
+.appointment-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.reschedule-btn,
+.more-btn {
+    border: 1px solid #d9e6ef;
+
+    background: white;
+
+    color: var(--blue-dark);
+
+    border-radius: 8px;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.reschedule-btn {
+    padding: 0.4rem 0.65rem;
+
+    font-size: 0.58rem;
+    font-weight: 700;
+}
+
+.more-btn {
+    width: 30px;
+    height: 30px;
+}
+
+.reschedule-btn:hover,
+.more-btn:hover {
+    background: var(--blue-light);
+
+    border-color: #bcd8ed;
+}
+
+
+/* =========================================================
+   CALENDAR
+========================================================= */
+
+.calendar-card {
+    min-height: 100%;
+}
+
+.calendar-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.calendar-controls button {
+    width: 26px;
+    height: 26px;
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--text-muted);
+
+    cursor: pointer;
+
+    border-radius: 50%;
+}
+
+.calendar-controls button:hover {
+    background: var(--blue-light);
+    color: var(--blue);
+}
+
+.calendar-controls strong {
+    min-width: 100px;
+
+    text-align: center;
+
+    color: var(--text-dark);
+
+    font-size: 0.65rem;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+    display: grid;
+
+    grid-template-columns: repeat(7, 1fr);
+
+    padding: 0 1rem;
+}
+
+.calendar-weekdays {
+    margin-top: 1rem;
+
+    margin-bottom: 0.4rem;
+}
+
+.calendar-weekdays span {
+    text-align: center;
+
+    color: var(--text-light);
+
+    font-size: 0.58rem;
+    font-weight: 700;
+}
+
+.calendar-grid {
+    row-gap: 0.3rem;
+}
+
+.calendar-day {
+    min-height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+
+    border-radius: 50%;
+
+    color: var(--text-dark);
+
+    font-size: 0.62rem;
+
+    cursor: pointer;
+}
+
+.calendar-day:hover {
+    background: var(--blue-light);
+}
+
+.calendar-day.other-month {
+    color: #c5ced5;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--blue);
+}
+
+.calendar-day.has-blue::after,
+.calendar-day.has-pink::after {
+    content: "";
+
+    position: absolute;
+
+    bottom: 3px;
+
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+}
+
+.calendar-day.has-blue::after {
+    background: var(--blue);
+}
+
+.calendar-day.has-pink::after {
+    background: var(--pink);
+}
+
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.8rem;
+
+    margin: 1rem;
+
+    padding-top: 0.8rem;
+
+    border-top: 1px solid #edf1f4;
+
+    color: var(--text-muted);
+
+    font-size: 0.58rem;
+}
+
+.calendar-legend > div {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+}
+
+.blue-dot {
+    background: var(--blue);
+}
+
+.pink-dot {
+    background: var(--pink);
+}
+
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+.history-list {
+    padding: 0 1.3rem;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+
+    gap: 0.8rem;
+
+    padding: 0.85rem 0;
+
+    border-bottom: 1px solid #edf1f4;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-photo {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    overflow: hidden;
+
+    border-radius: 13px;
+}
+
+.history-photo img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.history-info {
+    flex: 1;
+}
+
+.history-info strong {
+    display: block;
+
+    font-size: 0.72rem;
+
+    color: var(--text-dark);
+}
+
+.history-info span {
+    display: block;
+
+    margin-top: 0.18rem;
+
+    font-size: 0.58rem;
+
+    color: var(--text-muted);
+}
+
+.history-status {
+    padding: 0.3rem 0.6rem;
+
+    border-radius: 50px;
+
+    font-size: 0.55rem;
+    font-weight: 700;
+}
+
+.history-status.completed {
+    background: #e8f6f2;
+    color: #3a9b86;
+}
+
+.history-status.cancelled {
+    background: var(--pink-light);
+    color: #c76582;
+}
+
+.history-view-btn {
+    padding: 0.4rem 0.65rem;
+
+    border: 1px solid #d9e6ef;
+
+    background: white;
+
+    border-radius: 8px;
+
+    color: var(--blue-dark);
+
+    font-family: inherit;
+
+    font-size: 0.55rem;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.history-view-btn:hover {
+    background: var(--blue-light);
+}
+
+
+/* =========================================================
+   QUICK ACTIONS
+========================================================= */
+
+.quick-actions {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 0.7rem;
+
+    padding: 1rem 1.3rem 1.3rem;
+}
+
+.quick-action {
+    display: flex;
+    align-items: center;
+
+    gap: 0.7rem;
+
+    padding: 0.85rem;
+
+    text-align: left;
+
+    border: 1px solid transparent;
+
+    border-radius: 14px;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition: 0.25s ease;
+}
+
+.quick-action:hover {
+    transform: translateY(-2px);
+}
+
+.blue-action {
+    background: #eef6fd;
+    border-color: #dcecf9;
+}
+
+.purple-action {
+    background: #f1eef9;
+    border-color: #e5def3;
+}
+
+.lavender-action {
+    background: #f4f0fa;
+    border-color: #e7dff4;
+}
+
+.orange-action {
+    background: #fff5e8;
+    border-color: #f9e8cf;
+}
+
+.quick-icon {
+    width: 38px;
+    height: 38px;
+
+    flex: 0 0 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: white;
+
+    box-shadow: 0 3px 10px rgba(40, 60, 80, 0.05);
+}
+
+.blue-action .quick-icon {
+    color: var(--blue);
+}
+
+.purple-action .quick-icon,
+.lavender-action .quick-icon {
+    color: var(--purple);
+}
+
+.orange-action .quick-icon {
+    color: var(--orange);
+}
+
+.quick-action strong {
+    display: block;
+
+    color: var(--text-dark);
+
+    font-size: 0.63rem;
+}
+
+.quick-action span {
+    display: block;
+
+    margin-top: 0.2rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.53rem;
+}
+
+
+/* =========================================================
+   BANNER
+========================================================= */
+
+.appointment-banner {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.8rem;
+
+    min-height: 70px;
+
+    padding: 0.9rem 1.2rem;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            100deg,
+            #eaf4fb,
+            #f3eff9
+        );
+
+    border: 1px solid #e0eaf1;
+
+    border-radius: 18px;
+}
+
+.banner-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: white;
+
+    color: var(--blue);
+
+    box-shadow: 0 4px 12px rgba(50, 80, 100, 0.08);
+}
+
+.appointment-banner strong {
+    display: block;
+
+    color: var(--text-dark);
+
+    font-size: 0.72rem;
+}
+
+.appointment-banner p {
+    margin-top: 0.2rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.58rem;
+}
+
+.banner-paw {
+    position: absolute;
+
+    right: 3rem;
+
+    bottom: -0.8rem;
+
+    font-size: 4rem;
+
+    color: rgba(91, 155, 213, 0.1);
+
+    transform: rotate(-15deg);
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.empty-state {
+    padding: 2rem;
+
+    text-align: center;
+
+    color: var(--text-muted);
+
+    font-size: 0.7rem;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.appointment-modal {
+    position: fixed;
+
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 1rem;
+
+    background: rgba(30, 45, 60, 0.35);
+
+    z-index: 500;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition: 0.2s ease;
+}
+
+.appointment-modal.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-box {
+    width: min(500px, 100%);
+
+    background: white;
+
+    border-radius: 22px;
+
+    padding: 1.5rem;
+
+    box-shadow:
+        0 25px 70px rgba(25, 45, 65, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 1.2rem;
+}
+
+.modal-header h2 {
+    margin: 0;
+
+    color: var(--text-dark);
+
+    font-size: 1.1rem;
+}
+
+.close-modal {
+    width: 32px;
+    height: 32px;
+
+    border: none;
+
+    background: #f2f5f7;
+
+    border-radius: 50%;
+
+    cursor: pointer;
+
+    color: var(--text-muted);
+}
+
+.form-group {
+    margin-bottom: 0.9rem;
+}
+
+.form-group label {
+    display: block;
+
+    margin-bottom: 0.35rem;
+
+    color: var(--text-dark);
+
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.form-group input,
+.form-group select {
+    width: 90%;
+
+    padding: 0.7rem 0.8rem;
+
+    border: 1px solid var(--border);
+
+    border-radius: 10px;
+
+    outline: none;
+
+    font-family: inherit;
+
+    color: var(--text-dark);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #9ec6e6;
+
+    box-shadow:
+        0 0 0 3px rgba(91, 155, 213, 0.08);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 0.6rem;
+
+    margin-top: 1.2rem;
+}
+
+.cancel-modal-btn,
+.save-appointment-btn {
+    padding: 0.65rem 1rem;
+
+    border-radius: 10px;
+
+    font-family: inherit;
+
+    font-size: 0.65rem;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.cancel-modal-btn {
+    border: 1px solid var(--border);
+
+    background: white;
+
+    color: var(--text-muted);
+}
+
+.save-appointment-btn {
+    border: none;
+
+    background: var(--blue);
+
+    color: white;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .top-bar {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 1rem;
+    }
+
+    .top-bar-actions {
+        width: 100%;
+    }
+
+    .search-box {
+        flex: 1;
+    }
+
+    .appointment-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .appointment-main-grid,
+    .appointment-lower-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+@media (max-width: 700px) {
+
+    .appointment-page {
+        padding: 0 1rem 1.5rem;
+    }
+
+    .top-bar {
+        padding: 1.5rem 1rem 1rem;
+    }
+
+    .top-bar-actions {
+        flex-wrap: wrap;
+    }
+
+    .search-box {
+        width: 100%;
+        flex-basis: 100%;
+    }
+
+    .book-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .appointment-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .appointment-item {
+        align-items: flex-start;
+    }
+
+    .status-column {
+        display: none;
+    }
+
+    .calendar-controls strong {
+        min-width: 80px;
+    }
+}
+
+/* =========================================================
+   RESCHEDULE MODAL
+========================================================= */
+
+.reschedule-box {
+    width: min(430px, 100%);
+}
+
+
+/* Pet information */
+
+.reschedule-pet-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+
+    padding: 0.85rem;
+
+    margin-bottom: 1.1rem;
+
+    background: #f3f7fc;
+
+    border: 1px solid #e1ebf4;
+
+    border-radius: 14px;
+}
+
+.reschedule-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #e3f0fc;
+
+    color: #5b9bd5;
+
+    border-radius: 12px;
+}
+
+.reschedule-pet-info strong {
+    display: block;
+
+    color: #243b53;
+
+    font-size: 0.78rem;
+}
+
+.reschedule-pet-info span {
+    display: block;
+
+    margin-top: 0.2rem;
+
+    color: #687b8c;
+
+    font-size: 0.6rem;
+}
+
+
+/* Form */
+
+.reschedule-box .form-group {
+    margin-bottom: 1rem;
+}
+
+.reschedule-box input {
+    background: #fbfdff;
+
+    cursor: pointer;
+}
+
+.reschedule-box input:hover {
+    border-color: #a9cdec;
+}
+
+
+/* Save button */
+
+.save-appointment-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    transition: 0.2s ease;
+}
+
+.save-appointment-btn:hover {
+    background: #477fae;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   CUSTOM SUCCESS MESSAGE
+========================================================= */
+
+.appointment-message {
+    position: fixed;
+
+    top: 25px;
+    left: 50%;
+
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+
+    padding: 0.75rem 1.1rem;
+
+    background: white;
+
+    border: 1px solid #dce8f0;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 12px 35px rgba(36, 59, 83, 0.15);
+
+    color: #243b53;
+
+    font-size: 0.68rem;
+    font-weight: 600;
+
+    z-index: 1000;
+
+    opacity: 0;
+
+    transform:
+        translate(-50%, -15px);
+
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+
+.appointment-message.show {
+    opacity: 1;
+
+    transform:
+        translate(-50%, 0);
+}
+
+.message-icon {
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #e3f0fc;
+
+    color: #5b9bd5;
+}
+
+/* =========================================================
+   UPCOMING APPOINTMENTS
+========================================================= */
+
+.upcoming-list {
+    padding: 0 1.3rem;
+}
+
+.appointment-item {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    align-items: center;
+
+    column-gap: 1rem;
+
+    padding: 1.15rem 0;
+
+    border-bottom: 1px solid #edf1f4;
+
+    transition: background 0.2s ease;
+}
+
+.appointment-item:last-child {
+    border-bottom: none;
+}
+
+/* Subtle hover */
+.appointment-item:hover {
+    transform: none;
+    background: #fafcff;
+}
+
+
+/* =========================================================
+   PET IMAGE
+========================================================= */
+
+.pet-photo {
+    width: 72px;
+    height: 72px;
+
+    flex: none;
+
+    overflow: hidden;
+
+    border-radius: 18px;
+
+    background: #f4f8fc;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    transition: transform 0.2s ease;
+}
+
+.pet-photo img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.appointment-item:hover .pet-photo {
+    transform: scale(1.02);
+}
+
+
+/* =========================================================
+   APPOINTMENT INFORMATION
+========================================================= */
+
+.appointment-info {
+    min-width: 0;
+}
+
+.appointment-info h3 {
+    margin: 0 0 0.3rem;
+
+    font-size: 1rem;
+    font-weight: 700;
+
+    color: var(--text-dark);
+}
+
+.appointment-type {
+    display: flex;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin-bottom: 0.4rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.68rem;
+}
+
+.appointment-type i {
+    color: var(--blue);
+}
+
+.appointment-details {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0.25rem;
+}
+
+.appointment-details span {
+    display: flex;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    color: var(--text-muted);
+
+    font-size: 0.63rem;
+}
+
+.appointment-details i {
+    width: 13px;
+
+    color: #8fa7bb;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   RIGHT SIDE
+========================================================= */
+
+.status-column {
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    gap: 0.65rem;
+
+    min-width: 125px;
+}
+
+.status-badge {
+    padding: 0.35rem 0.75rem;
+
+    border-radius: 50px;
+
+    background: #e8f6f2;
+
+    color: #329783;
+
+    font-size: 0.6rem;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.appointment-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 0.4rem;
+}
+
+
+/* =========================================================
+   RESCHEDULE BUTTON
+========================================================= */
+
+.reschedule-btn,
+.more-btn {
+    border: 1px solid #d7e4ee;
+
+    background: #ffffff;
+
+    color: var(--blue-dark);
+
+    border-radius: 10px;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.reschedule-btn {
+    height: 37px;
+
+    padding: 0 0.8rem;
+
+    font-size: 0.6rem;
+    font-weight: 700;
+}
+
+.reschedule-btn:hover {
+    background: #f8fbfe;
+
+    border-color: #d7e4ee;
+
+    transform: none;
+}
+
+
+/* =========================================================
+   CLOSE / MORE BUTTON
+========================================================= */
+
+.more-btn {
+    width: 37px;
+    height: 37px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 0.8rem;
+}
+
+.more-btn:hover {
+    background: #fffafa;
+
+    border-color: #e5d9db;
+
+    color: #d66d78;
+
+    transform: none;
+}

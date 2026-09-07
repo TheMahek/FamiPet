@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Famipet - Reminders</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    >
+
+    <!-- Sidebar -->
+    <link rel="stylesheet" href="../css/sidebar.css">
+
+    <!-- Reminder CSS -->
+    <link rel="stylesheet" href="../css/reminders.css">
+
+    <!-- Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <!-- UNIVERSAL SIDEBAR -->
+    <div id="sidebar-container"></div>
+
+
+    <!-- ================= MAIN CONTENT ================= -->
+
+    <main class="main-content">
+
+
+        <!-- ================= TOP BAR ================= -->
+
+        <header class="top-bar">
+
+            <div class="page-title-group">
+
+                <div class="title-row">
+
+                    <h1>
+                        Reminders
+                        <i class="fa-solid fa-bell"></i>
+                    </h1>
+
+                </div>
+
+                <p class="subtitle">
+                    Never miss important care for your furry family. 🐾
+                </p>
+
+            </div>
+
+
+            <div class="top-bar-actions">
+
+
+                <!-- SEARCH -->
+
+                <div class="search-box">
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input
+                        type="text"
+                        id="reminderSearch"
+                        placeholder="Search reminders..."
+                    >
+
+                </div>
+
+
+                <!-- ADD REMINDER -->
+
+                <button
+                    class="add-reminder-btn"
+                    id="addReminderBtn"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-plus"></i>
+
+                    Add Reminder
+
+                </button>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- ================= PAGE CONTENT ================= -->
+
+        <section class="reminder-page">
+
+
+            <!-- ================= STATS ================= -->
+
+            <div class="reminder-stats">
+
+
+                <div class="reminder-stat-card green">
+
+                    <div class="stat-icon">
+
+                        <i class="fa-regular fa-bell"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>Upcoming</span>
+
+                        <strong id="upcomingCount">
+                            5
+                        </strong>
+
+                        <small>
+                            Next in 2 days
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="reminder-stat-card blue">
+
+                    <div class="stat-icon">
+
+                        <i class="fa-regular fa-circle-check"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>Completed</span>
+
+                        <strong>
+                            12
+                        </strong>
+
+                        <small>
+                            This month
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="reminder-stat-card orange">
+
+                    <div class="stat-icon">
+
+                        <i class="fa-regular fa-clock"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>Overdue</span>
+
+                        <strong>
+                            1
+                        </strong>
+
+                        <small>
+                            Needs attention
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="reminder-stat-card purple">
+
+                    <div class="stat-icon">
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>All Reminders</span>
+
+                        <strong id="totalCount">
+                            18
+                        </strong>
+
+                        <small>
+                            Total reminders
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ================= MAIN GRID ================= -->
+
+            <div class="reminder-main-grid">
+
+
+                <!-- ================= UPCOMING ================= -->
+
+                <div class="reminder-card upcoming-reminders">
+
+                    <div class="card-header">
+
+                        <div>
+
+                            <h2>
+                                Upcoming Reminders
+                            </h2>
+
+                        </div>
+
+                        <button
+                            class="view-all-btn"
+                            id="viewAllBtn"
+                        >
+                            View All
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="reminder-list"
+                        id="reminderList"
+                    >
+
+
+                        <!-- REMINDER 1 -->
+
+                        <div
+                            class="reminder-item"
+                            data-name="Bruno Vaccination"
+                        >
+<div class="reminder-type vaccination">
+    <i data-lucide="syringe"></i>
+</div>
+
+
+                            <div class="reminder-pet-image">
+
+                                <img
+                                    src="../assets/images/dashboard/golden-retriever.png"
+                                    alt="Bruno"
+                                >
+
+                            </div>
+
+
+                            <div class="reminder-info">
+
+                                <h3>
+                                    Bruno
+                                </h3>
+
+                                <strong class="vaccination-text">
+                                    Vaccination
+                                </strong>
+
+                                <div class="reminder-meta">
+
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        27 May 2025
+                                    </span>
+
+                                    <span>
+                                        <i class="fa-regular fa-clock"></i>
+                                        10:00 AM
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="reminder-actions">
+
+                                <span class="days-badge green-badge">
+                                    In 2 days
+                                </span>
+
+                                <button class="more-btn">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- REMINDER 2 -->
+
+                        <div
+                            class="reminder-item"
+                            data-name="Luna Deworming"
+                        >
+
+<div class="reminder-type deworming">
+    <i data-lucide="pill"></i>
+</div>
+
+
+                            <div class="reminder-pet-image">
+
+                                <img
+                                    src="../assets/images/my-pet/cat.png"
+                                    alt="Luna"
+                                >
+
+                            </div>
+
+
+                            <div class="reminder-info">
+
+                                <h3>
+                                    Luna
+                                </h3>
+
+                                <strong class="deworming-text">
+                                    Deworming
+                                </strong>
+
+                                <div class="reminder-meta">
+
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        29 May 2025
+                                    </span>
+
+                                    <span>
+                                        <i class="fa-regular fa-clock"></i>
+                                        09:00 AM
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="reminder-actions">
+
+                                <span class="days-badge pink-badge">
+                                    In 4 days
+                                </span>
+
+                                <button class="more-btn">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- REMINDER 3 -->
+
+                        <div
+                            class="reminder-item"
+                            data-name="Coco Flea Treatment"
+                        >
+
+<div class="reminder-type flea">
+    <i data-lucide="bug"></i>
+</div>
+
+
+                            <div class="reminder-pet-image">
+
+                                <img
+                                    src="../assets/images/my-pet/dog.png"
+                                    alt="Coco"
+                                >
+
+                            </div>
+
+
+                            <div class="reminder-info">
+
+                                <h3>
+                                    Coco
+                                </h3>
+
+                                <strong class="flea-text">
+                                    Flea Treatment
+                                </strong>
+
+                                <div class="reminder-meta">
+
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        02 Jun 2025
+                                    </span>
+
+                                    <span>
+                                        <i class="fa-regular fa-clock"></i>
+                                        11:30 AM
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="reminder-actions">
+
+                                <span class="days-badge orange-badge">
+                                    In 8 days
+                                </span>
+
+                                <button class="more-btn">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- REMINDER 4 -->
+
+                        <div
+                            class="reminder-item"
+                            data-name="Milo General Checkup"
+                        >
+
+<div class="reminder-type checkup">
+    <i data-lucide="stethoscope"></i>
+</div>
+
+
+                            <div class="reminder-pet-image">
+
+                                <img
+                                    src="../assets/images/my-pet/cat.png"
+                                    alt="Milo"
+                                >
+
+                            </div>
+
+
+                            <div class="reminder-info">
+
+                                <h3>
+                                    Milo
+                                </h3>
+
+                                <strong class="checkup-text">
+                                    General Checkup
+                                </strong>
+
+                                <div class="reminder-meta">
+
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        05 Jun 2025
+                                    </span>
+
+                                    <span>
+                                        <i class="fa-regular fa-clock"></i>
+                                        02:00 PM
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="reminder-actions">
+
+                                <span class="days-badge purple-badge">
+                                    In 11 days
+                                </span>
+
+                                <button class="more-btn">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- REMINDER 5 -->
+
+                        <div
+                            class="reminder-item"
+                            data-name="Bruno Grooming"
+                        >
+
+<div class="reminder-type grooming">
+    <i data-lucide="scissors"></i>
+</div>
+
+
+                            <div class="reminder-pet-image">
+
+                                <img
+                                    src="../assets/images/dashboard/golden-retriever.png"
+                                    alt="Bruno"
+                                >
+
+                            </div>
+
+
+                            <div class="reminder-info">
+
+                                <h3>
+                                    Bruno
+                                </h3>
+
+                                <strong class="grooming-text">
+                                    Grooming
+                                </strong>
+
+                                <div class="reminder-meta">
+
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        10 Jun 2025
+                                    </span>
+
+                                    <span>
+                                        <i class="fa-regular fa-clock"></i>
+                                        04:00 PM
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="reminder-actions">
+
+                                <span class="days-badge blue-badge">
+                                    In 16 days
+                                </span>
+
+                                <button class="more-btn">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        class="view-all-reminders"
+                        id="viewAllReminders"
+                    >
+
+                        View All Reminders
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </div>
+
+
+
+                <!-- ================= CALENDAR ================= -->
+
+                <div class="right-column">
+
+
+                    <div class="reminder-card calendar-card">
+
+                        <div class="calendar-header">
+
+                            <h2>
+                                Reminder Calendar
+                            </h2>
+
+                            <div class="calendar-navigation">
+
+                                <button id="previousMonth">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+
+                                <strong id="calendarTitle">
+                                    May 2025
+                                </strong>
+
+                                <button id="nextMonth">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="calendar-weekdays">
+
+                            <span>Sun</span>
+                            <span>Mon</span>
+                            <span>Tue</span>
+                            <span>Wed</span>
+                            <span>Thu</span>
+                            <span>Fri</span>
+                            <span>Sat</span>
+
+                        </div>
+
+
+                        <div
+                            class="calendar-grid"
+                            id="calendarGrid"
+                        ></div>
+
+
+                        <div class="calendar-legend">
+
+                            <span>
+                                <i class="legend-dot green"></i>
+                                Vaccination
+                            </span>
+
+                            <span>
+                                <i class="legend-dot pink"></i>
+                                Deworming
+                            </span>
+
+                            <span>
+                                <i class="legend-dot orange"></i>
+                                Flea Treatment
+                            </span>
+
+                            <span>
+                                <i class="legend-dot blue"></i>
+                                Grooming
+                            </span>
+
+                            <span>
+                                <i class="legend-dot purple"></i>
+                                Checkup
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- ================= TIPS ================= -->
+
+                    <div class="reminder-card tips-card">
+
+                        <div class="tips-content">
+
+                            <h2>
+                                Helpful Tips
+                            </h2>
+
+                            <ul>
+
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    Keep your pet's vaccinations up to date.
+                                </li>
+
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    Regular deworming keeps your pet healthy.
+                                </li>
+
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    Don't forget monthly flea & tick prevention.
+                                </li>
+
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    Routine checkups help detect issues early.
+                                </li>
+
+                            </ul>
+
+                        </div>
+
+
+                        <div class="tips-pet">
+
+                            <span>♥</span>
+
+                            <img
+                                src="../assets/images/dashboard/cute-pet.svg"
+                                alt="Cute pets"
+                            >
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+<script src="../js/reminders.js"></script>
+<script src="../js/theme.js"></script>
+
+</body>
+</html>

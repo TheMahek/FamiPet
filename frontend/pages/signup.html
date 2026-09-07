@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sign Up | Famipet</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="../css/style.css">
+
+    <!-- Signup CSS -->
+    <link rel="stylesheet" href="../css/signup.css">
+    <!-- <link rel="stylesheet" href="../css/login.css"> -->
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+<body>
+
+    <main class="login-page">
+
+        <div class="login-container">
+
+            <!-- ==========================
+                    LEFT PANEL
+            =========================== -->
+
+            <section class="login-left">
+
+                <div class="brand">
+
+                    <div class="brand-logo">
+
+                        <img src="../assets/logos/Famipet.png" alt="Famipet Logo">
+
+                    </div>
+
+                    <h1>Famipet</h1>
+
+                </div>
+
+                <div class="hero-text">
+
+                    <span class="tagline">
+
+                        Start Your Journey Today
+
+                    </span>
+
+                    <h2>
+
+                        Join the Famipet Family!
+
+                    </h2>
+
+                    <p>
+
+                        Create your account to manage your pets, track vaccinations, adopt loving companions, report
+                        lost & found pets, and enjoy smarter pet care—all in one place.
+
+                    </p>
+
+                </div>
+
+                <div class="hero-image">
+
+                    <img src="../assets/images/login-pet.png" alt="Cute Pets">
+
+                </div>
+
+            </section>
+
+            <!-- ==========================
+                    RIGHT PANEL
+            =========================== -->
+
+            <section class="login-right">
+
+                <div class="login-card">
+
+                    <div class="card-header">
+
+                        <div class="paw-icon">
+
+                            <i class="fa-solid fa-paw"></i>
+
+                        </div>
+
+                        <h2>Create Account</h2>
+
+                        <p>
+
+                            Let's get your pet journey started!
+
+                        </p>
+
+                    </div>
+
+                    <!-- ==========================
+                            SIGNUP FORM
+                    =========================== -->
+
+                    <form id="signupForm" autocomplete="off">
+
+                        <!-- Full Name -->
+
+                        <div class="input-box">
+
+                            <i class="fa-regular fa-user"></i>
+
+                            <input type="text" id="fullName" placeholder="Full Name" required>
+
+                            <small class="error" id="nameError"></small>
+
+                        </div>
+
+                        <!-- Email -->
+
+                        <div class="input-box">
+
+                            <i class="fa-regular fa-envelope"></i>
+
+                            <input type="email" id="email" placeholder="Email Address" required>
+
+                            <small class="error" id="emailError"></small>
+
+                        </div>
+
+                        <!-- Phone -->
+
+                        <div class="input-box">
+
+                            <i class="fa-solid fa-phone"></i>
+
+                            <input type="tel" id="phone" placeholder="Phone Number" required>
+
+                            <small class="error" id="phoneError"></small>
+
+                        </div>
+
+                        <!-- Password -->
+
+                        <div class="input-box">
+
+                            <i class="fa-solid fa-lock"></i>
+
+                            <input type="password" id="password" placeholder="Password" required>
+
+                            <span class="toggle-password" id="togglePassword">
+
+                                <i class="fa-regular fa-eye"></i>
+
+                            </span>
+
+                            <small class="error" id="passwordError"></small>
+
+                        </div>
+
+                        <!-- Confirm Password -->
+
+                        <div class="input-box">
+
+                            <i class="fa-solid fa-lock"></i>
+
+                            <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+
+                            <span class="toggle-confirm-password" id="toggleConfirmPassword">
+
+                                <i class="fa-regular fa-eye"></i>
+
+                            </span>
+
+                            <small class="error" id="confirmPasswordError"></small>
+
+                        </div>
+
+                        <!-- Password Strength -->
+                        <div class="strength-wrapper">
+
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="strengthBar"></div>
+                            </div>
+
+                            <span id="strengthText"></span>
+
+                        </div>
+
+                        <!-- Role -->
+
+                        <div class="role-title">
+
+                            I am a...
+
+                        </div>
+
+                        <div class="role-selection">
+
+                            <label class="role-card">
+
+                                <input type="radio" name="role" value="owner" checked>
+
+                                <i class="fa-solid fa-paw"></i>
+
+                                <h4>Pet Owner</h4>
+
+                                <small>Manage your pets</small>
+
+                            </label>
+
+                            <!-- <label class="role-card">
+
+                                <input type="radio" name="role" value="vet">
+
+                                <i class="fa-solid fa-user-doctor"></i>
+
+                                <h4>Veterinarian</h4>
+
+                                <small>Provide pet healthcare</small>
+
+                            </label> -->
+
+                            <label class="role-card">
+
+                                <input type="radio" name="role" value="shelter">
+
+                                <i class="fa-solid fa-house"></i>
+
+                                <h4>Shelter</h4>
+
+                                <small>Help pets find homes</small>
+
+                            </label>
+
+                        </div>
+
+                        <!-- Terms -->
+
+                        <div class="form-options">
+
+                            <label>
+
+                                <input type="checkbox" id="terms">
+
+                                I agree to the Terms & Privacy Policy
+
+                            </label>
+
+                        </div>
+
+                        <small class="error" id="termsError"></small>
+
+                        <!-- Button -->
+
+                        <button type="submit" class="submit-btn" id="signupBtn">
+
+                            <i class="fa-solid fa-user-plus"></i>
+
+                            Create Account
+
+                        </button>
+
+                    </form>
+
+                    <div class="divider">
+
+                        <span>or</span>
+
+                    </div>
+
+                    <div class="signup-text">
+
+                        Already have an account?
+
+                        <a href="login.html">
+
+                            Login
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="success-toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>
+            <h4>Account Created!</h4>
+            <p>Please check your email to verify your account.</p>
+        </div>
+    </div>
+
+    <!-- Signup JS -->
+
+    <script src="../js/api.js"></script>
+    <script src="../js/signup.js"></script>
+
+</body>
+
+</html>

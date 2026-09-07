@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet Admin - Adoptions</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body data-page="adoptions">
+
+  <div class="admin-wrap">
+
+    <aside class="admin-sidebar" id="adminSidebar"></aside>
+
+    <main class="admin-main">
+
+      <header class="admin-topbar">
+        <div>
+          <h2>Adoption Requests <span>🌸</span></h2>
+          <p>Review and approve/reject adoption applications.</p>
+        </div>
+        <div class="admin-actions">
+          <div class="admin-user-chip">
+            <img id="adminAvatar" src="../assets/images/dashboard/user-profile.svg" alt="Admin" />
+            <div>
+              <strong id="adminUserName">Admin</strong>
+              <small>Administrator</small>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="admin-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Pet</th>
+                <th>Applicant</th>
+                <th>Contact</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adoptionsBody">
+              <tr><td colspan="6" class="admin-loading">Loading requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/admin-adoptions.js"></script>
+</body>
+</html>

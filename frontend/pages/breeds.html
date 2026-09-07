@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet - Pet Breeds</title>
+  <link rel="stylesheet" href="../css/mypet.css" />
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Lucide Icons for Universal Sidebar -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+  <style>
+    .breeds-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.9rem;
+      margin: 1.25rem 0 1rem;
+    }
+    .breeds-toolbar .search-bar {
+      flex: 1;
+      min-width: 220px;
+    }
+    .breed-filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .breed-filter-tabs .tab-btn {
+      padding: 0.5rem 1.1rem;
+      border-radius: 50px;
+      border: 1px solid #ffe0e7;
+      background: #fff;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .breed-filter-tabs .tab-btn.active,
+    .breed-filter-tabs .tab-btn:hover {
+      background: #ff5c8a;
+      border-color: #ff5c8a;
+      color: #fff;
+    }
+    .breeds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.1rem;
+    }
+    .breed-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid #f1eff5;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .breed-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(244, 63, 94, 0.12);
+    }
+    .breed-card-img {
+      height: 150px;
+      background: #fff6f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .breed-card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .breed-card-body {
+      padding: 1rem 1.1rem 1.15rem;
+    }
+    .breed-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .breed-card-top h3 {
+      font-size: 1rem;
+      color: #1e293b;
+    }
+    .species-pill {
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #ffe9ef;
+      color: #ff5c8a;
+      padding: 0.25rem 0.7rem;
+      border-radius: 50px;
+      text-transform: capitalize;
+    }
+    .breed-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      margin-top: 0.8rem;
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+    .breed-meta span i {
+      margin-right: 0.35rem;
+      color: #ff5c8a;
+    }
+    .breed-desc {
+      margin-top: 0.7rem;
+      font-size: 0.8rem;
+      color: #8a96a8;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .breeds-loading,
+    .breeds-empty {
+      text-align: center;
+      padding: 60px 20px;
+      background: #fff;
+      border-radius: 20px;
+      color: #8a96a8;
+    }
+    .breeds-loading i,
+    .breeds-empty i {
+      font-size: 40px;
+      color: #ff4d6d;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+<div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- Top Header Bar -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1>Pet Breeds <span class="cherry-blossom">🌸</span></h1>
+          <p>Explore dog, cat and other pet breeds to find the perfect match. <span class="pink-heart">♡</span></p>
+        </div>
+
+        <div class="header-right">
+          <button class="icon-action-btn"><i class="fa-regular fa-sun"></i></button>
+          <button class="icon-action-btn badge-btn">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-count">0</span>
+          </button>
+          <button class="icon-action-btn" id="themeToggle"><i class="fa-solid fa-moon"></i></button>
+          <button class="profile-btn">
+            <img src="../assets/images/dashboard/user-profile.svg" alt="Profile" />
+          </button>
+        </div>
+      </header>
+
+      <section class="dashboard-card">
+        <div class="breeds-toolbar">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="breedSearch" placeholder="Search breeds..." />
+          </div>
+
+          <div class="breed-filter-tabs" id="breedFilterTabs">
+            <button class="tab-btn active" data-species="all">All</button>
+            <button class="tab-btn" data-species="dog">Dogs</button>
+            <button class="tab-btn" data-species="cat">Cats</button>
+            <button class="tab-btn" data-species="bird">Birds</button>
+            <button class="tab-btn" data-species="other">Others</button>
+          </div>
+        </div>
+
+        <div class="breeds-grid" id="breedsGrid">
+          <div class="breeds-loading">
+            <i class="fa-solid fa-paw"></i>
+            <h3>Loading breeds...</h3>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../js/breeds.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/theme.js"></script>
+</body>
+</html>

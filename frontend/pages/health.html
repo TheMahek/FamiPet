@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Famipet - Pet Health</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Sidebar CSS -->
+    <link rel="stylesheet" href="../css/sidebar.css">
+
+    <!-- Health CSS -->
+    <link rel="stylesheet" href="../css/health.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <!-- UNIVERSAL SIDEBAR -->
+    <div id="sidebar-container"></div>
+
+
+    <!-- ================= MAIN CONTENT ================= -->
+
+    <main class="main-content">
+
+        <!-- TOP HEADER -->
+        <header class="top-bar">
+
+            <div class="page-title-group">
+
+                <div class="title-row">
+                    <h1>
+                        Pet Health
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </h1>
+                </div>
+
+                <p class="subtitle">
+                    Keep track of your pet's health, wellness and medical records. 🐾
+                </p>
+
+            </div>
+
+
+            <div class="top-bar-actions">
+
+                <!-- Search -->
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input
+                        type="text"
+                        id="healthSearch"
+                        placeholder="Search health records..."
+                    >
+                </div>
+
+
+                <!-- Notification -->
+                <div class="notification-wrapper">
+                    <button class="notification-btn" id="notificationBtn" type="button" aria-label="Notifications" aria-expanded="false">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge" id="notificationBadge">3</span>
+                    </button>
+
+                    <div class="notification-panel" id="notificationPanel">
+                        <div class="notification-panel-header">
+                            <div>
+                                <strong>Notifications</strong>
+                                <span id="notificationSummary">3 unread</span>
+                            </div>
+                            <button id="markNotificationsRead" type="button">Mark all read</button>
+                        </div>
+                        <div class="notification-list" id="notificationList"></div>
+                    </div>
+                </div>
+
+
+                <!-- Add Record -->
+                <button class="add-record-btn" id="addRecordBtn">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Health Record
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- ================= HEALTH PAGE ================= -->
+
+        <section class="health-page">
+
+
+            <!-- PET SELECTOR -->
+
+            <div class="pet-selector">
+
+                <div class="selector-left">
+
+                    <div class="pet-avatar">
+                        <img
+                            id="currentPetImage"
+                            src="../assets/images/adoption/pet1.jpg"
+                            alt="Bruno"
+                        >
+                    </div>
+
+                    <div>
+                        <span class="small-label">
+                            Currently viewing
+                        </span>
+
+                        <h2 id="currentPetName">Bruno</h2>
+
+                        <p id="currentPetDetails">
+                            Labrador Retriever • 2 Years
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="selector-right">
+
+                    <label for="petSelect">
+                        Select Pet
+                    </label>
+
+                    <select id="petSelect">
+
+                        <option value="bruno">
+                            Bruno
+                        </option>
+
+                        <option value="luna">
+                            Luna
+                        </option>
+
+                        <option value="coco">
+                            Coco
+                        </option>
+
+                        <option value="milo">
+                            Milo
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= HERO ================= -->
+
+            <div class="health-hero">
+
+                <div class="health-hero-content">
+
+                    <span class="hero-tag">
+                        <i class="fa-solid fa-shield-heart"></i>
+                        HEALTH & WELLNESS
+                    </span>
+
+                    <h2>
+                        Healthy Pets,<br>
+                        Happy Hearts. 💚
+                    </h2>
+
+                    <p>
+                        Stay on top of vaccinations, medical records,
+                        nutrition and your pet's overall wellbeing.
+                    </p>
+
+                    <div class="hero-actions">
+
+                        <button class="primary-health-btn" id="viewHealthRecordsBtn" type="button">
+                            <i class="fa-solid fa-file-medical"></i>
+                            View Health Records
+                        </button>
+
+                        <button class="secondary-health-btn" id="bookAppointmentBtn" type="button">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            Book Appointment
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="health-hero-art">
+
+                    <div class="hero-circle circle-one"></div>
+                    <div class="hero-circle circle-two"></div>
+
+                    <img
+                        id="heroPetImage"
+                        src="../assets/images/adoption/pet1.jpg"
+                        alt="Healthy Pet"
+                    >
+
+                    <div class="health-floating-card">
+
+                        <i class="fa-solid fa-circle-check"></i>
+
+                        <div>
+                            <strong>Good Health</strong>
+                            <span>All records updated</span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= HEALTH STATS ================= -->
+
+            <div class="health-stats">
+
+
+                <div class="health-stat-card">
+
+                    <div class="stat-icon mint">
+                        <i class="fa-solid fa-syringe"></i>
+                    </div>
+
+                    <div>
+                        <span>Vaccinations</span>
+                        <strong id="vaccinationCount">4</strong>
+                        <small id="vaccinationStatus">Up to date</small>
+                    </div>
+
+                </div>
+
+
+                <div class="health-stat-card">
+
+                    <div class="stat-icon blue">
+                        <i class="fa-solid fa-file-medical"></i>
+                    </div>
+
+                    <div>
+                        <span>Health Records</span>
+                        <strong id="recordCount">8</strong>
+                        <small>Total records</small>
+                    </div>
+
+                </div>
+
+
+                <div class="health-stat-card">
+
+                    <div class="stat-icon orange">
+                        <i class="fa-solid fa-weight-scale"></i>
+                    </div>
+
+                    <div>
+                        <span>Weight</span>
+                        <strong id="weightValue">28 kg</strong>
+                        <small id="weightStatus">Last checked</small>
+                    </div>
+
+                </div>
+
+
+                <div class="health-stat-card">
+
+                    <div class="stat-icon pink">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+
+                    <div>
+                        <span>Next Visit</span>
+                        <strong id="nextVisitValue">12 Aug</strong>
+                        <small id="nextVisitStatus">Vet appointment</small>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= MAIN GRID ================= -->
+
+            <div class="health-grid">
+
+
+                <!-- VACCINATION -->
+
+                <div class="health-card vaccination-card">
+
+                    <div class="card-header">
+
+                        <div>
+                            <span class="section-label">
+                                VACCINATION
+                            </span>
+
+                            <h3>Vaccination Tracker</h3>
+                        </div>
+
+                        <button class="icon-button">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+
+                    </div>
+
+
+                    <div class="vaccination-list">
+
+
+                        <div class="vaccine-item">
+
+                            <div class="vaccine-icon">
+                                <i class="fa-solid fa-syringe"></i>
+                            </div>
+
+                            <div class="vaccine-info">
+                                <strong>Rabies</strong>
+                                <span>Next due: 20 Dec 2026</span>
+                            </div>
+
+                            <span class="status completed">
+                                <i class="fa-solid fa-check"></i>
+                                Done
+                            </span>
+
+                        </div>
+
+
+                        <div class="vaccine-item">
+
+                            <div class="vaccine-icon">
+                                <i class="fa-solid fa-shield-virus"></i>
+                            </div>
+
+                            <div class="vaccine-info">
+                                <strong>DHPP</strong>
+                                <span>Next due: 15 Jan 2027</span>
+                            </div>
+
+                            <span class="status completed">
+                                <i class="fa-solid fa-check"></i>
+                                Done
+                            </span>
+
+                        </div>
+
+
+                        <div class="vaccine-item">
+
+                            <div class="vaccine-icon upcoming">
+                                <i class="fa-solid fa-syringe"></i>
+                            </div>
+
+                            <div class="vaccine-info">
+                                <strong>Kennel Cough</strong>
+                                <span>Due: 28 Aug 2026</span>
+                            </div>
+
+                            <span class="status upcoming-status">
+                                Upcoming
+                            </span>
+
+                        </div>
+
+
+                    </div>
+
+                    <button class="view-all-btn" id="viewVaccinationBtn" type="button">
+                        View Vaccination History
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+
+                </div>
+
+
+                <!-- APPOINTMENT -->
+
+                <div class="health-card appointment-card">
+
+                    <div class="card-header">
+
+                        <div>
+                            <span class="section-label">
+                                UPCOMING
+                            </span>
+
+                            <h3>Vet Appointment</h3>
+                        </div>
+
+                        <div class="appointment-icon">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+
+                    </div>
+
+
+                    <div class="appointment-date">
+
+                        <div class="date-box">
+                            <span>AUG</span>
+                            <strong>12</strong>
+                        </div>
+
+                        <div>
+                            <strong>General Checkup</strong>
+
+                            <p>
+                                <i class="fa-regular fa-clock"></i>
+                                10:30 AM
+                            </p>
+
+                            <p>
+                                <i class="fa-solid fa-location-dot"></i>
+                                Happy Paws Veterinary Clinic
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="appointment-actions">
+
+                        <button id="rescheduleAppointmentBtn" type="button">
+                            Reschedule
+                        </button>
+
+                        <button class="cancel-btn" id="cancelAppointmentBtn" type="button">
+                            Cancel
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NUTRITION -->
+
+                <div class="health-card nutrition-card">
+
+                    <div class="card-header">
+
+                        <div>
+                            <span class="section-label">
+                                WELLNESS
+                            </span>
+
+                            <h3>Nutrition & Diet</h3>
+                        </div>
+
+                        <i class="fa-solid fa-bowl-food nutrition-icon"></i>
+
+                    </div>
+
+
+                    <div class="nutrition-content">
+
+                        <div class="nutrition-progress">
+
+                            <div class="progress-circle">
+                                <span>85%</span>
+                            </div>
+
+                        </div>
+
+                        <div class="nutrition-info">
+
+                            <strong>Daily Nutrition</strong>
+
+                            <p>
+                                Bruno's current diet is well balanced.
+                            </p>
+
+                            <div class="food-tags">
+                                <span>Protein</span>
+                                <span>Healthy Fats</span>
+                                <span>Vitamins</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HEALTH TIPS -->
+
+                <div class="health-card tips-card">
+
+                    <div class="card-header">
+
+                        <div>
+                            <span class="section-label">
+                                CARE GUIDE
+                            </span>
+
+                            <h3>Health Tips</h3>
+                        </div>
+
+                        <i class="fa-regular fa-lightbulb tips-icon"></i>
+
+                    </div>
+
+
+                    <div class="tip-item">
+
+                        <div class="tip-number">
+                            01
+                        </div>
+
+                        <div>
+                            <strong>Regular Checkups</strong>
+                            <p>
+                                Schedule routine veterinary visits
+                                to monitor your pet's health.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="tip-item">
+
+                        <div class="tip-number">
+                            02
+                        </div>
+
+                        <div>
+                            <strong>Keep Them Active</strong>
+                            <p>
+                                Daily exercise helps maintain a
+                                healthy weight and good mood.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="tip-item">
+
+                        <div class="tip-number">
+                            03
+                        </div>
+
+                        <div>
+                            <strong>Fresh Water</strong>
+                            <p>
+                                Make sure clean drinking water
+                                is available throughout the day.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= RECENT RECORDS ================= -->
+
+            <div class="records-card">
+
+                <div class="records-header">
+
+                    <div>
+                        <span class="section-label">
+                            MEDICAL HISTORY
+                        </span>
+
+                        <h3>Recent Health Records</h3>
+                    </div>
+
+                    <button class="view-records-btn" id="viewRecordsBtn" type="button">
+                        View All
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+
+                </div>
+
+
+                <div class="records-table" id="recordsTable">
+
+                    <div class="table-row table-head">
+
+                        <span>Date</span>
+                        <span>Record</span>
+                        <span>Veterinarian</span>
+                        <span>Status</span>
+
+                    </div>
+
+
+                    <div id="recordsRows"></div>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- ADD RECORD MODAL -->
+
+<div class="modal-backdrop" id="recordModal">
+
+    <div class="modal-sheet">
+
+        <button class="modal-close" id="closeRecordModal">
+            &times;
+        </button>
+
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa-solid fa-file-medical"></i>
+            </div>
+
+            <div>
+                <h2>Add Health Record</h2>
+                <p>Add a new medical record for your pet.</p>
+            </div>
+        </div>
+
+
+        <form id="healthRecordForm">
+
+            <div class="form-group">
+
+                <label for="recordType">
+                    Record Type
+                </label>
+
+                <select id="recordType" required>
+
+                    <option value="">
+                        Select record type
+                    </option>
+
+                    <option>
+                        General Checkup
+                    </option>
+
+                    <option>
+                        Vaccination
+                    </option>
+
+                    <option>
+                        Medication
+                    </option>
+
+                    <option>
+                        Weight Check
+                    </option>
+
+                    <option>
+                        Other
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="recordDate">
+                        Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="recordDate"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="vetName">
+                        Veterinarian
+                    </label>
+
+                    <input
+                        type="text"
+                        id="vetName"
+                        placeholder="Veterinarian name"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="recordNotes">
+                    Notes
+                </label>
+
+                <textarea
+                    id="recordNotes"
+                    rows="4"
+                    placeholder="Add health notes..."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="save-record-btn"
+            >
+                Save Health Record
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+<script src="../js/health.js"></script>
+<script src="../js/theme.js"></script>
+
+</body>
+</html>

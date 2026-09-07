@@ -1,0 +1,252 @@
+/* ==========================================
+            CSS VARIABLES
+========================================== */
+
+:root{
+
+    /* Colors */
+
+    --primary:#FF5C8A;
+    --primary-dark:#F5427B;
+    --primary-light:#FFEAF2;
+
+    --secondary:#4AA8FF;
+    --secondary-light:#EAF6FF;
+
+    --success:#38C976;
+    --success-light:#EAFBF2;
+
+    --purple:#9B6DFF;
+    --purple-light:#F2ECFF;
+
+    --orange:#FFB84D;
+    --orange-light:#FFF3DD;
+
+    --text-dark:#3D2314;
+    --text-light:#777;
+
+    --white:#fff;
+    --background:#FFF9F6;
+
+    --border:#FFE7EE;
+
+/* Radius */
+
+--radius:22px;
+
+/* Section */
+
+--section-padding:100px;
+
+/* Shadow */
+
+--shadow:0 15px 35px rgba(0,0,0,.08);
+
+    /* Transition */
+
+    --transition:.35s ease;
+    
+/* Navbar */
+
+--navbar-height:90px;
+}
+
+/* ===========================
+   GOOGLE FONT
+=========================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 90px;
+}
+
+body{
+
+    font-family:'Poppins',sans-serif;
+
+    background:var(--background);
+
+    color:var(--text-dark);
+
+    overflow-x:hidden;
+
+}
+
+img{
+    width:100%;
+    display:block;
+}
+
+a{
+    text-decoration:none;
+    color:inherit;
+}
+
+ul{
+    list-style:none;
+
+}
+
+button{
+
+    border:none;
+
+    outline:none;
+
+    cursor:pointer;
+
+    font-family:inherit;
+
+}
+
+.container{
+
+    width:min(90%,1350px);
+
+    margin-inline:auto;
+
+}
+
+::selection{
+
+    background:var(--primary);
+
+    color:var(--white);
+
+}
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:var(--background);
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:var(--primary);
+
+    border-radius:20px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:var(--primary-dark);
+}
+
+/* ==========================================
+            GLOBAL BUTTONS
+========================================== */
+
+.btn-primary{
+
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+
+    padding:16px 34px;
+
+    background:linear-gradient(
+        135deg,
+        var(--primary),
+        var(--primary-dark)
+    );
+
+    color:var(--white);
+
+    border-radius:50px;
+
+    font-size:1rem;
+    font-weight:600;
+
+    box-shadow:0 10px 25px rgba(255,92,138,.25);
+
+    transition:var(--transition);
+
+    position:relative;
+    overflow:hidden;
+}
+
+.btn-primary::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:-100%;
+
+    width:100%;
+    height:100%;
+
+    background:linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.35),
+        transparent
+    );
+
+    transition:.7s;
+
+}
+
+.btn-primary:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:0 16px 35px rgba(255,92,138,.35);
+
+}
+
+.btn-primary:hover::before{
+
+    left:100%;
+
+}
+
+.btn-secondary{
+
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+
+    padding:16px 34px;
+
+    background:var(--white);
+
+    color:var(--text-dark);
+
+    border:2px solid var(--primary-light);
+
+    border-radius:50px;
+
+    font-size:1rem;
+    font-weight:600;
+
+    transition:var(--transition);
+
+}
+
+.btn-secondary:hover{
+
+    background:var(--primary-light);
+
+    border-color:var(--primary);
+
+    transform:translateY(-4px);
+
+}

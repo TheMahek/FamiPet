@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Famipet | Dashboard</title>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Dashboard CSS -->
+    <link
+        rel="stylesheet"
+        href="../css/dashboard.css"
+    >
+
+    <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+
+<body>
+
+    <!-- =========================================================
+         APP
+    ========================================================== -->
+
+    <div class="app">
+
+
+        <!-- =====================================================
+             SIDEBAR
+        ====================================================== -->
+<div id="sidebar-container"></div>
+
+
+
+        <!-- =====================================================
+             MAIN CONTENT
+        ====================================================== -->
+
+        <main class="main-content">
+
+
+            <!-- =================================================
+                 TOP HEADER
+            ================================================== -->
+
+            <header class="top-header">
+
+
+                <!-- Hamburger -->
+
+                <button
+                    class="hamburger-btn"
+                    id="sidebarToggle"
+                    type="button"
+                    aria-label="Toggle sidebar"
+                    title="Toggle sidebar"
+                >
+
+                    <i data-lucide="menu"></i>
+
+                </button>
+
+
+                <!-- Greeting -->
+
+                <div class="welcome-text">
+
+                    <h1>
+                        Good morning, Mahek! 🌸
+                    </h1>
+
+                    <p>
+                        Here's what's happening with your furry family today.
+                    </p>
+
+                </div>
+
+
+                <!-- Header Actions -->
+
+                <div class="header-actions">
+
+
+                    <!-- Search -->
+
+                    <div class="search-bar">
+
+                        <i data-lucide="search"></i>
+
+                        <input
+                            type="text"
+                            id="dashboardSearch"
+                            placeholder="Search anything..."
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+
+                    <!-- Light Mode -->
+
+                    <button
+                        class="theme-btn active"
+                        id="lightModeBtn"
+                        type="button"
+                        title="Light mode"
+                        aria-label="Light mode"
+                    >
+
+                        <i data-lucide="sun"></i>
+
+                    </button>
+
+
+                    <!-- Dark Mode -->
+
+                    <button
+                        class="theme-btn"
+                        id="darkModeBtn"
+                        type="button"
+                        title="Dark mode"
+                        aria-label="Dark mode"
+                    >
+
+                        <i data-lucide="moon"></i>
+
+                    </button>
+
+
+                    <!-- Notification -->
+
+                    <button
+                        class="notification-btn"
+                        id="notificationBtn"
+                        type="button"
+                        aria-label="Notifications"
+                        title="Notifications"
+                    >
+
+                        <i data-lucide="bell"></i>
+
+                        <span class="notification-count">
+                            3
+                        </span>
+
+                    </button>
+
+
+                </div>
+
+
+            </header>
+
+
+
+            <!-- =================================================
+                 NOTIFICATION PANEL
+            ================================================== -->
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-header">
+
+                    <h3>
+                        Notifications
+                    </h3>
+
+                    <button
+                        type="button"
+                        id="closeNotifications"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div class="notification-item">
+
+                    <div class="notification-icon pink">
+                        <i data-lucide="syringe"></i>
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Bobby's vaccination is due
+                        </strong>
+
+                        <span>
+                            May 18, 2025
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="notification-item">
+
+                    <div class="notification-icon green">
+                        <i data-lucide="check"></i>
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Luna's deworming completed
+                        </strong>
+
+                        <span>
+                            May 10, 2025
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="notification-item">
+
+                    <div class="notification-icon lavender">
+                        <i data-lucide="heart"></i>
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            New adoption application
+                        </strong>
+
+                        <span>
+                            May 9, 2025
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 DASHBOARD CONTENT
+            ================================================== -->
+
+            <section class="dashboard-content">
+
+
+                <!-- =================================================
+                     STAT CARDS
+                ================================================== -->
+
+                <div class="stats-grid">
+
+
+                    <!-- MY PETS -->
+
+                    <div class="stat-card pets-card">
+
+                        <div class="stat-top">
+
+                            <div class="stat-icon">
+
+                                <i data-lucide="paw-print"></i>
+
+                            </div>
+
+                            <span>
+                                My Pets
+                            </span>
+
+                        </div>
+
+
+                        <div class="stat-number">
+                            3
+                        </div>
+
+
+                        <a href="mypet.html">
+                            View all pets →
+                        </a>
+
+
+                        <div class="stat-decoration">
+                            🐱
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- ADOPTIONS -->
+
+                    <div class="stat-card adoption-card">
+
+                        <div class="stat-top">
+
+                            <div class="stat-icon">
+
+                                <i data-lucide="heart"></i>
+
+                            </div>
+
+                            <span>
+                                Adoptions
+                            </span>
+
+                        </div>
+
+
+                        <div class="stat-number">
+                            2
+                        </div>
+
+
+                        <a href="adoption.html">
+                            View applications →
+                        </a>
+
+
+                        <div class="stat-decoration">
+                            ♡
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- APPOINTMENTS -->
+
+                    <div class="stat-card appointment-card">
+
+                        <div class="stat-top">
+
+                            <div class="stat-icon">
+
+                                <i data-lucide="calendar-days"></i>
+
+                            </div>
+
+                            <span>
+                                Appointments
+                            </span>
+
+                        </div>
+
+
+                        <div class="stat-number">
+                            1
+                        </div>
+
+
+                        <a href="appointments.html">
+                            Upcoming today →
+                        </a>
+
+
+                        <div class="stat-decoration">
+                            🩺
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- REMINDERS -->
+
+                    <div class="stat-card reminder-card">
+
+                        <div class="stat-top">
+
+                            <div class="stat-icon">
+
+                                <i data-lucide="bell"></i>
+
+                            </div>
+
+                            <span>
+                                Reminders
+                            </span>
+
+                        </div>
+
+
+                        <div class="stat-number">
+                            4
+                        </div>
+
+
+                        <a href="reminders.html">
+                            View reminders →
+                        </a>
+
+
+                        <div class="stat-decoration">
+                            ♡
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     MAIN DASHBOARD GRID
+                ================================================== -->
+
+                <div class="dashboard-grid">
+
+
+                    <!-- =================================================
+                         MY PETS
+                    ================================================== -->
+
+                    <section class="dashboard-card pets-section">
+
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <h2>
+                                    My Pets
+                                </h2>
+
+                                <p>
+                                    Your furry family
+                                </p>
+
+                            </div>
+
+
+                            <a href="mypet.html">
+                                View All
+                            </a>
+
+                        </div>
+
+
+
+                        <div class="pets-list">
+
+
+                            <!-- BOBBY -->
+
+                            <article class="pet-card">
+
+                                <div class="pet-image-wrapper">
+
+                                    <img
+                                        src="../assets/images/my-pet/dog1.png"
+                                        alt="Bobby"
+                                    >
+
+
+                                    <button
+                                        class="favorite-button"
+                                        type="button"
+                                        aria-label="Favorite Bobby"
+                                    >
+
+                                        <i data-lucide="heart"></i>
+
+                                    </button>
+
+                                </div>
+
+
+                                <div class="pet-info">
+
+                                    <h3>
+                                        Bobby
+                                    </h3>
+
+                                    <p>
+                                        Golden Retriever
+                                    </p>
+
+                                    <span>
+                                        2 yrs
+                                    </span>
+
+                                </div>
+
+                            </article>
+
+
+
+                            <!-- LUNA -->
+
+                            <article class="pet-card">
+
+                                <div class="pet-image-wrapper">
+
+                                    <img
+                                        src="../assets/images/my-pet/cat.png"
+                                        alt="Luna"
+                                    >
+
+
+                                    <button
+                                        class="favorite-button"
+                                        type="button"
+                                        aria-label="Favorite Luna"
+                                    >
+
+                                        <i data-lucide="heart"></i>
+
+                                    </button>
+
+                                </div>
+
+
+                                <div class="pet-info">
+
+                                    <h3>
+                                        Luna
+                                    </h3>
+
+                                    <p>
+                                        Persian Cat
+                                    </p>
+
+                                    <span>
+                                        1 yr
+                                    </span>
+
+                                </div>
+
+                            </article>
+
+
+
+                            <!-- MILO -->
+
+                            <!-- <article class="pet-card">
+
+                                <div class="pet-image-wrapper">
+
+                                    <img
+                                        src="../assets/images/my-pet/dog.png"
+                                        alt="Milo"
+                                    >
+
+
+                                    <button
+                                        class="favorite-button"
+                                        type="button"
+                                        aria-label="Favorite Milo"
+                                    >
+
+                                        <i data-lucide="heart"></i>
+
+                                    </button>
+
+                                </div>
+
+
+                                <div class="pet-info">
+
+                                    <h3>
+                                        Milo
+                                    </h3>
+
+                                    <p>
+                                        Netherland Dwarf
+                                    </p>
+
+                                    <span>
+                                        8 mo
+                                    </span>
+
+                                </div>
+
+                            </article> -->
+
+
+                        </div>
+
+
+                    </section>
+
+
+
+                    <!-- =================================================
+                         UPCOMING APPOINTMENT
+                    ================================================== -->
+
+                    <section class="dashboard-card appointment-section">
+
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <h2>
+                                    Upcoming Appointment
+                                </h2>
+
+                                <p>
+                                    Don't miss your pet's care
+                                </p>
+
+                            </div>
+
+
+                            <a href="appointments.html">
+                                View Calendar
+                            </a>
+
+                        </div>
+
+
+
+                        <div class="appointment-box">
+
+
+                            <div class="appointment-icon">
+
+                                <i data-lucide="stethoscope"></i>
+
+                            </div>
+
+
+                            <div class="appointment-details">
+
+                                <span class="appointment-label">
+                                    GENERAL CHECKUP
+                                </span>
+
+                                <h3>
+                                    Bobby
+                                </h3>
+
+
+                                <div class="appointment-meta">
+
+                                    <span>
+
+                                        <i data-lucide="calendar"></i>
+
+                                        14 May 2025
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i data-lucide="clock"></i>
+
+                                        11:00 AM
+
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="appointment-pet">
+
+                                <img
+                                    src="../assets/images/my-pet/dog1.png"
+                                    alt="Bobby"
+                                >
+
+                            </div>
+
+
+                        </div>
+
+
+                        <button
+                            class="appointment-button"
+                            id="appointmentDetailsBtn"
+                            type="button"
+                        >
+
+                            View Appointment Details
+
+                        </button>
+
+
+                    </section>
+
+
+
+                    <!-- =================================================
+                         RECENT ACTIVITY
+                    ================================================== -->
+
+                    <section class="dashboard-card activity-section">
+
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <h2>
+                                    Recent Activity
+                                </h2>
+
+                                <p>
+                                    Latest updates
+                                </p>
+
+                            </div>
+
+
+                            <a href="#">
+                                View All
+                            </a>
+
+                        </div>
+
+
+
+                        <div class="activity-list">
+
+
+                            <!-- ACTIVITY 1 -->
+
+                            <div class="activity-item">
+
+                                <div class="activity-icon pink">
+
+                                    <i data-lucide="syringe"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <h4>
+                                        Bobby's vaccination is due
+                                    </h4>
+
+                                    <p>
+                                        May 18, 2025
+                                    </p>
+
+                                </div>
+
+
+                                <span class="status upcoming">
+                                    Upcoming
+                                </span>
+
+                            </div>
+
+
+
+                            <!-- ACTIVITY 2 -->
+
+                            <div class="activity-item">
+
+                                <div class="activity-icon green">
+
+                                    <i data-lucide="check"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <h4>
+                                        Luna's deworming completed
+                                    </h4>
+
+                                    <p>
+                                        May 10, 2025
+                                    </p>
+
+                                </div>
+
+
+                                <span class="status completed">
+                                    Completed
+                                </span>
+
+                            </div>
+
+
+
+                            <!-- ACTIVITY 3 -->
+
+                            <div class="activity-item">
+
+                                <div class="activity-icon lavender">
+
+                                    <i data-lucide="user-plus"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <h4>
+                                        New adoption application
+                                    </h4>
+
+                                    <p>
+                                        May 9, 2025
+                                    </p>
+
+                                </div>
+
+
+                                <span class="status new">
+                                    New
+                                </span>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </section>
+
+
+
+                    <!-- =================================================
+                         REMINDERS
+                    ================================================== -->
+
+                    <section class="dashboard-card reminders-section">
+
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <h2>
+                                    Reminders
+                                </h2>
+
+                                <p>
+                                    Upcoming pet care
+                                </p>
+
+                            </div>
+
+
+                            <a href="reminders.html">
+                                View All
+                            </a>
+
+                        </div>
+
+
+
+                        <div class="reminder-list">
+
+
+                            <!-- REMINDER 1 -->
+
+                            <div class="reminder-item">
+
+                                <div class="reminder-icon lavender">
+
+                                    <i data-lucide="pill"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <h4>
+                                        Bobby – Medicine
+                                    </h4>
+
+                                    <p>
+                                        Today, 8:00 PM
+                                    </p>
+
+                                </div>
+
+
+                                <span class="reminder-today">
+                                    Today
+                                </span>
+
+                            </div>
+
+
+
+                            <!-- REMINDER 2 -->
+
+                            <div class="reminder-item">
+
+                                <div class="reminder-icon pink">
+
+                                    <i data-lucide="calendar-days"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <h4>
+                                        Milo – Next Vaccine
+                                    </h4>
+
+                                    <p>
+                                        May 20, 2025
+                                    </p>
+
+                                </div>
+
+
+                                <span class="reminder-upcoming">
+                                    Upcoming
+                                </span>
+
+                            </div>
+
+
+
+                            <!-- REMINDER 3 -->
+
+                            <div class="reminder-item">
+
+                                <div class="reminder-icon green">
+
+                                    <i data-lucide="utensils"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <h4>
+                                        Luna – Food Refill
+                                    </h4>
+
+                                    <p>
+                                        May 17, 2025
+                                    </p>
+
+                                </div>
+
+
+                                <span class="reminder-upcoming">
+                                    Upcoming
+                                </span>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </section>
+
+
+
+                    <!-- =================================================
+                         LOVE CARD
+                    ================================================== -->
+
+                    <section class="love-card">
+
+
+                        <div class="love-content">
+
+                            <span class="quote-mark">
+                                “
+                            </span>
+
+
+                            <h2>
+                                Every paw
+                                <br>
+                                prints a
+                                <br>
+                                story of love.
+                            </h2>
+
+
+                            <div class="love-paws">
+                                🐾 ♡ 🐾
+                            </div>
+
+                        </div>
+
+
+                        <div class="love-image">
+
+                            <img
+                                src="../assets/images/dashboard/cute-pet.svg"
+                                alt="Cute pets"
+                            >
+
+                        </div>
+
+
+                    </section>
+
+
+                </div>
+
+
+            </section>
+
+
+        </main>
+
+
+    </div>
+
+
+
+    <!-- =========================================================
+         JAVASCRIPT
+    ========================================================== -->
+
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/dashboard-data.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/theme.js"></script>
+
+</body>
+
+</html>

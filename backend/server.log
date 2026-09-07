@@ -1,0 +1,736 @@
+npm notice run animal-planet-backend@1.0.0 start
+npm notice run node server.js
+🚀 Server running on http://localhost:5000
+✅ MongoDB Connected
+[0mGET /api/status [32m200[0m 1.595 ms - 51[0m
+[0mPOST /api/auth/register [33m400[0m 0.498 ms - 67[0m
+[0mPOST /api/auth/register [33m400[0m 0.326 ms - 67[0m
+[0mPOST /api/auth/register [33m400[0m 8.683 ms - 66[0m
+=================================
+🔐 PASSWORD RESET REQUEST
+Email: user@example.com
+=================================
+✅ User found: user@example.com
+🔗 Reset URL: http://localhost:5502/pages/reset-password.html?token=47db84f82b3a37d83353c3036323dcb88d2850c08a1730230f729a42c8c07f82
+📧 Sending reset email...
+✅ Password reset email sent to: user@example.com
+[0mPOST /api/auth/forgot-password [32m200[0m 8529.892 ms - 68[0m
+=================================
+🔐 PASSWORD RESET REQUEST
+Email: nobody@example.com
+=================================
+⚠️ No user found for: nobody@example.com
+[0mPOST /api/auth/forgot-password [32m200[0m 2.680 ms - 84[0m
+✅ Password reset successful for: user@example.com
+[0mPOST /api/auth/reset-password/demoResetToken12345 [32m200[0m 324.140 ms - 237[0m
+[0mPOST /api/auth/login [32m200[0m 304.830 ms - 411[0m
+[0mPOST /api/auth/reset-password/wrongToken99999 [33m400[0m 2.321 ms - 61[0m
+[0mPOST /api/auth/login [33m403[0m 570.778 ms - 92[0m
+[0mPOST /api/auth/login [32m200[0m 404.260 ms - 411[0m
+=================================
+📧 SENDING VERIFICATION EMAIL
+Email: verifyflowtest@example.com
+=================================
+✅ Verification email sent to: verifyflowtest@example.com
+[0mPOST /api/auth/register [32m201[0m 3805.870 ms - 302[0m
+[0mGET /api/status [32m200[0m 0.264 ms - 51[0m
+[0mPOST /api/auth/login [32m200[0m 412.659 ms - 419[0m
+[0mPOST /api/auth/login [32m200[0m 367.163 ms - 411[0m
+[0mPOST /api/auth/login [32m200[0m 392.622 ms - 419[0m
+[0mGET /api/admin/users [32m200[0m 19.742 ms - 1141[0m
+[0mPOST /api/auth/login [32m200[0m 363.863 ms - 411[0m
+[0mGET /api/auth/me [32m200[0m 12.349 ms - 352[0m
+[0mPOST /api/auth/login [33m403[0m 577.743 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 3419.140 ms - 66[0m
+[0mPOST /api/auth/login [33m403[0m 560.977 ms - 92[0m
+[0mPOST /api/auth/login [33m403[0m 436.512 ms - 92[0m
+[0mPOST /api/auth/login [33m403[0m 390.221 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 21439.569 ms - 66[0m
+[0mPOST /api/auth/register [33m400[0m 3.661 ms - 66[0m
+[0mPOST /api/auth/login [33m401[0m 580.496 ms - 56[0m
+[0mPOST /api/auth/login [33m401[0m 650.007 ms - 56[0m
+[0mPOST /api/auth/login [33m403[0m 436.564 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 3913.210 ms - 66[0m
+[0mGET /api/status [32m200[0m 0.148 ms - 51[0m
+=================================
+✅ EMAIL VERIFIED
+Email: siddiquiummehabiba41@gmail.com
+=================================
+[0mGET /api/auth/verify-email/45f2194c6595d5166fe6b4978af1171f297c394e794287b27efae252d49cc491 [32m200[0m 4.892 ms - 289[0m
+[0mPOST /api/auth/login [32m200[0m 614.109 ms - 441[0m
+[0mGET /api/pets/my [32m200[0m 14.495 ms - 36[0m
+[0mGET /api/reminders [32m200[0m 20.223 ms - 41[0m
+[0mGET /api/notifications [32m200[0m 21.626 ms - 45[0m
+[0mGET /api/adoptions/my [32m200[0m 36.459 ms - 41[0m
+[0mGET /api/appointments [32m200[0m 35.771 ms - 44[0m
+[0mGET /api/notifications [36m304[0m 7.191 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 8.574 ms - -[0m
+[0mGET /api/reminders [36m304[0m 7.068 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 25.725 ms - -[0m
+[0mGET /api/notifications [36m304[0m 23.916 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 25.312 ms - -[0m
+[0mGET /api/reminders [36m304[0m 11.951 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.596 ms - -[0m
+[0mGET /api/appointments [36m304[0m 24.529 ms - -[0m
+[0mGET /api/reminders [36m304[0m 8.815 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 8.077 ms - -[0m
+[0mGET /api/appointments [36m304[0m 18.549 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 25.575 ms - -[0m
+[0mGET /api/notifications [36m304[0m 23.508 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 22.816 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.886 ms - -[0m
+[0mGET /api/reminders [36m304[0m 29.641 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 6.301 ms - -[0m
+[0mGET /api/reminders [36m304[0m 5.630 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 9.486 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 6.130 ms - -[0m
+[0mGET /api/health [32m200[0m 14.776 ms - 39[0m
+[0mGET /api/vaccinations [32m200[0m 13.551 ms - 44[0m
+[0mGET /api/pets/my [36m304[0m 7.091 ms - -[0m
+[0mGET /api/appointments [36m304[0m 7.065 ms - -[0m
+[0mGET /api/veterinarians [32m200[0m 11.008 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 13.860 ms - -[0m
+[0mGET /api/reminders [36m304[0m 9.927 ms - -[0m
+[0mGET /api/community [32m200[0m 12.846 ms - 399[0m
+[0mGET /api/lost-found [32m200[0m 12.076 ms - 510[0m
+[0mGET /api/lost-found [36m304[0m 23.383 ms - -[0m
+[0mGET /api/auth/me [32m200[0m 6.020 ms - 519[0m
+[0mPUT /api/auth/profile [32m200[0m 22.623 ms - 617[0m
+[0mPOST /api/auth/login [32m200[0m 630.102 ms - 497[0m
+[0mGET /api/pets/my [36m304[0m 26.336 ms - -[0m
+[0mGET /api/appointments [36m304[0m 31.207 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 30.882 ms - -[0m
+[0mGET /api/reminders [36m304[0m 28.614 ms - -[0m
+[0mGET /api/notifications [36m304[0m 28.070 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.499 ms - -[0m
+[0mGET /api/reminders [36m304[0m 15.127 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 23.673 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 304.744 ms - 411[0m
+[0mGET /api/auth/me [32m200[0m 7.047 ms - 352[0m
+[0mPOST /api/auth/login [33m401[0m 356.435 ms - 56[0m
+Auth Error: jwt malformed
+[0mGET /api/auth/me [33m401[0m 1.378 ms - 55[0m
+[0mPOST /api/auth/login [32m200[0m 318.591 ms - 411[0m
+[0mPOST /api/auth/login [32m200[0m 307.274 ms - 419[0m
+[0mGET /api/pets/my [36m304[0m 59.050 ms - -[0m
+[0mGET /api/appointments [36m304[0m 39.743 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 29.701 ms - -[0m
+[0mGET /api/reminders [36m304[0m 24.364 ms - -[0m
+[0mGET /api/notifications [36m304[0m 27.551 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.361 ms - -[0m
+[0mGET /api/reminders [36m304[0m 10.041 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 9.178 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 25.070 ms - -[0m
+[0mGET /api/notifications [36m304[0m 24.726 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 24.071 ms - -[0m
+[0mGET /api/appointments [36m304[0m 23.674 ms - -[0m
+[0mGET /api/reminders [36m304[0m 19.275 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.184 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 7.977 ms - -[0m
+[0mGET /api/reminders [36m304[0m 7.669 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 33.134 ms - -[0m
+[0mGET /api/notifications [36m304[0m 33.499 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 32.341 ms - -[0m
+[0mGET /api/appointments [36m304[0m 27.192 ms - -[0m
+[0mGET /api/reminders [36m304[0m 26.469 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.356 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 5.283 ms - -[0m
+[0mGET /api/reminders [36m304[0m 4.452 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 12.127 ms - -[0m
+[0mGET /api/notifications [36m304[0m 11.298 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 10.617 ms - -[0m
+[0mGET /api/appointments [36m304[0m 10.147 ms - -[0m
+[0mGET /api/reminders [36m304[0m 9.760 ms - -[0m
+[0mGET /api/notifications [36m304[0m 16.035 ms - -[0m
+[0mGET /api/reminders [36m304[0m 6.960 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 5.784 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 16.944 ms - -[0m
+[0mGET /api/notifications [36m304[0m 14.196 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 13.605 ms - -[0m
+[0mGET /api/appointments [36m304[0m 13.270 ms - -[0m
+[0mGET /api/reminders [36m304[0m 12.085 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.646 ms - -[0m
+[0mGET /api/reminders [36m304[0m 9.191 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 6.786 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 609.298 ms - 497[0m
+[0mGET /api/pets/my [36m304[0m 20.790 ms - -[0m
+[0mGET /api/notifications [36m304[0m 19.508 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 18.117 ms - -[0m
+[0mGET /api/appointments [36m304[0m 16.838 ms - -[0m
+[0mGET /api/reminders [36m304[0m 7.757 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.268 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 7.982 ms - -[0m
+[0mGET /api/reminders [36m304[0m 6.833 ms - -[0m
+[0mGET /api/auth/me [32m200[0m 8.298 ms - 575[0m
+[0mGET /api/pets/my [36m304[0m 28.378 ms - -[0m
+[0mGET /api/notifications [36m304[0m 27.327 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 22.735 ms - -[0m
+[0mGET /api/appointments [36m304[0m 20.746 ms - -[0m
+[0mGET /api/reminders [36m304[0m 19.570 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.763 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 7.001 ms - -[0m
+[0mGET /api/reminders [36m304[0m 4.209 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 305.372 ms - 411[0m
+[0mGET /api/auth/me [32m200[0m 5.898 ms - 352[0m
+[0mPOST /api/auth/login [32m200[0m 338.541 ms - 419[0m
+[0mGET /api/auth/me [32m200[0m 3.005 ms - 360[0m
+[0mPOST /api/auth/login [32m200[0m 558.751 ms - 411[0m
+[0mPOST /api/users/avatar [32m200[0m 21.024 ms - 504[0m
+[0mGET /api/auth/me [32m200[0m 6.261 ms - 409[0m
+[0mPOST /api/auth/login [32m200[0m 436.283 ms - 419[0m
+[0mPOST /api/users/avatar [32m200[0m 7.210 ms - 486[0m
+[0mGET /api/auth/me [32m200[0m 3.830 ms - 417[0m
+[0mGET /api/auth/me [36m304[0m 12.003 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 7.356 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.149 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.664 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 27.898 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.462 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 8.124 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 6.273 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.544 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.888 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 6.023 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.348 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.688 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.299 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.569 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.039 ms - -[0m
+[0mPUT /api/auth/profile [32m200[0m 7.054 ms - 617[0m
+[0mGET /api/auth/me [32m200[0m 10.522 ms - 575[0m
+[0mGET /api/auth/me [36m304[0m 9.203 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.514 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.724 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 7.890 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.511 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 18.727 ms - -[0m
+[0mGET /api/reminders [36m304[0m 13.045 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 34.323 ms - -[0m
+[0mGET /api/appointments [36m304[0m 33.724 ms - -[0m
+[0mGET /api/notifications [36m304[0m 20.155 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.975 ms - -[0m
+[0mGET /api/reminders [36m304[0m 5.945 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 4.085 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 4.453 ms - -[0m
+Create Pet Error: Error: Pet validation failed: age: Path `age` is required.
+    at ValidationError.inspect (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\error\validation.js:52:26)
+    at formatValue (node:internal/util/inspect:1160:19)
+    at inspect (node:internal/util/inspect:409:10)
+    at formatWithOptionsInternal (node:internal/util/inspect:2917:40)
+    at formatWithOptions (node:internal/util/inspect:2779:10)
+    at console.value (node:internal/console/constructor:377:14)
+    at console.error (node:internal/console/constructor:444:61)
+    at exports.createPet (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\controllers\pet.controller.js:197:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errors: {
+    age: ValidatorError: Path `age` is required.
+        at validate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1440:13)
+        at SchemaType.doValidate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1424:7)
+        at C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\document.js:3140:18
+        at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+      properties: [Object],
+      kind: 'required',
+      path: 'age',
+      value: null,
+      reason: undefined,
+      Symbol(mongoose#validatorError): true
+    }
+  },
+  _message: 'Pet validation failed'
+}
+[0mPOST /api/pets [31m500[0m 53.918 ms - 81[0m
+Create Pet Error: Error: Pet validation failed: age: Path `age` is required.
+    at ValidationError.inspect (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\error\validation.js:52:26)
+    at formatValue (node:internal/util/inspect:1160:19)
+    at inspect (node:internal/util/inspect:409:10)
+    at formatWithOptionsInternal (node:internal/util/inspect:2917:40)
+    at formatWithOptions (node:internal/util/inspect:2779:10)
+    at console.value (node:internal/console/constructor:377:14)
+    at console.error (node:internal/console/constructor:444:61)
+    at exports.createPet (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\controllers\pet.controller.js:197:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errors: {
+    age: ValidatorError: Path `age` is required.
+        at validate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1440:13)
+        at SchemaType.doValidate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1424:7)
+        at C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\document.js:3140:18
+        at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+      properties: [Object],
+      kind: 'required',
+      path: 'age',
+      value: null,
+      reason: undefined,
+      Symbol(mongoose#validatorError): true
+    }
+  },
+  _message: 'Pet validation failed'
+}
+[0mPOST /api/pets [31m500[0m 14.511 ms - 81[0m
+[0mPOST /api/pets [32m201[0m 17.990 ms - 506[0m
+[0mGET /api/community [32m200[0m 12.622 ms - 456[0m
+[0mGET /uploads/1788705417052-475090575.png [32m200[0m 7.278 ms - 70[0m
+[0mGET /api/pets/my [32m200[0m 18.375 ms - 519[0m
+[0mGET /api/health [36m304[0m 7.006 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 6.889 ms - -[0m
+[0mGET /api/appointments [36m304[0m 7.775 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 12.438 ms - -[0m
+[0mGET /api/veterinarians [36m304[0m 5.640 ms - -[0m
+[0mPOST /api/appointments [32m201[0m 25.754 ms - 475[0m
+[0mGET /api/appointments [32m200[0m 11.925 ms - 691[0m
+[0mGET /api/pets/my [36m304[0m 32.831 ms - -[0m
+[0mGET /api/reminders [36m304[0m 30.256 ms - -[0m
+[0mGET /api/community [36m304[0m 16.680 ms - -[0m
+[0mGET /uploads/1788705417052-475090575.png [32m200[0m 0.987 ms - 70[0m
+[0mPUT /api/community/6a9d436c8cd0c7948d7d9a01/like [33m404[0m 1.072 ms - 45[0m
+[0mPUT /api/community/6a9d436c8cd0c7948d7d9a01/like [33m404[0m 0.573 ms - 45[0m
+[0mGET /api/auth/me [36m304[0m 9.080 ms - -[0m
+[0mPUT /api/auth/profile [32m200[0m 7.118 ms - 617[0m
+[0mGET /api/community [36m304[0m 7.248 ms - -[0m
+[0mGET /uploads/1788705417052-475090575.png [32m200[0m 1.112 ms - 70[0m
+[0mGET /api/pets/my [36m304[0m 9.739 ms - -[0m
+Create Pet Error: Error: Pet validation failed: age: Path `age` is required.
+    at ValidationError.inspect (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\error\validation.js:52:26)
+    at formatValue (node:internal/util/inspect:1160:19)
+    at inspect (node:internal/util/inspect:409:10)
+    at formatWithOptionsInternal (node:internal/util/inspect:2917:40)
+    at formatWithOptions (node:internal/util/inspect:2779:10)
+    at console.value (node:internal/console/constructor:377:14)
+    at console.error (node:internal/console/constructor:444:61)
+    at exports.createPet (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\controllers\pet.controller.js:197:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errors: {
+    age: ValidatorError: Path `age` is required.
+        at validate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1440:13)
+        at SchemaType.doValidate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1424:7)
+        at C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\document.js:3140:18
+        at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+      properties: [Object],
+      kind: 'required',
+      path: 'age',
+      value: null,
+      reason: undefined,
+      Symbol(mongoose#validatorError): true
+    }
+  },
+  _message: 'Pet validation failed'
+}
+[0mPOST /api/pets [31m500[0m 10.778 ms - 81[0m
+Update Pet Error: Error: Pet validation failed: age: Path `age` is required.
+    at ValidationError.inspect (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\error\validation.js:52:26)
+    at formatValue (node:internal/util/inspect:1160:19)
+    at inspect (node:internal/util/inspect:409:10)
+    at formatWithOptionsInternal (node:internal/util/inspect:2917:40)
+    at formatWithOptions (node:internal/util/inspect:2779:10)
+    at console.value (node:internal/console/constructor:377:14)
+    at console.error (node:internal/console/constructor:444:61)
+    at exports.updatePet (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\controllers\pet.controller.js:262:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errors: {
+    age: ValidatorError: Path `age` is required.
+        at validate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1440:13)
+        at SchemaType.doValidate (C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\schemaType.js:1424:7)
+        at C:\Users\User\OneDrive\Documents\habiba\Fami-Pet\backend\node_modules\mongoose\lib\document.js:3140:18
+        at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+      properties: [Object],
+      kind: 'required',
+      path: 'age',
+      value: null,
+      reason: undefined,
+      Symbol(mongoose#validatorError): true
+    }
+  },
+  _message: 'Pet validation failed'
+}
+[0mPUT /api/pets/6a9d822876ac2b996c42516b [31m500[0m 22.790 ms - 81[0m
+[0mGET /api/pets/my [36m304[0m 18.024 ms - -[0m
+[0mGET /api/auth/me [32m200[0m 6.220 ms - 575[0m
+[0mPUT /api/auth/profile [32m200[0m 8.315 ms - 617[0m
+[0mGET /api/reminders [36m304[0m 19.479 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 18.654 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 28.237 ms - -[0m
+[0mGET /api/appointments [36m304[0m 27.589 ms - -[0m
+[0mGET /api/notifications [32m200[0m 31.890 ms - 333[0m
+[0mGET /api/notifications [36m304[0m 4.803 ms - -[0m
+[0mGET /api/reminders [36m304[0m 4.779 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 4.744 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 40.136 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 15.948 ms - -[0m
+[0mGET /api/health [36m304[0m 7.315 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 6.603 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 18.609 ms - -[0m
+[0mGET /api/health [36m304[0m 12.842 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 14.318 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 8.338 ms - -[0m
+[0mGET /api/reminders [36m304[0m 10.296 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 13.884 ms - -[0m
+[0mGET /api/lost-found [36m304[0m 13.074 ms - -[0m
+[0mPOST /api/lost-found [32m201[0m 24.318 ms - -[0m
+[0mGET /api/lost-found [32m200[0m 46.083 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 12.143 ms - -[0m
+[0mGET /api/health [36m304[0m 10.863 ms - -[0m
+[0mGET /api/reminders [36m304[0m 8.943 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 6.917 ms - -[0m
+[0mGET /uploads/1788705417052-475090575.png [32m200[0m 1.988 ms - 70[0m
+[0mGET /uploads/1788705417052-475090575.png [32m200[0m 1.181 ms - 70[0m
+[0mGET /api/veterinarians [36m304[0m 4.781 ms - -[0m
+[0mGET /api/health [36m304[0m 6.737 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 6.794 ms - -[0m
+[0mGET /uploads/1788705417052-475090575.png [32m200[0m 1.467 ms - 70[0m
+[0mGET /api/reminders [36m304[0m 9.812 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 7.886 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 6.878 ms - -[0m
+[0mGET /api/reminders [36m304[0m 6.321 ms - -[0m
+[0mGET /api/reminders [36m304[0m 7.546 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 6.964 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 559.461 ms - 468[0m
+[0mPOST /api/pets [32m201[0m 9.084 ms - 443[0m
+[0mPOST /api/auth/login [32m200[0m 434.510 ms - 468[0m
+[0mGET /api/pets/my [32m200[0m 13.441 ms - 1030[0m
+[0mDELETE /api/pets/6a9d85ee76ac2b996c425207 [32m200[0m 8.926 ms - 54[0m
+[0mPOST /api/auth/login [32m200[0m 557.555 ms - 476[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 5.049 ms - 70[0m
+[0mGET /api/admin/users/recent [32m200[0m 15.707 ms - -[0m
+[0mGET /api/admin/dashboard [32m200[0m 22.290 ms - 131[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 4.302 ms - 70[0m
+[0mGET /api/admin/pets [32m200[0m 11.926 ms - -[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.767 ms - 70[0m
+[0mGET /api/adoptions [32m200[0m 11.102 ms - 427[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 5.681 ms - 70[0m
+[0mGET /api/adoptions [36m304[0m 9.544 ms - -[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.706 ms - 70[0m
+[0mGET /api/admin/pets [36m304[0m 13.970 ms - -[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.954 ms - 70[0m
+[0mGET /api/admin/users [32m200[0m 5.604 ms - -[0m
+[0mDELETE /api/admin/users/6a9d3d8fe14840826e971028 [32m200[0m 10.748 ms - 55[0m
+[0mGET /api/admin/users [32m200[0m 4.133 ms - 845[0m
+[0mGET /api/appointments [32m200[0m 17.142 ms - 44[0m
+[0mGET /api/reminders [36m304[0m 16.518 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 16.783 ms - -[0m
+[0mGET /api/notifications [32m200[0m 16.816 ms - 45[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 13.790 ms - 70[0m
+[0mGET /api/pets/my [32m200[0m 25.266 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.134 ms - -[0m
+[0mGET /api/reminders [36m304[0m 7.367 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 5.673 ms - -[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.133 ms - 70[0m
+[0mGET /api/auth/me [32m200[0m 4.420 ms - 417[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.232 ms - 70[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 0.612 ms - 70[0m
+[0mGET /api/auth/me [36m304[0m 5.786 ms - -[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 0.763 ms - 70[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 0.793 ms - 70[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.487 ms - 70[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 1.036 ms - 70[0m
+=================================
+📧 SENDING VERIFICATION EMAIL
+Email: siddiquianamfatima41@gmail.com
+=================================
+✅ Verification email sent to: siddiquianamfatima41@gmail.com
+[0mPOST /api/auth/register [32m201[0m 5074.817 ms - 319[0m
+[0mPOST /api/auth/login [33m403[0m 474.322 ms - 92[0m
+[0mPOST /api/auth/login [33m403[0m 499.901 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 3165.726 ms - 66[0m
+[0mPOST /api/auth/login [33m403[0m 505.879 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 23162.630 ms - 66[0m
+[0mGET /api/status [32m200[0m 0.161 ms - 51[0m
+=================================
+📧 SENDING VERIFICATION EMAIL
+Email: verifytest_1788708782@example.com
+=================================
+✅ Verification email sent to: verifytest_1788708782@example.com
+[0mPOST /api/auth/register [32m201[0m 2898.026 ms - 304[0m
+[0mPOST /api/auth/login [33m403[0m 300.719 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 3246.099 ms - 66[0m
+[0mPOST /api/auth/login [33m403[0m 543.537 ms - 92[0m
+[0mPOST /api/auth/login [33m403[0m 569.081 ms - 92[0m
+[0mPOST /api/auth/login [33m403[0m 724.827 ms - 92[0m
+=================================
+✅ EMAIL VERIFIED
+Email: verifytest_1788708782@example.com
+=================================
+[0mGET /api/auth/verify-email/9b511a3befb88cebf583c1ddc7cfe64556499a8c85dd2941c4be800b85001caa [32m200[0m 6.013 ms - 278[0m
+[0mPOST /api/auth/login [32m200[0m 679.320 ms - 430[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 6323.172 ms - 66[0m
+[0mPOST /api/auth/login [33m403[0m 474.334 ms - 92[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 3258.699 ms - 66[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 4737.360 ms - 66[0m
+[0mPOST /api/auth/resend-verification [32m200[0m 4083.762 ms - 66[0m
+=================================
+✅ EMAIL VERIFIED
+Email: siddiquianamfatima41@gmail.com
+=================================
+[0mGET /api/auth/verify-email/36ac30af5a9540404089d76f2260432e7223a27b053cbe10c9feb8e350f14db1 [32m200[0m 3.717 ms - 293[0m
+[0mGET /api/auth/verify-email/36ac30af5a9540404089d76f2260432e7223a27b053cbe10c9feb8e350f14db1 [33m400[0m 2.406 ms - 67[0m
+[0mGET / [32m200[0m 0.445 ms - 69[0m
+[0mPOST /api/auth/login [32m200[0m 469.017 ms - 445[0m
+[0mGET /api/pets/my [32m200[0m 24.731 ms - 36[0m
+[0mGET /api/adoptions/my [36m304[0m 24.232 ms - -[0m
+[0mGET /api/appointments [36m304[0m 21.695 ms - -[0m
+[0mGET /api/reminders [36m304[0m 17.231 ms - -[0m
+[0mGET /api/notifications [36m304[0m 11.330 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.688 ms - -[0m
+[0mGET /api/reminders [36m304[0m 4.704 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 5.947 ms - -[0m
+[0mGET /api/auth/me [32m200[0m 9.513 ms - 386[0m
+[0mGET /uploads/1788705417780-324743016.png [32m200[0m 10.665 ms - 70[0m
+[0mPOST /api/auth/login [33m401[0m 302.290 ms - 56[0m
+Auth Error: jwt malformed
+[0mPOST /api/users/avatar [33m401[0m 0.338 ms - 55[0m
+[0mPOST /api/auth/login [33m401[0m 294.496 ms - 56[0m
+Auth Error: jwt malformed
+[0mPOST /api/users/avatar [33m401[0m 0.320 ms - 55[0m
+Auth Error: jwt malformed
+[0mGET /api/auth/me [33m401[0m 0.360 ms - 55[0m
+Auth Error: jwt malformed
+[0mGET /api/auth/me [33m401[0m 0.506 ms - 55[0m
+[0mPOST /api/auth/login [33m401[0m 1.915 ms - 56[0m
+[0mPOST /api/auth/login [32m200[0m 345.088 ms - 476[0m
+Auth Error: jwt malformed
+[0mPOST /api/users/avatar [33m401[0m 0.568 ms - 55[0m
+[0mPOST /api/users/avatar [32m200[0m 7.045 ms - 486[0m
+Auth Error: jwt malformed
+[0mGET /api/auth/me [33m401[0m 0.383 ms - 55[0m
+[0mGET /api/auth/me [32m200[0m 2.948 ms - 417[0m
+[0mGET /api/status [32m200[0m 0.184 ms - 51[0m
+[0mGET /api/auth/me [36m304[0m 5.794 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.322 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.028 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.822 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.758 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 6.691 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 551.388 ms - 445[0m
+[0mGET /api/pets/my [36m304[0m 61.626 ms - -[0m
+[0mGET /api/appointments [36m304[0m 48.006 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 42.384 ms - -[0m
+[0mGET /api/reminders [36m304[0m 27.907 ms - -[0m
+[0mGET /api/notifications [36m304[0m 17.143 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.205 ms - -[0m
+[0mGET /api/reminders [36m304[0m 6.540 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 5.109 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 8.296 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 6.136 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.633 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.639 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.416 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 4.790 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.884 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 5.918 ms - -[0m
+[0mPOST /api/users/avatar [32m200[0m 17.028 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 6.637 ms - 485[0m
+[0mPOST /api/users/avatar [32m200[0m 14.226 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 4.530 ms - 485[0m
+[0mGET /api/pets/my [36m304[0m 11.576 ms - -[0m
+[0mGET /uploads/1788710623755-919740452.png [32m200[0m 6.816 ms - 1341302[0m
+[0mPOST /api/pets [32m201[0m 22.800 ms - 440[0m
+[0mPUT /api/pets/6a9d8f1b76ac2b996c4252bd [32m200[0m 36.759 ms - -[0m
+[0mGET /uploads/1788710623755-919740452.png [32m200[0m 8.327 ms - 1341302[0m
+[0mGET /api/pets/my [32m200[0m 14.437 ms - -[0m
+[0mGET /uploads/1788710623755-919740452.png [32m200[0m 0.782 ms - 1341302[0m
+[0mGET /api/auth/me [32m200[0m 5.121 ms - 443[0m
+[0mGET /uploads/1788710623755-919740452.png [32m200[0m 2.166 ms - 1341302[0m
+[0mPOST /api/users/avatar [32m200[0m 12.445 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 6.968 ms - 485[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 1.484 ms - 1341302[0m
+[0mGET /api/auth/me [32m200[0m 4.037 ms - 443[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 0.987 ms - 1341302[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 1.652 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.736 ms - -[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 1.169 ms - 1341302[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 0.973 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 6.644 ms - -[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 0.808 ms - 1341302[0m
+[0mGET /api/pets/my [36m304[0m 19.393 ms - -[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 8.753 ms - 1341302[0m
+[0mPOST /api/auth/login [32m200[0m 321.849 ms - 419[0m
+[0mPOST /api/users/avatar [32m200[0m 6.580 ms - 486[0m
+[0mGET /api/auth/me [32m200[0m 4.119 ms - 417[0m
+[0mGET /api/pets/my [36m304[0m 18.887 ms - -[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 10.904 ms - 1341302[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 0.808 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 6.006 ms - -[0m
+[0mGET /uploads/1788710768827-186292501.png [32m200[0m 0.925 ms - 1341302[0m
+[0mPOST /api/users/avatar [32m200[0m 16.199 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 11.114 ms - 485[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 2.857 ms - 1341302[0m
+[0mGET /api/auth/me [32m200[0m 4.457 ms - 443[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.307 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 3.572 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 8.070 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.818 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.813 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.145 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.916 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 2.909 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 6.454 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.538 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.697 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 9.168 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.904 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.312 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.945 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.591 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.876 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 4.635 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.999 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.182 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.932 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.389 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.003 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.525 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.789 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.071 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 6.771 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.707 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.724 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.706 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.607 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.731 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.120 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.034 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.828 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 5.991 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.785 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.878 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 3.968 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.956 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.241 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 8.134 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.628 ms - 1341302[0m
+[0mGET /api/pets/my [36m304[0m 45.842 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 30.862 ms - 1341302[0m
+[0mGET /api/pets/my [36m304[0m 32.169 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 20.982 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.860 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 4.956 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 0.641 ms - 1341302[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.039 ms - 1341302[0m
+[0mGET /api/auth/me [36m304[0m 8.052 ms - -[0m
+[0mGET /uploads/1788711619522-392901638.png [32m200[0m 1.096 ms - 1341302[0m
+[0mPOST /api/users/avatar [32m200[0m 11.037 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 7.704 ms - 485[0m
+[0mPUT /api/auth/profile [32m200[0m 7.706 ms - 485[0m
+[0mGET /uploads/1788711663209-514109436.png [32m200[0m 4.893 ms - 753317[0m
+[0mGET /uploads/1788711663209-514109436.png [32m200[0m 1.285 ms - 753317[0m
+[0mPUT /api/auth/profile [32m200[0m 15.651 ms - 485[0m
+[0mPUT /api/auth/profile [32m200[0m 4.911 ms - 485[0m
+[0mGET /uploads/1788711663209-514109436.png [32m200[0m 2.755 ms - 753317[0m
+[0mPUT /api/auth/profile [32m200[0m 4.559 ms - 485[0m
+[0mGET /uploads/1788711663209-514109436.png [32m200[0m 2.797 ms - 753317[0m
+[0mGET /uploads/1788711663209-514109436.png [32m200[0m 1.442 ms - 753317[0m
+[0mGET /api/auth/me [32m200[0m 4.880 ms - 443[0m
+[0mGET /uploads/1788711663209-514109436.png [32m200[0m 0.785 ms - 753317[0m
+[0mPOST /api/users/avatar [32m200[0m 9.417 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 5.130 ms - 485[0m
+[0mPUT /api/auth/profile [32m200[0m 7.585 ms - 485[0m
+[0mGET /uploads/1788711844317-259449709.png [32m200[0m 4.000 ms - 753317[0m
+[0mGET /uploads/1788711844317-259449709.png [32m200[0m 4.377 ms - 753317[0m
+[0mPUT /api/auth/profile [32m200[0m 18.144 ms - 485[0m
+[0mGET /uploads/1788711844317-259449709.png [32m200[0m 0.889 ms - 753317[0m
+[0mGET /api/auth/me [32m200[0m 6.780 ms - 443[0m
+[0mGET /uploads/1788711844317-259449709.png [32m200[0m 0.970 ms - 753317[0m
+[0mPOST /api/users/avatar [32m200[0m 16.058 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 4.381 ms - 485[0m
+[0mGET /uploads/1788711923604-147646260.png [32m200[0m 0.891 ms - 753317[0m
+[0mGET /api/auth/me [32m200[0m 5.568 ms - 443[0m
+[0mGET /uploads/1788711923604-147646260.png [32m200[0m 2.030 ms - 753317[0m
+[0mPOST /api/auth/login [32m200[0m 551.659 ms - 502[0m
+[0mGET /api/reminders [36m304[0m 17.143 ms - -[0m
+[0mGET /api/notifications [36m304[0m 16.970 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 23.680 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 12.687 ms - -[0m
+[0mGET /api/appointments [36m304[0m 10.413 ms - -[0m
+[0mGET /uploads/1788711923604-147646260.png [32m200[0m 8.477 ms - 753317[0m
+[0mGET /api/notifications [36m304[0m 6.384 ms - -[0m
+[0mGET /api/reminders [36m304[0m 8.357 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 6.784 ms - -[0m
+[0mGET /uploads/1788711923604-147646260.png [32m200[0m 1.079 ms - 753317[0m
+[0mGET /api/auth/me [36m304[0m 5.342 ms - -[0m
+[0mGET /uploads/1788711923604-147646260.png [32m200[0m 0.533 ms - 753317[0m
+[0mPOST /api/users/avatar [32m200[0m 10.030 ms - 512[0m
+[0mPUT /api/auth/profile [32m200[0m 3.476 ms - 485[0m
+[0mGET /api/community [32m200[0m 4.809 ms - 311[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 2.612 ms - 1341302[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 6.713 ms - 1341302[0m
+[0mGET /api/reminders [36m304[0m 9.161 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 15.148 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 10.364 ms - 1341302[0m
+[0mGET /api/appointments [36m304[0m 11.283 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 19.644 ms - -[0m
+[0mGET /api/veterinarians [36m304[0m 5.235 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 6.410 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 1.915 ms - 1341302[0m
+[0mGET /api/health [36m304[0m 6.996 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 4.775 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 1.374 ms - 1341302[0m
+[0mGET /api/lost-found [32m200[0m 15.451 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 0.790 ms - 1341302[0m
+[0mGET /api/reminders [36m304[0m 8.596 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 12.686 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 4.554 ms - 1341302[0m
+[0mGET /api/reminders [36m304[0m 7.964 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 12.838 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 2.209 ms - 1341302[0m
+[0mGET /api/adoptions/my [36m304[0m 17.900 ms - -[0m
+[0mGET /api/appointments [36m304[0m 17.259 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 25.587 ms - -[0m
+[0mGET /api/reminders [36m304[0m 17.652 ms - -[0m
+[0mGET /api/notifications [36m304[0m 14.309 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 13.633 ms - 1341302[0m
+[0mGET /api/notifications [36m304[0m 4.220 ms - -[0m
+[0mGET /api/reminders [36m304[0m 5.445 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 3.011 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 2.898 ms - 1341302[0m
+[0mGET /api/pets/my [36m304[0m 11.394 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 1.455 ms - 1341302[0m
+[0mGET /api/notifications [36m304[0m 22.498 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 25.357 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 35.984 ms - -[0m
+[0mGET /api/appointments [36m304[0m 22.265 ms - -[0m
+[0mGET /api/reminders [36m304[0m 21.275 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 25.250 ms - 1341302[0m
+[0mGET /api/notifications [36m304[0m 13.561 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 13.829 ms - -[0m
+[0mGET /api/reminders [36m304[0m 10.686 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 9.222 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 4.228 ms - 1341302[0m
+[0mGET /api/health [36m304[0m 7.433 ms - -[0m
+[0mGET /api/vaccinations [36m304[0m 7.900 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 6.052 ms - 1341302[0m
+[0mGET /api/appointments [36m304[0m 10.284 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 13.667 ms - -[0m
+[0mGET /api/veterinarians [36m304[0m 3.162 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 6.228 ms - 1341302[0m
+[0mGET /api/reminders [36m304[0m 7.097 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 11.051 ms - -[0m
+[0mGET /api/community [36m304[0m 5.380 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 2.773 ms - 1341302[0m
+[0mGET /api/lost-found [36m304[0m 9.912 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 4.926 ms - 1341302[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 6.029 ms - 1341302[0m
+[0mGET /api/community [36m304[0m 11.676 ms - -[0m
+[0mPOST /api/community [32m201[0m 40.721 ms - -[0m
+[0mGET /api/community [32m200[0m 28.798 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 1.266 ms - 1341302[0m
+[0mPUT /api/community/6a9d978176ac2b996c4253ad/like [33m404[0m 0.393 ms - 45[0m
+[0mPUT /api/community/6a9d978176ac2b996c4253ad/like [33m404[0m 0.159 ms - 45[0m
+[0mPUT /api/community/6a9d978176ac2b996c4253ad/like [33m404[0m 0.154 ms - 45[0m
+[0mPUT /api/community/6a9d978176ac2b996c4253ad/like [33m404[0m 0.157 ms - 45[0m
+[0mGET /api/lost-found [36m304[0m 13.662 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 6.191 ms - 1341302[0m
+[0mGET /api/status [32m200[0m 0.323 ms - 51[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 12.243 ms - 1341302[0m
+[0mGET /api/auth/me [32m200[0m 9.412 ms - 443[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 1.499 ms - 1341302[0m
+[0mGET /api/appointments [36m304[0m 17.537 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 17.790 ms - -[0m
+[0mGET /api/reminders [36m304[0m 16.039 ms - -[0m
+[0mGET /api/pets/my [36m304[0m 24.885 ms - -[0m
+[0mGET /api/notifications [36m304[0m 10.663 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 5.938 ms - 1341302[0m
+[0mGET /api/notifications [36m304[0m 7.373 ms - -[0m
+[0mGET /api/reminders [36m304[0m 4.771 ms - -[0m
+[0mGET /api/adoptions/my [36m304[0m 4.191 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 1.868 ms - 1341302[0m
+[0mGET /api/pets/my [36m304[0m 8.708 ms - -[0m
+[0mGET /api/lost-found [36m304[0m 9.470 ms - -[0m
+[0mGET /uploads/1788712596893-971221219.png [32m200[0m 5.176 ms - 1341302[0m

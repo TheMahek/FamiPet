@@ -1,0 +1,264 @@
+const mongoose = require("mongoose");
+const LostFound = require("../models/LostFound");
+
+// =====================================================
+// GET ALL LOST & FOUND REPORTS
+// =====================================================
+
+exports.getAllReports = async (req, res) => {
+  try {
+    const { type, status, species, search } = req.query;
+
+    const query = {};
+
+    if (type) {
+      query.type = type;
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (species) {
+      query.species = species;
+    }
+
+    if (search) {
+      query.$or = [
+        { petName: new RegExp(search, "i") },
+        { location: new RegExp(search, "i") },
+        { description: new RegExp(search, "i") },
+        { breed: new RegExp(search, "i") },
+      ];
+    }
+
+    const reports = await LostFound.find(query)
+      .populate("user", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: reports.length,
+      reports,
+    });
+  } catch (error) {
+    console.error("Get All Reports Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// =====================================================
+// GET SINGLE REPORT
+// =====================================================
+
+exports.getReportById = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid report ID.",
+      });
+    }
+
+    const report = await LostFound.findById(req.params.id).populate(
+      "user",
+      "name email phone"
+    );
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    console.error("Get Report Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// =====================================================
+// CREATE LOST / FOUND REPORT
+// =====================================================
+
+exports.createReport = async (req, res) => {
+  try {
+    const {
+      type,
+      petName,
+      species,
+      breed,
+      gender,
+      color,
+      description,
+      location,
+      date,
+      contactName,
+      contactPhone,
+      images,
+    } = req.body;
+
+    // Required fields
+    if (
+      !type ||
+      !petName ||
+      !species ||
+      !description ||
+      !location ||
+      !date ||
+      !contactName ||
+      !contactPhone
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Type, pet name, species, description, location, date, contact name and contact phone are required.",
+      });
+    }
+
+    const report = await LostFound.create({
+      user: req.user.id,
+      type,
+      petName,
+      species,
+      breed,
+      gender,
+      color,
+      description,
+      location,
+      date,
+      contactName,
+      contactPhone,
+      images,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Lost & Found report created successfully.",
+      report,
+    });
+  } catch (error) {
+    console.error("Create Report Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// =====================================================
+// UPDATE REPORT
+// =====================================================
+
+exports.updateReport = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid report ID.",
+      });
+    }
+
+    const report = await LostFound.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found.",
+      });
+    }
+
+    // Only report owner can update
+    if (report.user.toString() !== req.user.id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to update this report.",
+      });
+    }
+
+    // Prevent changing the owner
+    delete req.body.user;
+
+    Object.assign(report, req.body);
+
+    await report.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Report updated successfully.",
+      report,
+    });
+  } catch (error) {
+    console.error("Update Report Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// =====================================================
+// DELETE REPORT
+// =====================================================
+
+exports.deleteReport = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid report ID.",
+      });
+    }
+
+    const report = await LostFound.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found.",
+      });
+    }
+
+    // Owner OR admin can delete
+    const isOwner =
+      report.user.toString() === req.user.id.toString();
+
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this report.",
+      });
+    }
+
+    await report.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Report deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete Report Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Famipet | PetGPT</title>
+
+
+    <!-- =====================================================
+         GOOGLE FONT
+    ====================================================== -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- =====================================================
+         LUCIDE ICONS
+    ====================================================== -->
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+
+    <!-- =====================================================
+         SHARED SIDEBAR CSS
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="../css/sidebar.css"
+    >
+
+
+    <!-- =====================================================
+         PETGPT CSS
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="../css/petgpt.css"
+    >
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+
+<body>
+
+
+<div class="app-container">
+
+
+    <!-- =====================================================
+         UNIVERSAL Famipet SIDEBAR
+    ====================================================== -->
+
+    <div id="sidebar-container"></div>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main class="main-content ann-main">
+
+
+        <!-- =================================================
+             PETGPT HEADER
+        ================================================== -->
+
+        <header class="petgpt-header">
+
+
+            <div class="header-title">
+
+
+                <div class="petgpt-title-icon">
+
+                    <i data-lucide="sparkles"></i>
+
+                </div>
+
+
+                <div>
+
+                    <h1>
+                        PetGPT
+                    </h1>
+
+                    <p>
+                        Your AI Pet Assistant
+                    </p>
+
+                </div>
+
+
+                <div class="online-badge">
+
+                    <span></span>
+
+                    Online
+
+                </div>
+
+
+            </div>
+
+
+        </header>
+
+
+
+        <!-- =================================================
+             PETGPT MAIN LAYOUT
+        ================================================== -->
+
+        <section class="petgpt-layout">
+
+
+            <!-- =================================================
+                 CHAT SECTION
+            ================================================== -->
+
+            <section class="chat-section">
+
+
+                <!-- =========================================
+                     WELCOME CARD
+                ========================================== -->
+
+                <div class="welcome-card">
+
+
+                    <!-- ROBOT AREA -->
+
+                    <div class="robot-area">
+
+
+                        <div class="heart-bubble">
+
+                            ♥
+                            
+                        </div>
+
+
+                        <div class="petgpt-image">
+
+                            <img
+                                src="../assets/images/Pet-gpt/Pet-AI.png"
+                                alt="PetGPT Assistant"
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+                    <!-- WELCOME TEXT -->
+
+                    <div class="welcome-content">
+
+
+                        <h2>
+                            Hi Mahek! 👋
+                        </h2>
+
+
+                        <p class="welcome-main">
+
+                            I'm PetGPT, your AI pet assistant.
+
+                        </p>
+
+
+                        <p class="welcome-sub">
+
+                            Ask me anything about pet care, health,
+                            nutrition, training and more!
+
+                        </p>
+
+
+                    </div>
+
+
+                    <!-- DECORATION -->
+
+                    <div class="welcome-decoration">
+
+                        <span>✦</span>
+
+                        <span>✧</span>
+
+                        <span>🐾</span>
+
+                        <span>🐾</span>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     CHAT MESSAGES
+                ========================================== -->
+
+                <div
+                    class="chat-messages"
+                    id="chatMessages"
+                >
+
+
+                    <!-- =====================================
+                         USER MESSAGE 1
+                    ====================================== -->
+
+                    <div class="message user-message">
+
+
+                        <div class="message-bubble">
+
+                            <p>
+
+                                What food is good for a 6 month old
+                                golden retriever?
+
+                            </p>
+
+
+                            <small>
+
+                                10:30 AM
+
+                                <span class="checks">
+                                    ✓✓
+                                </span>
+
+                            </small>
+
+                        </div>
+
+
+                        <div class="user-avatar">
+
+                            <img
+                                src="../assets/images/dashboard/user-profile.svg"
+                                alt="Mahek"
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- =====================================
+                         AI MESSAGE 1
+                    ====================================== -->
+
+                    <div class="message ai-message">
+
+
+                        <div class="ai-avatar">
+
+
+                            <!-- MINI ROBOT -->
+
+                            <div class="mini-robot">
+
+                                <div class="mini-eye"></div>
+
+                                <div class="mini-eye"></div>
+
+                                <div class="mini-smile"></div>
+
+                            </div>
+
+
+                        </div>
+
+
+                        <div class="message-bubble">
+
+
+                            <p>
+
+                                A 6-month-old Golden Retriever
+                                needs a balanced diet rich in
+                                protein, healthy fats, vitamins,
+                                and minerals to support healthy
+                                growth.
+
+                            </p>
+
+
+                            <p>
+
+                                High-quality puppy food with real
+                                chicken, rice, and essential
+                                nutrients is ideal. You can also
+                                add boiled vegetables like carrots
+                                or pumpkin in small amounts.
+
+                            </p>
+
+
+                            <p>
+
+                                Make sure to avoid chocolate,
+                                grapes, and onions.
+
+                            </p>
+
+
+                            <small>
+                                10:31 AM
+                            </small>
+
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- =====================================
+                         USER MESSAGE 2
+                    ====================================== -->
+
+                    <div class="message user-message">
+
+
+                        <div class="message-bubble">
+
+                            <p>
+
+                                How often should I take my dog
+                                for a walk?
+
+                            </p>
+
+
+                            <small>
+
+                                10:32 AM
+
+                                <span class="checks">
+                                    ✓✓
+                                </span>
+
+                            </small>
+
+                        </div>
+
+
+                        <div class="user-avatar">
+
+                            <img
+                                src="../assets/images/dashboard/user-profile.svg"
+                                alt="Mahek"
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- =====================================
+                         AI MESSAGE 2
+                    ====================================== -->
+
+                    <div class="message ai-message">
+
+
+                        <div class="ai-avatar">
+
+
+                            <div class="mini-robot">
+
+                                <div class="mini-eye"></div>
+
+                                <div class="mini-eye"></div>
+
+                                <div class="mini-smile"></div>
+
+                            </div>
+
+
+                        </div>
+
+
+                        <div class="message-bubble">
+
+
+                            <p>
+
+                                For a 6-month-old Golden Retriever,
+                                around 2 walks a day for 30–45
+                                minutes each, along with playtime,
+                                is a good routine.
+
+                            </p>
+
+
+                            <p>
+
+                                It helps with physical development,
+                                keeps them active, and improves
+                                behaviour.
+
+                            </p>
+
+
+                            <small>
+                                10:33 AM
+                            </small>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     CHAT INPUT
+                ========================================== -->
+
+                <div class="chat-input-area">
+
+
+                    <div class="input-wrapper">
+
+
+                        <input
+                            type="text"
+                            id="messageInput"
+                            placeholder="Type your question here..."
+                            autocomplete="off"
+                        >
+
+
+                        <button
+                            id="sendBtn"
+                            class="send-btn"
+                            type="button"
+                            aria-label="Send message"
+                        >
+
+                            <i data-lucide="send"></i>
+
+                        </button>
+
+
+                    </div>
+
+
+
+                    <!-- QUICK QUESTIONS -->
+
+                    <div class="quick-questions">
+
+
+                        <button
+                            class="quick-question"
+                            data-question="Is my pet overweight?"
+                            type="button"
+                        >
+
+                            Is my pet overweight? 🐶
+
+                        </button>
+
+
+                        <button
+                            class="quick-question"
+                            data-question="What is the best food for kittens?"
+                            type="button"
+                        >
+
+                            Best food for kittens 🐱
+
+                        </button>
+
+
+                        <button
+                            class="quick-question"
+                            data-question="How can I train my puppy?"
+                            type="button"
+                        >
+
+                            How to train my puppy? 🐾
+
+                        </button>
+
+
+                        <button
+                            class="quick-question"
+                            data-question="Why is my cat not eating?"
+                            type="button"
+                        >
+
+                            Why is my cat not eating? 😿
+
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </section>
+
+
+
+            <!-- =================================================
+                 RIGHT PANEL
+            ================================================== -->
+
+            <aside class="petgpt-right-panel">
+
+
+                <!-- =========================================
+                     POPULAR TOPICS
+                ========================================== -->
+
+                <div class="side-card topics-card">
+
+
+                    <div class="card-heading">
+
+
+                        <div class="heading-icon purple">
+
+                            <i data-lucide="star"></i>
+
+                        </div>
+
+
+                        <h3>
+                            Popular Topics
+                        </h3>
+
+
+                    </div>
+
+
+                    <div class="topic-list">
+
+
+                        <button
+                            class="topic-item"
+                            data-question="Tell me about dog nutrition"
+                            type="button"
+                        >
+
+                            <span>🐶</span>
+
+                            <strong>
+                                Dog Nutrition
+                            </strong>
+
+                        </button>
+
+
+                        <button
+                            class="topic-item"
+                            data-question="How should I take care of my cat?"
+                            type="button"
+                        >
+
+                            <span>🐱</span>
+
+                            <strong>
+                                Cat Care
+                            </strong>
+
+                        </button>
+
+
+                        <button
+                            class="topic-item"
+                            data-question="How can I train my puppy?"
+                            type="button"
+                        >
+
+                            <span>🎓</span>
+
+                            <strong>
+                                Puppy Training
+                            </strong>
+
+                        </button>
+
+
+                        <button
+                            class="topic-item"
+                            data-question="What are common pet health issues?"
+                            type="button"
+                        >
+
+                            <span>🩺</span>
+
+                            <strong>
+                                Common Health Issues
+                            </strong>
+
+                        </button>
+
+
+                        <button
+                            class="topic-item"
+                            data-question="Give me some grooming tips for my pet"
+                            type="button"
+                        >
+
+                            <span>🪮</span>
+
+                            <strong>
+                                Grooming Tips
+                            </strong>
+
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     PET CARE TIP
+                ========================================== -->
+
+                <div class="side-card care-card">
+
+
+                    <div class="card-heading">
+
+
+                        <div class="heading-icon yellow">
+
+                            💡
+
+                        </div>
+
+
+                        <h3>
+                            Pet Care Tip
+                        </h3>
+
+
+                    </div>
+
+
+                    <p>
+
+                        Always keep fresh water
+                        available for your pet.
+
+                    </p>
+
+
+                    <div class="water-bowl">
+
+                        <div class="water">
+
+                            💧
+
+                        </div>
+
+                        <div class="bowl-paw">
+
+                            🐾
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     EMERGENCY HELP
+                ========================================== -->
+
+                <div class="side-card emergency-card">
+
+
+                    <div class="card-heading">
+
+
+                        <div class="heading-icon pink">
+
+                            <i data-lucide="phone"></i>
+
+                        </div>
+
+
+                        <h3>
+                            Emergency Help
+                        </h3>
+
+
+                    </div>
+
+
+                    <p class="helpline-text">
+
+                        24/7 Pet Helpline
+
+                    </p>
+
+
+                    <strong class="phone-number">
+
+                        1800-123-4567
+
+                    </strong>
+
+
+                    <p class="clinic-text">
+
+                        Nearest Pet Clinic
+
+                    </p>
+
+
+                    <button
+                        class="find-clinic-btn"
+                        id="findClinicBtn"
+                        type="button"
+                    >
+
+                        <i data-lucide="map-pin"></i>
+
+                        Find Nearby
+
+                    </button>
+
+
+                </div>
+
+
+            </aside>
+
+
+        </section>
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     JAVASCRIPT
+====================================================== -->
+
+<script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+
+<script src="../js/petgpt.js"></script>
+
+<script src="../js/theme.js"></script>
+
+</body>
+
+</html>

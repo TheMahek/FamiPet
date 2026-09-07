@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Famipet | Settings</title>
+
+
+    <!-- =====================================================
+         GOOGLE FONT
+    ====================================================== -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- =====================================================
+         LUCIDE ICONS
+    ====================================================== -->
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+
+    <!-- =====================================================
+         UNIVERSAL SIDEBAR CSS
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="../css/sidebar.css"
+    >
+
+
+    <!-- =====================================================
+         SETTINGS CSS
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="../css/settings.css"
+    >
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+
+<body>
+
+
+<div class="app-container">
+
+
+    <!-- =====================================================
+         UNIVERSAL Famipet SIDEBAR
+
+         DO NOT PUT SIDEBAR HTML HERE.
+
+         sidebar.js automatically creates it.
+    ====================================================== -->
+
+    <div id="sidebar-container"></div>
+
+
+
+    <!-- =====================================================
+         SETTINGS MAIN CONTENT
+    ====================================================== -->
+
+    <main class="main-content ann-main">
+
+
+        <!-- =================================================
+             PAGE HEADER
+        ================================================== -->
+
+        <header class="settings-header">
+
+
+            <div class="settings-heading">
+
+                <h1>
+                    Settings
+                </h1>
+
+                <p>
+                    Manage your account, pets, preferences and app settings.
+                </p>
+
+            </div>
+
+
+            <button
+                class="back-dashboard-btn"
+                id="backDashboardBtn"
+                type="button"
+            >
+
+                <i data-lucide="arrow-left"></i>
+
+                <span>
+                    Back to Dashboard
+                </span>
+
+            </button>
+
+
+        </header>
+
+
+
+        <!-- =================================================
+             SETTINGS CONTENT
+        ================================================== -->
+
+        <div class="settings-layout">
+
+
+            <!-- =================================================
+                 LEFT COLUMN
+            ================================================== -->
+
+            <div class="settings-left">
+
+
+                <!-- =============================================
+                     PROFILE INFORMATION
+                ============================================== -->
+
+                <section class="settings-card profile-settings-card">
+
+
+                    <div class="settings-card-title">
+
+                        <div class="settings-icon purple">
+
+                            <i data-lucide="user-round"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h2>
+                                Profile Information
+                            </h2>
+
+                            <p>
+                                Update your personal details and profile picture.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="profile-settings-body">
+
+
+                        <!-- PROFILE PHOTO -->
+
+                        <div class="settings-profile-photo">
+
+
+                            <div class="settings-avatar-wrapper">
+
+                                <img
+                                    id="settingsProfileImage"
+                                    src="../assets/images/dashboard/user-profile.svg"
+                                    alt="Mahek Shaikh"
+                                >
+
+
+                                <button
+                                    type="button"
+                                    class="change-photo-btn"
+                                    id="changePhotoBtn"
+                                    title="Change profile picture"
+                                >
+
+                                    <i data-lucide="camera"></i>
+
+                                </button>
+
+                            </div>
+
+
+                            <input
+                                type="file"
+                                id="profileImageInput"
+                                accept="image/*"
+                                hidden
+                            >
+
+
+                            <span>
+                                Profile Picture
+                            </span>
+
+
+                            <small>
+                                JPG, PNG or WEBP
+                            </small>
+
+                        </div>
+
+
+
+                        <!-- PROFILE FORM -->
+
+                        <div class="profile-form">
+
+
+                            <div class="form-row">
+
+
+                                <div class="form-group">
+
+                                    <label for="fullName">
+                                        Full Name
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        id="fullName"
+                                        value="Mahek Shaikh"
+                                    >
+
+                                </div>
+
+
+                                <div class="form-group">
+
+                                    <label for="email">
+                                        Email Address
+                                    </label>
+
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        value="mahekshaikh25@gmail.com"
+                                    >
+
+                                </div>
+
+
+                            </div>
+
+
+
+                            <div class="form-row">
+
+
+                                <div class="form-group">
+
+                                    <label for="phone">
+                                        Phone Number
+                                    </label>
+
+                                    <input
+                                        type="tel"
+                                        id="phone"
+                                        value="+91 98765 43210"
+                                    >
+
+                                </div>
+
+
+                                <div class="form-group">
+
+                                    <label for="location">
+                                        Location
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        id="location"
+                                        value="Mumbai, India"
+                                    >
+
+                                </div>
+
+
+                            </div>
+
+
+
+                            <div class="form-button-row">
+
+                                <button
+                                    type="button"
+                                    class="purple-btn"
+                                    id="saveProfileBtn"
+                                >
+
+                                    <i data-lucide="save"></i>
+
+                                    Save Changes
+
+                                </button>
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =============================================
+                     PREFERENCES
+                ============================================== -->
+
+                <section class="settings-card">
+
+
+                    <div class="settings-card-title">
+
+                        <div class="settings-icon purple">
+
+                            <i data-lucide="sliders-horizontal"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h2>
+                                Preferences
+                            </h2>
+
+                            <p>
+                                Customize your app experience.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="preferences-list">
+
+
+                        <!-- EMAIL NOTIFICATIONS -->
+
+                        <div class="preference-row">
+
+
+                            <div class="preference-icon">
+
+                                <i data-lucide="mail"></i>
+
+                            </div>
+
+
+                            <div class="preference-content">
+
+                                <strong>
+                                    Email Notifications
+                                </strong>
+
+                                <span>
+                                    Receive updates about appointments,
+                                    reminders and community activity.
+                                </span>
+
+                            </div>
+
+
+                            <label class="toggle">
+
+                                <input
+                                    type="checkbox"
+                                    checked
+                                    data-setting="email"
+                                >
+
+                                <span class="toggle-slider"></span>
+
+                            </label>
+
+
+                        </div>
+
+
+
+                        <!-- PUSH NOTIFICATIONS -->
+
+                        <div class="preference-row">
+
+
+                            <div class="preference-icon">
+
+                                <i data-lucide="bell"></i>
+
+                            </div>
+
+
+                            <div class="preference-content">
+
+                                <strong>
+                                    Push Notifications
+                                </strong>
+
+                                <span>
+                                    Get instant alerts on your device.
+                                </span>
+
+                            </div>
+
+
+                            <label class="toggle">
+
+                                <input
+                                    type="checkbox"
+                                    checked
+                                    data-setting="push"
+                                >
+
+                                <span class="toggle-slider"></span>
+
+                            </label>
+
+
+                        </div>
+
+
+
+                        <!-- APPOINTMENT REMINDERS -->
+
+                        <div class="preference-row">
+
+
+                            <div class="preference-icon">
+
+                                <i data-lucide="calendar-check"></i>
+
+                            </div>
+
+
+                            <div class="preference-content">
+
+                                <strong>
+                                    Appointment Reminders
+                                </strong>
+
+                                <span>
+                                    Receive reminders before scheduled appointments.
+                                </span>
+
+                            </div>
+
+
+                            <label class="toggle">
+
+                                <input
+                                    type="checkbox"
+                                    checked
+                                    data-setting="appointments"
+                                >
+
+                                <span class="toggle-slider"></span>
+
+                            </label>
+
+
+                        </div>
+
+
+
+                        <!-- DARK MODE -->
+
+                        <div class="preference-row">
+
+
+                            <div class="preference-icon">
+
+                                <i data-lucide="moon"></i>
+
+                            </div>
+
+
+                            <div class="preference-content">
+
+                                <strong>
+                                    Dark Mode
+                                </strong>
+
+                                <span>
+                                    Switch to dark theme.
+                                    Coming soon.
+                                </span>
+
+                            </div>
+
+
+                            <label class="toggle disabled">
+
+                                <input
+                                    type="checkbox"
+                                    disabled
+                                >
+
+                                <span class="toggle-slider"></span>
+
+                            </label>
+
+
+                        </div>
+
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =============================================
+                     SECURITY
+                ============================================== -->
+
+                <section class="settings-card">
+
+
+                    <div class="settings-card-title">
+
+                        <div class="settings-icon purple">
+
+                            <i data-lucide="shield-check"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h2>
+                                Security
+                            </h2>
+
+                            <p>
+                                Manage your password and account security.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="security-form">
+
+
+                        <!-- CURRENT PASSWORD -->
+
+                        <div class="form-group">
+
+                            <label for="currentPassword">
+                                Current Password
+                            </label>
+
+
+                            <div class="password-input">
+
+                                <input
+                                    type="password"
+                                    id="currentPassword"
+                                    placeholder="Enter current password"
+                                >
+
+
+                                <button
+                                    type="button"
+                                    class="password-eye"
+                                    data-target="currentPassword"
+                                >
+
+                                    <i data-lucide="eye"></i>
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- NEW PASSWORD -->
+
+                        <div class="form-row">
+
+
+                            <div class="form-group">
+
+                                <label for="newPassword">
+                                    New Password
+                                </label>
+
+
+                                <div class="password-input">
+
+                                    <input
+                                        type="password"
+                                        id="newPassword"
+                                        placeholder="Enter new password"
+                                    >
+
+
+                                    <button
+                                        type="button"
+                                        class="password-eye"
+                                        data-target="newPassword"
+                                    >
+
+                                        <i data-lucide="eye"></i>
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+
+
+                            <div class="form-group">
+
+                                <label for="confirmPassword">
+                                    Confirm New Password
+                                </label>
+
+
+                                <div class="password-input">
+
+                                    <input
+                                        type="password"
+                                        id="confirmPassword"
+                                        placeholder="Confirm new password"
+                                    >
+
+
+                                    <button
+                                        type="button"
+                                        class="password-eye"
+                                        data-target="confirmPassword"
+                                    >
+
+                                        <i data-lucide="eye"></i>
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="form-button-row">
+
+                            <button
+                                type="button"
+                                class="purple-btn"
+                                id="updatePasswordBtn"
+                            >
+
+                                <i data-lucide="lock"></i>
+
+                                Update Password
+
+                            </button>
+
+                        </div>
+
+                        <small id="passwordMsg" style="display:block;margin-top:8px;font-size:13px;"></small>
+
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =============================================
+                     LANGUAGE & REGION
+                ============================================== -->
+
+                <section class="settings-card">
+
+
+                    <div class="settings-card-title">
+
+                        <div class="settings-icon purple">
+
+                            <i data-lucide="globe"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h2>
+                                Language &amp; Region
+                            </h2>
+
+                            <p>
+                                Choose your preferred language and region.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="form-row">
+
+
+                        <div class="form-group">
+
+                            <label for="language">
+                                Language
+                            </label>
+
+                            <div class="select-wrapper">
+
+<div class="select-wrapper">
+
+    <select id="language">
+
+        <option value="english">
+            English
+        </option>
+
+    </select>
+
+    <i data-lucide="chevron-down"></i>
+
+</div>
+
+                                <i data-lucide="chevron-down"></i>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="form-group">
+
+                            <label for="region">
+                                Region
+                            </label>
+
+                            <div class="select-wrapper">
+
+<div class="select-wrapper">
+
+    <select id="country">
+        <option value="india">India</option>
+    </select>
+
+    <i data-lucide="chevron-down"></i>
+
+</div>
+
+                                <i data-lucide="chevron-down"></i>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </section>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+                 RIGHT COLUMN
+            ================================================== -->
+
+            <aside class="settings-right">
+
+
+                <!-- =============================================
+                     ACCOUNT SUMMARY
+                ============================================== -->
+
+                <section class="settings-card">
+
+
+                    <div class="small-card-heading">
+
+                        <div class="settings-icon purple">
+
+                            <i data-lucide="user-round"></i>
+
+                        </div>
+
+                        <h3>
+                            Account Summary
+                        </h3>
+
+                    </div>
+
+
+
+                    <div class="summary-list">
+
+
+                        <div class="summary-row">
+
+                            <span>
+                                Account Type
+                            </span>
+
+                            <strong>
+                                Pet Parent
+                            </strong>
+
+                        </div>
+
+
+                        <div class="summary-row">
+
+                            <span>
+                                Member Since
+                            </span>
+
+                            <strong>
+                                12 Aug 2024
+                            </strong>
+
+                        </div>
+
+
+                        <div class="summary-row">
+
+                            <span>
+                                Total Pets
+                            </span>
+
+                            <strong>
+                                2 Pets
+                            </strong>
+
+                        </div>
+
+
+                        <div class="summary-row">
+
+                            <span>
+                                Appointments
+                            </span>
+
+                            <strong>
+                                5 Scheduled
+                            </strong>
+
+                        </div>
+
+
+                    </div>
+
+
+                </section>
+
+
+
+                <!-- =============================================
+                     YOUR PETS
+                ============================================== -->
+
+                <section class="settings-card">
+
+
+                    <div class="small-card-heading">
+
+                        <div class="settings-icon pink">
+
+                            <i data-lucide="paw-print"></i>
+
+                        </div>
+
+                        <h3>
+                            Your Pets
+                        </h3>
+
+                    </div>
+
+
+
+                    <div class="pet-summary-list">
+
+
+                        <!-- BUDDY -->
+
+                        <div
+                            class="pet-summary-item"
+                            data-pet="buddy"
+                        >
+
+                            <img
+                                src="../assets/images/dashboard/golden-retriever.png"
+                                alt="Buddy"
+                            >
+
+
+                            <div class="pet-summary-info">
+
+                                <strong>
+                                    Buddy
+                                </strong>
+
+                                <span>
+                                    Golden Retriever
+                                </span>
+
+                                <small>
+                                    2 Years, 5 Months
+                                </small>
+
+                            </div>
+
+
+                            <i
+                                data-lucide="chevron-right"
+                                class="pet-arrow"
+                            ></i>
+
+                        </div>
+
+
+
+                        <!-- WHISKERS -->
+
+                        <div
+                            class="pet-summary-item"
+                            data-pet="whiskers"
+                        >
+
+                            <img
+                                src="../assets/images/my-pet/cat.png"
+                                alt="Whiskers"
+                                onerror="this.style.display='none'"
+                            >
+
+
+                            <div class="pet-summary-info">
+
+                                <strong>
+                                    Whiskers
+                                </strong>
+
+                                <span>
+                                    Persian Cat
+                                </span>
+
+                                <small>
+                                    1 Year, 2 Months
+                                </small>
+
+                            </div>
+
+
+                            <i
+                                data-lucide="chevron-right"
+                                class="pet-arrow"
+                            ></i>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="manage-pets-btn"
+                        id="managePetsBtn"
+                    >
+
+                        <i data-lucide="paw-print"></i>
+
+                        Manage Pets
+
+                    </button>
+
+
+                </section>
+
+
+
+                <!-- =============================================
+                     APP INFORMATION
+                ============================================== -->
+
+                <section class="settings-card">
+
+
+                    <div class="small-card-heading">
+
+                        <div class="settings-icon purple">
+
+                            <i data-lucide="info"></i>
+
+                        </div>
+
+                        <h3>
+                            App Information
+                        </h3>
+
+                    </div>
+
+
+
+                    <div class="app-info-list">
+
+
+                        <div class="app-info-row">
+
+                            <span>
+                                App Version
+                            </span>
+
+                            <strong>
+                                v1.0.0
+                            </strong>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            class="info-link"
+                        >
+
+                            Terms of Service
+
+                            <i data-lucide="chevron-right"></i>
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="info-link"
+                        >
+
+                            Privacy Policy
+
+                            <i data-lucide="chevron-right"></i>
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="info-link"
+                        >
+
+                            Help &amp; Support
+
+                            <i data-lucide="chevron-right"></i>
+
+                        </button>
+
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =============================================
+                     DANGER ZONE
+                ============================================== -->
+
+                <section class="settings-card danger-card">
+
+
+                    <div class="small-card-heading">
+
+                        <div class="settings-icon danger">
+
+                            <i data-lucide="triangle-alert"></i>
+
+                        </div>
+
+                        <h3>
+                            Danger Zone
+                        </h3>
+
+                    </div>
+
+
+                    <p>
+                        Irreversible and destructive actions.
+                    </p>
+
+
+                    <button
+                        type="button"
+                        class="delete-account-btn"
+                        id="deleteAccountBtn"
+                    >
+
+                        <i data-lucide="trash-2"></i>
+
+                        Delete Account
+
+                    </button>
+
+
+                </section>
+
+
+            </aside>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+             FOOTER
+        ================================================== -->
+
+        <footer class="settings-footer">
+
+            <span class="footer-heart">
+                ♥
+            </span>
+
+            <strong>
+                Thank you for being a part of Famipet!
+            </strong>
+
+            <span>
+                We care for your pets as much as you do. 🐾
+            </span>
+
+        </footer>
+
+
+    </main>
+
+</div>
+
+
+
+<!-- =====================================================
+     SIDEBAR JAVASCRIPT
+====================================================== -->
+
+<script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+
+
+<!-- =====================================================
+     SETTINGS JAVASCRIPT
+====================================================== -->
+
+<script src="../js/settings.js"></script>
+<script src="../js/theme.js"></script>
+
+
+</body>
+
+</html>

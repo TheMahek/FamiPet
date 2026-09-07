@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet - Famipet | Adoption</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+ <link rel="stylesheet" href="../css/adoption.css" />
+<link rel="stylesheet" href="../css/sidebar.css" />
+
+<script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- ==================== SIDEBAR ==================== -->
+<!-- Universal Famipet Sidebar -->
+<div id="sidebar-container"></div>
+
+    <!-- ==================== MAIN CONTENT AREA ==================== -->
+    <main class="main-content">
+      
+      <!-- Top Bar Header -->
+      <header class="top-bar">
+        <div class="page-title-group">
+          <div class="title-row">
+            <h1>Adoption <i class="fa-regular fa-heart header-heart"></i></h1>
+          </div>
+          <p class="subtitle">Find your perfect companion and give them the loving home they deserve. 🐾</p>
+        </div>
+
+        <div class="top-bar-actions">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Search pets by name, breed..." />
+          </div>
+
+          <button class="action-btn filter-btn" id="filterModalBtn">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Filters</span>
+          </button>
+
+          <button class="notification-btn" aria-label="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge">3</span>
+          </button>
+
+          <button class="add-pet-btn" id="addPetBtn">
+            <i class="fa-solid fa-plus"></i>
+            <span>Add New Pet</span>
+            <i class="fa-solid fa-paw"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Adoption Page Container -->
+      <section id="adoptionPage" class="page-section active">
+        
+        <!-- Hero Promotion Banner -->
+        <div class="hero-banner">
+          <div class="hero-left">
+            <h2>A New Friend<br />Awaits You <i class="fa-regular fa-heart"></i></h2>
+            <p>Every pet deserves a loving home.<br />Every home deserves a companion.</p>
+            
+            <div class="hero-cta-group">
+              <button class="hero-btn">Adopt Now <i class="fa-solid fa-paw"></i></button>
+              
+<div class="social-proof">
+  <!-- <i class="fa-solid fa-heart"></i> -->
+  <span>Give a loving pet a forever home 🐾</span>
+</div>
+            </div>
+          </div>
+
+          <div class="hero-image-wrap">
+            <img src="../assets/images/adoption/Hero-Page.png" alt="Puppy and Kitten" class="banner-pets-img" />
+          </div>
+        </div>
+
+        <!-- Filter Cards & View Controls -->
+        <div class="filters-row">
+          <div class="category-cards">
+            <!-- All Pets -->
+            <button class="cat-card cat-all active" data-category="all">
+              <div class="cat-icon"><i class="fa-solid fa-users"></i></div>
+              <div class="cat-details">
+                <strong>All Pets</strong>
+                <span>All available pets</span>
+              </div>
+            </button>
+
+            <!-- Dogs -->
+            <button class="cat-card cat-dogs" data-category="dog">
+              <div class="cat-icon"><i class="fa-solid fa-dog"></i></div>
+              <div class="cat-details">
+                <strong>Dogs</strong>
+                <span>Adorable doggos</span>
+              </div>
+            </button>
+
+            <!-- Cats -->
+            <button class="cat-card cat-cats" data-category="cat">
+              <div class="cat-icon"><i class="fa-solid fa-cat"></i></div>
+              <div class="cat-details">
+                <strong>Cats</strong>
+                <span>Purrfect cats</span>
+              </div>
+            </button>
+
+            <!-- Others -->
+            <button class="cat-card cat-others" data-category="others">
+              <div class="cat-icon"><i class="fa-solid fa-paw"></i></div>
+              <div class="cat-details">
+                <strong>Others</strong>
+                <span>Birds, rabbits & more</span>
+              </div>
+            </button>
+          </div>
+
+          <div class="view-controls">
+            <div class="sort-select-wrapper">
+              <span>Sort by:</span>
+              <select id="sortSelect">
+                <option value="newest">Newest First</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="age">Age</option>
+              </select>
+            </div>
+
+            <div class="layout-toggle-group">
+              <button class="layout-btn active" id="gridViewBtn" aria-label="Grid View">
+                <i class="fa-solid fa-table-cells-large"></i>
+              </button>
+              <button class="layout-btn" id="listViewBtn" aria-label="List View">
+                <i class="fa-solid fa-list-ul"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pet Cards Grid -->
+        <div class="pets-grid" id="petsGrid">
+          <!-- Dynamic cards injected via script.js -->
+        </div>
+
+        <!-- Empty State (Fallback) -->
+        <div class="empty-state hidden" id="emptyState">
+          <i class="fa-solid fa-paw"></i>
+          <h3>No Companions Found</h3>
+          <p>Try clearing your search query or selecting a different category tab.</p>
+        </div>
+
+      </section>
+
+      <!-- Generic Placeholder Page for other sidebar items -->
+      <section id="placeholderPage" class="page-section hidden">
+        <div class="placeholder-content">
+          <i class="fa-solid fa-bone placeholder-icon"></i>
+          <h2 id="placeholderTitle">Dashboard</h2>
+          <p>This section is connected. Click on <strong>Adoption</strong> in the sidebar to return to the pets directory.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-backdrop" id="detailModal">
+    <div class="modal-sheet">
+      <button class="modal-close" id="modalCloseBtn">&times;</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="../js/adoption.js"></script>
+  <script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+  <script src="../js/theme.js"></script>
+</body>
+</html>

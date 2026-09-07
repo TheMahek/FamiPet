@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet - Digital Pet ID</title>
+  <link rel="stylesheet" href="../css/mypet.css" />
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Lucide Icons for Universal Sidebar -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+  <style>
+    .petid-layout {
+      display: grid;
+      gap: 1.5rem;
+      margin-top: 1.25rem;
+    }
+    @media (min-width: 900px) {
+      .petid-layout {
+        grid-template-columns: 340px 1fr;
+        align-items: start;
+      }
+    }
+    .petid-panel {
+      background: #fff;
+      border: 1px solid #f1eff5;
+      border-radius: 20px;
+      padding: 1.4rem;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+    }
+    .petid-panel h3 {
+      font-size: 0.95rem;
+      color: #1e293b;
+      margin-bottom: 1rem;
+    }
+    .petid-select-wrap label {
+      display: block;
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 0.4rem;
+    }
+    .petid-select-wrap select {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid #ffe0e7;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #1e293b;
+      background: #fff;
+      outline: none;
+    }
+    .petid-preview {
+      margin-top: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem;
+      border-radius: 16px;
+      background: #fff6f7;
+    }
+    .petid-preview img {
+      width: 78px;
+      height: 78px;
+      border-radius: 14px;
+      object-fit: cover;
+    }
+    .petid-preview h4 {
+      font-size: 1rem;
+      color: #1e293b;
+    }
+    .petid-preview p {
+      font-size: 0.8rem;
+      color: #8a96a8;
+      margin-top: 0.2rem;
+      text-transform: capitalize;
+    }
+    .btn-pink {
+      width: 100%;
+      margin-top: 1.1rem;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 50px;
+      background: #ff5c8a;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+    }
+    .btn-pink:hover {
+      background: #f43f5e;
+    }
+    .btn-pink:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .id-card {
+      background: linear-gradient(135deg, #fff1f4 0%, #ffffff 45%, #ffe9ef 100%);
+      border: 1px solid #ffe0e7;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(244, 63, 94, 0.14);
+      max-width: 460px;
+    }
+    .id-card-head {
+      padding: 1.2rem 1.4rem;
+      background: #ff5c8a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .id-card-head h3 {
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+    }
+    .id-card-head .brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .id-card-body {
+      padding: 1.4rem;
+      display: flex;
+      gap: 1.2rem;
+      align-items: center;
+    }
+    .id-card-photo {
+      width: 104px;
+      height: 104px;
+      border-radius: 18px;
+      object-fit: cover;
+      border: 3px solid #fff;
+      box-shadow: 0 6px 16px rgba(244, 63, 94, 0.18);
+    }
+    .id-card-info {
+      flex: 1;
+    }
+    .id-card-info h2 {
+      font-size: 1.25rem;
+      color: #1e293b;
+    }
+    .id-card-info p {
+      font-size: 0.82rem;
+      color: #64748b;
+      margin-top: 0.3rem;
+      text-transform: capitalize;
+    }
+    .id-card-info .id-row {
+      margin-top: 0.7rem;
+      font-size: 0.78rem;
+      color: #64748b;
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 0.25rem 1rem;
+      justify-content: start;
+    }
+    .id-card-info .id-row strong {
+      color: #1e293b;
+    }
+    .id-card-qr {
+      text-align: center;
+      padding: 1.4rem 1.4rem 1.6rem;
+      border-top: 1px dashed #ffd6e0;
+    }
+    .id-card-qr img {
+      width: 148px;
+      height: 148px;
+      border-radius: 14px;
+      background: #fff;
+      padding: 0.4rem;
+      border: 1px solid #ffe0e7;
+    }
+    .id-card-qr small {
+      display: block;
+      margin-top: 0.6rem;
+      color: #8a96a8;
+      font-size: 0.72rem;
+    }
+    .petid-loading,
+    .petid-empty {
+      text-align: center;
+      padding: 50px 20px;
+      background: #fff;
+      border-radius: 20px;
+      color: #8a96a8;
+    }
+    .petid-loading i,
+    .petid-empty i {
+      font-size: 40px;
+      color: #ff4d6d;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+<div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- Top Header Bar -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1>Digital Pet ID <span class="cherry-blossom">🌸</span></h1>
+          <p>Generate a QR code and digital ID card for your pets. <span class="pink-heart">♡</span></p>
+        </div>
+
+        <div class="header-right">
+          <button class="icon-action-btn"><i class="fa-regular fa-sun"></i></button>
+          <button class="icon-action-btn badge-btn">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-count">0</span>
+          </button>
+          <button class="icon-action-btn" id="themeToggle"><i class="fa-solid fa-moon"></i></button>
+          <button class="profile-btn">
+            <img src="../assets/images/dashboard/user-profile.svg" alt="Profile" />
+          </button>
+        </div>
+      </header>
+
+      <section class="dashboard-card" id="petIdSection">
+
+        <div class="petid-layout">
+
+          <!-- LEFT PANEL -->
+          <div class="petid-panel">
+
+            <h3><i class="fa-solid fa-qrcode" style="color:#ff5c8a;margin-right:0.4rem;"></i>Select Your Pet</h3>
+
+            <div class="petid-select-wrap">
+              <label for="petSelect">Pet</label>
+              <select id="petSelect">
+                <option value="">Loading pets...</option>
+              </select>
+            </div>
+
+            <div class="petid-preview" id="petPreview" style="display:none;">
+              <div>
+                <h4 id="previewName"></h4>
+                <p id="previewBreed"></p>
+              </div>
+            </div>
+
+            <button
+              class="btn-pink"
+              id="generateQrBtn"
+              type="button"
+              disabled
+            >
+              <i class="fa-solid fa-bolt"></i>
+              Generate QR Code
+            </button>
+
+            <button
+              class="btn-pink"
+              id="downloadIdBtn"
+              type="button"
+              style="display:none;background:#1e293b;"
+            >
+              <i class="fa-solid fa-download"></i>
+              Download ID Card
+            </button>
+
+          </div>
+
+          <!-- RIGHT PANEL -->
+          <div class="petid-panel">
+
+            <h3><i class="fa-solid fa-id-card" style="color:#ff5c8a;margin-right:0.4rem;"></i>Pet ID Card</h3>
+
+            <!-- PLACEHOLDER -->
+            <div id="idPlaceholder" class="petid-empty">
+              <i class="fa-regular fa-id-card"></i>
+              <h3>No ID generated yet</h3>
+              <p style="margin-top:8px;">
+                Choose a pet and click "Generate QR Code".
+              </p>
+            </div>
+
+            <!-- ID CARD -->
+            <div
+              class="id-card"
+              id="idCard"
+              style="display:none;"
+            >
+              <div class="id-card-head">
+                <h3>FAMIPET DIGITAL ID</h3>
+                <div class="brand-logo">
+                  <img src="../assets/images/dashboard/cute-pet.svg" alt="Famipet" style="width:26px;height:26px;" />
+                </div>
+              </div>
+
+              <div class="id-card-body">
+                <img id="idPhoto" class="id-card-photo" src="" alt="Pet" />
+                <div class="id-card-info">
+                  <h2 id="idPetName"></h2>
+                  <p id="idBreed"></p>
+                  <div class="id-row">
+                    <span>Species</span><strong id="idSpecies"></strong>
+                    <span>Age</span><strong id="idAge"></strong>
+                    <span>Owner</span><strong id="idOwner"></strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="id-card-qr">
+                <img id="idQr" src="" alt="Pet ID QR Code" />
+                <small>Scan to view this pet's digital ID</small>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../js/pet-id.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/theme.js"></script>
+</body>
+</html>

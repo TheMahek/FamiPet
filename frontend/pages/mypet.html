@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet - My Pets</title>
+  <link rel="stylesheet" href="../css/mypet.css" />
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Lucide Icons for Universal Sidebar -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+<div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Header Bar -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1>My Pets <span class="cherry-blossom">🌸</span></h1>
+          <p>Manage your pets, track their health, and keep all their information organized. <span class="pink-heart">♡</span></p>
+        </div>
+
+        <div class="header-right">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search anything..." />
+          </div>
+          <button class="icon-action-btn"><i class="fa-regular fa-sun"></i></button>
+          <button class="icon-action-btn badge-btn">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <button class="btn btn-pink"><i class="fa-solid fa-plus"></i> Add New Pet <i class="fa-solid fa-paw icon-small"></i></button>
+        </div>
+      </header>
+
+      <!-- Summary Stats Row -->
+      <section class="stats-grid">
+        <div class="stat-card pink-card">
+          <div class="stat-icon pink-icon"><i class="fa-solid fa-paw"></i></div>
+          <div class="stat-info">
+            <span class="stat-title">Total Pets</span>
+            <span class="stat-value">2</span>
+            <span class="stat-sub">Pets in your care</span>
+          </div>
+        </div>
+
+        <div class="stat-card green-card">
+          <div class="stat-icon green-icon"><i class="fa-regular fa-heart"></i></div>
+          <div class="stat-info">
+            <span class="stat-title">Healthy Pets</span>
+            <span class="stat-value">2</span>
+            <span class="stat-sub">All pets are healthy <svg class="spark-line green-spark" viewBox="0 0 40 12"><path d="M0 10 Q10 12 20 5 T40 2" fill="none" stroke="#2ecc71" stroke-width="2"/></svg></span>
+          </div>
+        </div>
+
+        <div class="stat-card purple-card">
+          <div class="stat-icon purple-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="stat-info">
+            <span class="stat-title">Vaccinated</span>
+            <span class="stat-value">2</span>
+            <span class="stat-sub">Up to date <svg class="spark-line purple-spark" viewBox="0 0 40 12"><path d="M0 8 Q10 12 20 4 T40 6" fill="none" stroke="#9b59b6" stroke-width="2"/></svg></span>
+          </div>
+        </div>
+
+        <div class="stat-card blue-card">
+          <div class="stat-icon blue-icon"><i class="fa-regular fa-calendar"></i></div>
+          <div class="stat-info">
+            <span class="stat-title">Upcoming Appointments</span>
+            <span class="stat-value">1</span>
+            <span class="stat-sub">This week <svg class="spark-line blue-spark" viewBox="0 0 40 12"><path d="M0 10 Q10 2 20 8 T40 2" fill="none" stroke="#3498db" stroke-width="2"/></svg></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Category Filter Bar -->
+      <section class="filter-section">
+        <div class="search-pets-input">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search pets by name, breed..." />
+        </div>
+
+        <div class="filter-tabs">
+          <button class="tab-btn active"><i class="fa-solid fa-border-all"></i> All</button>
+          <button class="tab-btn"><i class="fa-solid fa-dog"></i> Dogs</button>
+          <button class="tab-btn"><i class="fa-solid fa-cat"></i> Cats</button>
+          <button class="tab-btn"><i class="fa-solid fa-crow"></i> Birds</button>
+          <button class="tab-btn"><i class="fa-solid fa-paw"></i> Others</button>
+        </div>
+      </section>
+
+      <!-- Pet Cards Grid -->
+      <section class="pets-grid">
+        
+        <!-- Dog Card -->
+        <div class="pet-card">
+          <div class="pet-image">
+            <img src="../assets/images/my-pet/dog1.png" alt="Bruno - Golden Retriever" />
+          </div>
+          <div class="pet-details">
+            <div class="pet-header">
+              <div>
+                <h3 class="pet-name">Bruno <span class="gender male"><i class="fa-solid fa-mars"></i></span></h3>
+                <p class="pet-breed">Labrador Retriever</p>
+              </div>
+              <div class="pet-header-right">
+                <span class="badge-status green-badge"><i class="fa-regular fa-heart"></i> Healthy</span>
+                <button class="more-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div>
+            </div>
+
+            <div class="info-list">
+              <div class="info-row">
+                <span class="info-label"><i class="fa-regular fa-calendar"></i> Age</span>
+                <span class="info-value">2 Years</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-scale-balanced"></i> Weight</span>
+                <span class="info-value">24 kg</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-syringe"></i> Vaccinated</span>
+                <span class="info-value status-yes">Yes</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-regular fa-circle-check"></i> Health Status</span>
+                <span class="info-value status-good">Good</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button class="btn btn-outline-pink"><i class="fa-regular fa-eye"></i> View Details</button>
+              <button class="btn btn-icon-blue"><i class="fa-solid fa-pen"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cat Card -->
+        <div class="pet-card">
+          <div class="pet-image">
+              <img src="../assets/images/my-pet/cat.png" alt="Luna - Persian Cat" />
+          </div>
+          <div class="pet-details">
+            <div class="pet-header">
+              <div>
+                <h3 class="pet-name">Luna <span class="gender female"><i class="fa-solid fa-venus"></i></span></h3>
+                <p class="pet-breed">Persian Cat</p>
+              </div>
+              <div class="pet-header-right">
+                <span class="badge-status green-badge"><i class="fa-regular fa-heart"></i> Healthy</span>
+                <button class="more-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div>
+            </div>
+
+            <div class="info-list">
+              <div class="info-row">
+                <span class="info-label"><i class="fa-regular fa-calendar"></i> Age</span>
+                <span class="info-value">1 Year</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-scale-balanced"></i> Weight</span>
+                <span class="info-value">4.2 kg</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-syringe"></i> Vaccinated</span>
+                <span class="info-value status-yes">Yes</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-regular fa-circle-check"></i> Health Status</span>
+                <span class="info-value status-good">Good</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button class="btn btn-outline-pink"><i class="fa-regular fa-eye"></i> View Details</button>
+              <button class="btn btn-icon-blue"><i class="fa-solid fa-pen"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Bottom Banner Grid -->
+      <section class="bottom-grid">
+        <div class="add-pet-dashed-card">
+          <div class="plus-icon-circle">
+            <i class="fa-solid fa-plus"></i>
+          </div>
+          <h4>Add New Pet</h4>
+          <p>Click here to add a new furry member <span class="pink-heart">♡</span></p>
+        </div>
+
+        <div class="tip-card">
+          <div class="tip-content">
+            <div class="paw-badge">
+              <i class="fa-solid fa-paw"></i>
+            </div>
+            <div class="tip-text">
+              <h4>Pet Care Tip</h4>
+              <p>Regular check-ups and a balanced diet keep your pets happy and healthy!</p>
+            </div>
+          </div>
+          <div class="tip-illustration">
+            <img src="../assets/images/my-pet/pet-tip.png" alt="Dog tip illustration" />
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  <script src="../js/mypet.js"></script>
+  <script src="../js/api.js"></script>
+    <script src="../js/sidebar.js"></script>
+  <script src="../js/theme.js"></script>
+  
+</body>
+</html>
