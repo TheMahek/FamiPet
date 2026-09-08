@@ -906,26 +906,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 try {
 
                     const result =
-                        await FamiPetAPI.put(
+                        await FamiPetAPI.post(
                             `/community/${postId}/like`
                         );
 
 
-                    const likes =
-                        (result &&
-                            result.likes) ||
-                        [];
-
-
                     post.likesCount =
-                        likes.length;
+                        (result &&
+                            typeof result.likesCount === "number")
+                            ? result.likesCount
+                            : post.likesCount || 0;
 
 
                     post.liked =
-                        likes.some(
-                            u => (u._id || u) ===
-                                currentUserId
-                        );
+                        result && typeof result.liked === "boolean"
+                            ? result.liked
+                            : !post.liked;
 
 
                     countSpan.textContent =

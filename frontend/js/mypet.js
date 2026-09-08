@@ -144,7 +144,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     ),
 
             notes:
-                p.description || ""
+                p.description || "",
+
+            qrCode:
+                p.qrCode || ""
         };
     }
 
@@ -1546,6 +1549,13 @@ if (breed === "Other") {
                VALIDATION
             ========================================= */
 
+            const parsedAge =
+                parsePetAge(age);
+
+            const parsedWeight =
+                parseFloat(weight);
+
+
             if (
                 !name ||
                 !species ||
@@ -1580,6 +1590,48 @@ if (breed === "Other") {
 
                 errorMessage.textContent =
                     "Please fill all required fields.";
+
+                return;
+
+            }
+
+
+            /* =========================================
+               NUMERIC VALIDATION
+               The backend requires a numeric age. If the
+               value cannot be parsed to a number, stop here
+               instead of sending NaN and causing a 400.
+            ========================================= */
+
+            if (
+                typeof parsedAge !== "number" ||
+                Number.isNaN(parsedAge) ||
+                parsedAge < 0
+            ) {
+
+                let errorMessage =
+                    modal.querySelector(".pet-form-error");
+
+                if (!errorMessage) {
+                    errorMessage = document.createElement("div");
+                    errorMessage.className = "pet-form-error";
+                    errorMessage.setAttribute("role", "alert");
+
+                    const form = modal.querySelector("#petForm");
+                    const firstField = form.querySelector(".form-group");
+
+                    if (firstField) {
+                        firstField.parentNode.insertBefore(
+                            errorMessage,
+                            firstField
+                        );
+                    } else {
+                        form.prepend(errorMessage);
+                    }
+                }
+
+                errorMessage.textContent =
+                    "Please enter a valid numeric age.";
 
                 return;
 
@@ -2304,6 +2356,68 @@ function viewPetDetails(id) {
                 </p>
 
             </div>
+
+
+            <!-- DIGITAL PET ID / QR -->
+
+            ${
+                pet.qrCode
+                    ? `
+                <div class="detail-section petid-qr-section">
+
+                    <h4>
+
+                        <i class="fa-solid fa-qrcode"></i>
+
+                        Digital Pet ID
+
+                    </h4>
+
+                    <div
+                        class="petid-qr-box"
+                        style="
+                            display:flex;
+                            gap:1rem;
+                            align-items:center;
+                        "
+                    >
+
+                        <img
+                            src="${escapeHTML(pet.qrCode)}"
+                            alt="Pet ID QR Code"
+                            class="petid-qr-img"
+                            style="
+                                width:110px;
+                                height:110px;
+                                border:1px solid #eee;
+                                border-radius:12px;
+                                flex-shrink:0;
+                            "
+                        />
+
+                        <div style="font-size:0.85rem;color:#64748b;line-height:1.5;">
+
+                            <p style="margin-bottom:0.35rem;">
+                                Scan this code to view
+                                <strong>${escapeHTML(pet.name)}'s</strong>
+                                digital ID.
+                            </p>
+
+                            <a
+                                href="pet-id.html"
+                                style="color:#ff5c8a;font-weight:600;"
+                            >
+                                Open digital ID →
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                    `
+                    : ""
+            }
 
 
             <!-- FOOTER -->

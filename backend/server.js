@@ -10,7 +10,9 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(helmet());
+// CORP must allow cross-origin embedding so profile avatars served from
+// /uploads (and Cloudinary URLs) display inside the frontend (localhost:5502).
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(v => v.trim()).filter(Boolean);
 // Allow local development origins including LAN access (phone on same Wi-Fi).
@@ -74,14 +76,8 @@ app.get("/",(req,res)=>{
   });
 });
 
-// Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal Server Error'
-  });
-});
+// Central Error Handler (translates Mongoose validation/Cast/duplicate-key errors)
+app.use(require('./middleware/errorHandler'));
 
 // 404 Handler
 app.use((req, res) => {
@@ -89,8 +85,17 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+// Graceful handling when the port is already in use.
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Another FamiPet server may already be running.`);
+    process.exit(1);
+  }
+  throw err;
 });
 
 module.exports = app;

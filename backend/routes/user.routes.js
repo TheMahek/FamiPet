@@ -5,7 +5,7 @@ const { getAllUsers, getUserById, toggleFavorite, uploadAvatar } = require('../c
 const upload = require('../middleware/upload');
 
 router.get('/', protect, getAllUsers);
-router.get('/:id', getUserById);
+router.get('/:id', protect, getUserById);
 router.post('/favorites/:petId', protect, toggleFavorite);
 router.post('/avatar', protect, upload.single('avatar'), uploadAvatar);
 

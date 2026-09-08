@@ -1,7 +1,21 @@
 const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
 const Breed = require("../models/Breed");
+const User = require("../models/User");
 const QRCode = require("qrcode");
+
+// ==========================
+// Shared validation helpers
+// ==========================
+const isPresent = (v) => v !== undefined && v !== null && v !== "";
+
+function validateAge(age) {
+  if (!isPresent(age)) return "Age is required.";
+  const num = Number(age);
+  if (Number.isNaN(num)) return "Age must be a valid number.";
+  if (num < 0) return "Age cannot be negative.";
+  return null;
+}
 
 // ==========================
 // Get All Pets
@@ -161,6 +175,11 @@ exports.createPet = async (req, res) => {
       });
     }
 
+    const ageError = validateAge(age);
+    if (ageError) {
+      return res.status(400).json({ success: false, message: ageError });
+    }
+
     // Accept either the existing Breed ObjectId or the breed name used by the legacy frontend.
     let breedId = breed;
     if (!mongoose.Types.ObjectId.isValid(breed)) {
@@ -179,7 +198,7 @@ exports.createPet = async (req, res) => {
       name,
       species,
       gender,
-      age,
+      age: Number(age),
       weight,
       color,
       vaccinated,
@@ -187,6 +206,57 @@ exports.createPet = async (req, res) => {
       images,
       description,
     });
+
+    // Automatically generate a unique QR code for the pet's digital ID.
+    const breedName =
+      species &&
+      typeof species === "string"
+        ? String(species).charAt(0).toUpperCase() +
+          String(species).slice(1)
+        : "Pet";
+
+    const petId =
+      pet._id.toString();
+
+    // Use a stable human-readable ID (species + part of the Mongo id) so it is
+    // unique per pet and never collides.
+    const shortId =
+      String(species || pet.species || "pet").slice(0, 3).toUpperCase() +
+      "-" +
+      petId.slice(-8).toUpperCase();
+
+    const petData = {
+      petId,
+      petCode: shortId,
+      name,
+      species,
+      breed: breedName,
+    };
+
+    // Attach owner info if available.
+    try {
+      const owner = await User.findById(req.user.id).select("name phone email");
+      if (owner) {
+        petData.owner = {
+          name: owner.name,
+          phone: owner.phone,
+          email: owner.email,
+        };
+      }
+    } catch (e) { /* owner info is optional */ }
+
+    const qrCodeDataUrl =
+      await QRCode.toDataURL(JSON.stringify(petData));
+
+    pet.qrCode = qrCodeDataUrl;
+    await pet.save();
+
+    // Keep the denormalized owner.pets array in sync.
+    await User.findByIdAndUpdate(
+      req.user.id,
+      { $addToSet: { pets: pet._id } },
+      { new: true }
+    ).select("-password");
 
     res.status(201).json({
       success: true,
@@ -228,12 +298,31 @@ exports.updatePet = async (req, res) => {
     // Prevent changing owner
     delete req.body.owner;
 
+    // Whitelist fields a pet owner may update. This prevents tampering
+    // with tracking/protected fields (e.g. status, adopted, views, qrCode, _id).
+    const allowed = [
+      "name", "species", "breed", "gender", "age", "weight",
+      "color", "vaccinated", "images", "description",
+    ];
+    const safeBody = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) safeBody[key] = req.body[key];
+    }
+
+    if (safeBody.age !== undefined) {
+      const ageError = validateAge(safeBody.age);
+      if (ageError) {
+        return res.status(400).json({ success: false, message: ageError });
+      }
+      safeBody.age = Number(safeBody.age);
+    }
+
     // Validate breed if provided (accept either an ObjectId or a breed name used by the legacy frontend)
-    if (req.body.breed) {
-      if (mongoose.Types.ObjectId.isValid(req.body.breed)) {
+    if (safeBody.breed) {
+      if (mongoose.Types.ObjectId.isValid(safeBody.breed)) {
         // Already a valid ObjectId reference
       } else {
-        const breedName = String(req.body.breed).trim();
+        const breedName = String(safeBody.breed).trim();
         if (!breedName) {
           return res.status(400).json({
             success: false,
@@ -242,14 +331,14 @@ exports.updatePet = async (req, res) => {
         }
         let breedDoc = await Breed.findOne({ name: new RegExp(`^${breedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") });
         if (!breedDoc) {
-          const species = req.body.species || pet.species || "dog";
+          const species = safeBody.species || pet.species || "dog";
           breedDoc = await Breed.create({ name: breedName, species });
         }
-        req.body.breed = breedDoc._id;
+        safeBody.breed = breedDoc._id;
       }
     }
 
-    Object.assign(pet, req.body);
+    Object.assign(pet, safeBody);
 
     await pet.save();
 
@@ -291,6 +380,12 @@ exports.deletePet = async (req, res) => {
     }
 
     await pet.deleteOne();
+
+    // Keep the denormalized owner.pets array in sync.
+    await User.findByIdAndUpdate(
+      pet.owner,
+      { $pull: { pets: pet._id } }
+    );
 
     res.status(200).json({
       success: true,

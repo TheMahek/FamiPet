@@ -143,7 +143,7 @@ exports.deleteUser = async (req, res) => {
 exports.getAllPets = async (req, res) => {
   try {
     const pets = await Pet.find()
-      .populate("owner", "name email")
+      .populate("owner", "name email city")
       .populate("breed", "name species")
       .sort({ createdAt: -1 });
 
@@ -157,7 +157,8 @@ exports.getAllPets = async (req, res) => {
       status: pet.status,
       adopted: pet.adopted,
       vaccinated: pet.vaccinated,
-      location: pet.location,
+      // Pet model has no `location` field; expose owner city when available.
+      location: pet.owner && pet.owner.city ? pet.owner.city : "",
       owner: pet.owner ? { id: pet.owner._id, name: pet.owner.name, email: pet.owner.email } : null,
       createdAt: pet.createdAt,
     }));

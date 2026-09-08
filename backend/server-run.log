@@ -1,0 +1,3 @@
+🚀 Server running on http://localhost:5000
+✅ MongoDB Connected
+[0mGET /api/status [32m200[0m 2.567 ms - 51[0m
