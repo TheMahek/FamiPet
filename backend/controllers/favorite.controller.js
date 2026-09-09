@@ -50,6 +50,10 @@ exports.addFavorite = async (req, res) => {
 
 exports.removeFavorite = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid favorite ID." });
+    }
+
     const favorite = await Favorite.findOneAndDelete({
       _id: req.params.id,
       user: req.user._id,

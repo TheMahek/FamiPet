@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Veterinarian = require("../models/Veterinarian");
 
 // ========================================
@@ -137,6 +138,10 @@ exports.createVeterinarian = async (req, res) => {
 // ========================================
 exports.updateVeterinarian = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid veterinarian ID." });
+    }
+
     const veterinarian = await Veterinarian.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -173,6 +178,10 @@ exports.updateVeterinarian = async (req, res) => {
 // ========================================
 exports.deleteVeterinarian = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid veterinarian ID." });
+    }
+
     const veterinarian = await Veterinarian.findByIdAndDelete(req.params.id);
 
     if (!veterinarian) {

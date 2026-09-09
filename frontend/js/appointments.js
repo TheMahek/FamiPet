@@ -402,13 +402,13 @@ document.addEventListener("DOMContentLoaded", () => {
         upcomingCount.textContent = upcoming.length;
 
         completedCount.textContent =
-            completed.length + 6;
+            completed.length;
 
         cancelledCount.textContent =
             cancelled.length;
 
         totalCount.textContent =
-            appointments.length + 6;
+            appointments.length;
 
 
         const sortedUpcoming =
@@ -1868,29 +1868,20 @@ function showAppointmentMessage(message) {
 
 
             if (
-                appointmentsOnDay.some(
-                    item =>
-                        item.pet === "Bruno"
-                )
+                appointmentsOnDay.length > 0
             ) {
 
                 day.classList.add(
                     "has-blue"
                 );
 
-            }
-
-
-            if (
-                appointmentsOnDay.some(
-                    item =>
-                        item.pet === "Luna"
-                )
-            ) {
-
-                day.classList.add(
-                    "has-pink"
-                );
+                day.title =
+                    appointmentsOnDay
+                        .map(
+                            item =>
+                                `${item.pet} - ${item.type} - ${item.time}`
+                        )
+                        .join("\n");
 
             }
 

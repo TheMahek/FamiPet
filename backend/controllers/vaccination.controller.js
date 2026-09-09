@@ -66,6 +66,10 @@ exports.createVaccination = async (req, res) => {
 
 exports.updateVaccination = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid vaccination ID." });
+    }
+
     const vaccination = await Vaccination.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -96,6 +100,10 @@ exports.updateVaccination = async (req, res) => {
 
 exports.deleteVaccination = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid vaccination ID." });
+    }
+
     const vaccination = await Vaccination.findOneAndDelete({
       _id: req.params.id,
       user: req.user._id,

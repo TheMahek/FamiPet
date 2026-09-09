@@ -14,6 +14,7 @@ const {
 } = require("../controllers/community.controller");
 
 const { protect } = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
 // Get all posts
 router.get("/", getAllPosts);
@@ -21,11 +22,11 @@ router.get("/", getAllPosts);
 // Get single post
 router.get("/:id", getPostById);
 
-// Create post
-router.post("/", protect, createPost);
+// Create post (supports image upload via multipart/form-data)
+router.post("/", protect, upload.single("image"), createPost);
 
 // Update post
-router.put("/:id", protect, updatePost);
+router.put("/:id", protect, upload.single("image"), updatePost);
 
 // Delete post
 router.delete("/:id", protect, deletePost);

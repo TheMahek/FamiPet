@@ -88,12 +88,18 @@ exports.createPost = async (req, res) => {
       });
     }
 
+    let imageUrl = image;
+
+    if (req.file) {
+      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    }
+
     const post = await CommunityPost.create({
       user: req.user.id,
       title,
       content,
       category,
-      image,
+      image: imageUrl,
     });
 
     const populatedPost = await CommunityPost.findById(post._id)
@@ -141,7 +147,12 @@ exports.updatePost = async (req, res) => {
     if (title !== undefined) post.title = title;
     if (content !== undefined) post.content = content;
     if (category !== undefined) post.category = category;
-    if (image !== undefined) post.image = image;
+
+    if (req.file) {
+      post.image = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    } else if (image !== undefined) {
+      post.image = image;
+    }
 
     await post.save();
 

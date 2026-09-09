@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODEL = "gemini-1.5-flash";
 
 async function callGemini(question, petContext) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -132,7 +132,7 @@ exports.getPetAdvice = async (req, res) => {
 
     if (!pet.vaccinated) advice.push("Your pet is marked as not vaccinated. Consult a veterinarian about required vaccinations.");
     if (pet.age < 1) advice.push("Your pet is young. Pay special attention to nutrition, vaccination, and veterinary visits.");
-    if (pet.weight <= 0) advice.push("Weight information is missing. Consider recording your pet's current weight.");
+    if (pet.weight === undefined || pet.weight === null || pet.weight <= 0) advice.push("Weight information is missing. Consider recording your pet's current weight.");
     if (!advice.length) advice.push("Continue regular veterinary checkups, proper nutrition, exercise, and preventive care.");
 
     res.json({

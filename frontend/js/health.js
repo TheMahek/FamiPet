@@ -15,12 +15,6 @@
     let showAllRecords = false;
     let showAllVaccinations = false;
 
-    const DEFAULT_NOTIFICATIONS = [
-        { id: "vaccine-due", title: "Vaccination due soon", message: "Check upcoming vaccinations.", read: false },
-        { id: "health-check", title: "Health records reminder", message: "Review your pet's latest health records.", read: false },
-        { id: "nutrition", title: "Wellness reminder", message: "Keep fresh water available and maintain daily exercise.", read: false }
-    ];
-
     const $ = (id) => document.getElementById(id);
 
     function escapeHtml(value) {
@@ -354,6 +348,22 @@
         });
     }
 
+    async function fetchNotifications() {
+        try {
+            const data = await FamiPetAPI.get("/notifications");
+            notifications = (data.notifications || []).map(function (n) {
+                return {
+                    id: n._id,
+                    title: n.title || "",
+                    message: n.message || "",
+                    read: Boolean(n.isRead)
+                };
+            });
+        } catch (e) {
+            notifications = [];
+        }
+    }
+
     function addNotification(title, message) {
         notifications.unshift({ id: "notification-" + Date.now(), title: title, message: message, read: false });
         notifications = notifications.slice(0, 10);
@@ -467,9 +477,12 @@
             elements.notificationBtn.setAttribute("aria-expanded", String(open));
         });
 
-        elements.markNotificationsRead?.addEventListener("click", function () {
+        elements.markNotificationsRead?.addEventListener("click", async function () {
             notifications = notifications.map(function (n) { return { id: n.id, title: n.title, message: n.message, read: true }; });
             renderNotifications();
+            try {
+                await FamiPetAPI.put("/notifications/read-all", {});
+            } catch (e) { /* ignore */ }
         });
 
         document.addEventListener("click", function (event) {
@@ -483,10 +496,10 @@
     /* ---------- init ---------- */
 
     async function init() {
-        notifications = DEFAULT_NOTIFICATIONS.map(function (n) { return Object.assign({}, n); });
+        notifications = [];
 
         await fetchPets();
-        await Promise.all([fetchHealthRecords(), fetchVaccinations()]);
+        await Promise.all([fetchHealthRecords(), fetchVaccinations(), fetchNotifications()]);
 
         updatePet();
         updateStats();

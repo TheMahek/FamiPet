@@ -551,6 +551,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <div class="form-group">
 
+    <label for="reportPetName">
+        Pet Name
+    </label>
+
+    <input
+        id="reportPetName"
+        type="text"
+        placeholder="e.g. Coco"
+        maxlength="50"
+        required
+    >
+
+</div>
+
+
+<div class="form-group">
+
     <label for="reportPetPhone">
         Phone Number
     </label>
@@ -579,21 +596,6 @@ document.addEventListener("DOMContentLoaded", () => {
         placeholder="Enter your email address"
         required
     >
-
-</div>
-
-
-<div class="form-group">
-
-    <label for="reportPetDescription">
-        Description
-    </label>
-
-    <textarea
-        id="reportPetDescription"
-        rows="3"
-        placeholder="Add useful details about the pet..."
-    ></textarea>
 
 </div>
 

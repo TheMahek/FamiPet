@@ -8,12 +8,20 @@ const { sendEmail } = require("../config/email");
 // =====================================================
 
 const getClientBase = (req) => {
-  // Always embed the fully-configured CLIENT_URL so emailed links (verify email,
-  // reset password) point at the correct Live Server host. Previously this tried
-  // to derive the host from the incoming request's Origin header, which produced
-  // bare path links (e.g. "/pages/verify-email.html") that error with
-  // "Cannot GET /..." when the Origin header is absent or unexpected.
-  const envBase = (process.env.CLIENT_URL || "http://localhost:5173").trim();
+  // Prefer the host the user actually opened the app from (Origin header).
+  // Works on the same machine (http://localhost:5502) and over the LAN
+  // (http://192.168.x.x:5502) so emailed links always point somewhere reachable.
+  // Falls back to the configured CLIENT_URL for mail clients that send no URL.
+  const origin =
+    (req && req.headers && req.headers.origin
+      ? String(req.headers.origin)
+      : "").trim();
+
+  if (/^https?:\/\/[a-zA-Z0-9.\-]+(?::\d{1,5})?$/.test(origin)) {
+    return origin.replace(/\/$/, "");
+  }
+
+  const envBase = (process.env.CLIENT_URL || "http://localhost:5502").trim();
   return envBase.replace(/\/$/, "");
 };
 
@@ -142,6 +150,8 @@ exports.register = async (req, res) => {
 
     // -------------------------------------------------
     // CREATE USER
+    // Users start unverified: they receive a verification
+    // link by email and clicking it activates the account.
     // -------------------------------------------------
 
     const user = await User.create({
@@ -163,10 +173,6 @@ exports.register = async (req, res) => {
     // -------------------------------------------------
     // FRONTEND VERIFICATION URL
     // -------------------------------------------------
-
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      "http://localhost:5173";
 
     const verificationUrl =
       `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
@@ -499,7 +505,7 @@ exports.resendVerification = async (
 
     const clientUrl =
       process.env.CLIENT_URL ||
-      "http://localhost:5173";
+      "http://localhost:5502";
 
     const verificationUrl =
       `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
@@ -986,7 +992,7 @@ exports.forgotPassword = async (
 
     const clientUrl =
       process.env.CLIENT_URL ||
-      "http://localhost:5173";
+      "http://localhost:5502";
 
     const resetUrl =
       `${getClientBase(req)}/pages/reset-password.html?token=${resetToken}`;

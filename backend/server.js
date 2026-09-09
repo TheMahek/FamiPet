@@ -10,11 +10,9 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-// CORP must allow cross-origin embedding so profile avatars served from
-// /uploads (and Cloudinary URLs) display inside the frontend (localhost:5502).
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet());
 app.use(compression());
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(v => v.trim()).filter(Boolean);
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5502').split(',').map(v => v.trim()).filter(Boolean);
 // Allow local development origins including LAN access (phone on same Wi-Fi).
 const isDevOrigin = function (origin) {
   if (!origin) return true;
@@ -76,8 +74,14 @@ app.get("/",(req,res)=>{
   });
 });
 
-// Central Error Handler (translates Mongoose validation/Cast/duplicate-key errors)
-app.use(require('./middleware/errorHandler'));
+// Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
 
 // 404 Handler
 app.use((req, res) => {
@@ -85,17 +89,50 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-// Graceful handling when the port is already in use.
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use. Another FamiPet server may already be running.`);
-    process.exit(1);
-  }
-  throw err;
-});
+// ---------------------------------------------------------
+// FRONTEND FALLBACK LISTENER
+// ---------------------------------------------------------
+// Serve the static frontend on the CLIENT_URL port too, so emailed
+// verify-email / reset-password links resolve even when the Live
+// Server extension is not running. If Live Server already owns the
+// port (EADDRINUSE) the backend quietly skips this fallback.
+// ---------------------------------------------------------
+const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
+
+function startFrontendFallback() {
+  let clientPort = 5502;
+  try {
+    const clientUrl = new URL(process.env.CLIENT_URL || 'http://localhost:5502');
+    clientPort = Number(clientUrl.port) || 5502;
+  } catch (e) { /* keep default */ }
+
+  if (clientPort === PORT) return;
+
+  const frontendApp = express();
+  frontendApp.use(compression());
+  frontendApp.use(express.static(FRONTEND_DIR));
+
+  frontendApp.get('*', (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+  });
+
+  const server = frontendApp.listen(clientPort, '0.0.0.0', () => {
+    console.log(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
+  });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.log(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
+    } else {
+      console.error('❌ Frontend fallback error:', err.message);
+    }
+  });
+}
+
+startFrontendFallback();
 
 module.exports = app;

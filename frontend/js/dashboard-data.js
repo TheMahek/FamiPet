@@ -84,10 +84,26 @@
                 return;
             }
 
+            const favIds = new Set();
+            try {
+                const me = await FamiPetAPI.get("/auth/me");
+                (me.user && me.user.favorites || []).forEach(f => {
+                    favIds.add(String(f._id || f));
+                });
+            } catch (e) { /* favorites stay empty */ }
+
             list.innerHTML = pets.slice(0, 3).map(pet => `
                 <article class="pet-card">
                     <div class="pet-image-wrapper">
                         <img src="${esc(petImage(pet))}" alt="${esc(pet.name)}">
+                        <button
+                            class="favorite-button ${favIds.has(String(pet._id)) ? "liked" : ""}"
+                            type="button"
+                            data-pet-id="${esc(String(pet._id))}"
+                            aria-label="Favorite ${esc(pet.name)}"
+                        >
+                            <i data-lucide="heart"></i>
+                        </button>
                     </div>
                     <div class="pet-info">
                         <h3>${esc(pet.name)}</h3>

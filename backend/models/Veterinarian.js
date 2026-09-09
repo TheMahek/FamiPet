@@ -12,13 +12,7 @@ const veterinarianSchema = new mongoose.Schema({
   city: { type: String, default: '' },
   image: { type: String, default: '' },
   rating: { type: Number, default: 0, min: 0, max: 5 },
-  // Embedded reviews (self-contained; no separate "Review" model exists).
-  reviews: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    rating: { type: Number, default: 0, min: 0, max: 5 },
-    comment: { type: String, default: '' },
-    createdAt: { type: Date, default: Date.now },
-  }],
+  reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
   availability: [{
     day: String,
     startTime: String,
