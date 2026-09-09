@@ -1400,8 +1400,19 @@ function openAddPetForm() {
         gender:
           data.get("gender"),
 
-        age:
-          Number(data.get("age")) || 0,
+        age: (() => {
+
+          const raw =
+            String(data.get("age") || "").trim();
+
+          const match =
+            raw.match(/(\d+(?:\.\d+)?)/);
+
+          return match
+            ? parseFloat(match[1])
+            : Number(raw) || 0;
+
+        })(),
 
         vaccinated:
           true,

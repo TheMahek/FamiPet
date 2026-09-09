@@ -285,6 +285,31 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
 
+    function petImageFor(name) {
+
+        const match =
+            pets.find(
+                item =>
+                    item.name === name
+            );
+
+        if (
+            match &&
+            match.images &&
+            match.images.length &&
+            match.images[0]
+        ) {
+
+            return match.images[0];
+        }
+
+        return (
+            petImages[name] ||
+            "../assets/images/my-pet/cat.png"
+        );
+    }
+
+
     /* =====================================================
        REMINDER ICONS
     ===================================================== */
@@ -432,8 +457,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 const image =
-                    petImages[reminder.pet] ||
-                    "../assets/images/my-pet/cat.png";
+                    petImageFor(
+                        reminder.pet
+                    );
 
 
                 return `
@@ -619,39 +645,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getDaysText(dateString) {
 
-        /*
-         * Keep the original demo labels
-         * from your design.
-         */
-
-        const demoDates = {
-
-            "2025-05-27":
-                "In 2 days",
-
-            "2025-05-29":
-                "In 4 days",
-
-            "2025-06-02":
-                "In 8 days",
-
-            "2025-06-05":
-                "In 11 days",
-
-            "2025-06-10":
-                "In 16 days"
-
-        };
-
-
-        if (demoDates[dateString]) {
-
-            return demoDates[dateString];
-
-        }
-
-
-        /* Real calculation for newly added reminders */
+        /* Real calculation based on the reminder's date */
 
         const today =
             new Date();
@@ -1470,7 +1464,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const payload = {
 
-                    title: pet,
+                    title:
+                        `${type} reminder for ${pet}`,
 
                     type: backendType,
 
@@ -1835,11 +1830,7 @@ function updateViewAllButtons() {
     ===================================================== */
 
     let currentCalendarDate =
-        new Date(
-            2025,
-            4,
-            1
-        );
+        new Date();
 
 
     function renderCalendar() {

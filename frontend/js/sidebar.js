@@ -575,12 +575,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     else if (
-        currentFile.includes("petgpt") ||
-        currentFile.includes("pet-gpt")
+        currentFile.includes("breed")
+    ) {
+
+        currentPage =
+            "breeds";
+
+    }
+
+    else if (
+        currentFile.includes("pet-gpt") ||
+        currentFile.includes("petgpt")
     ) {
 
         currentPage =
             "petgpt";
+
+    }
+
+    else if (
+        currentFile.includes("pet-id") ||
+        currentFile.includes("petid")
+    ) {
+
+        currentPage =
+            "pet-id";
 
     }
 

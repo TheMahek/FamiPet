@@ -402,74 +402,144 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
+    function setFavoriteState(button, liked) {
+
+        button.classList.toggle(
+            "liked",
+            Boolean(liked)
+        );
+
+
+        const icon =
+            button.querySelector(
+                "svg"
+            );
+
+
+        if (liked) {
+
+            button.style.background =
+                "#ef78a9";
+
+            button.style.color =
+                "#ffffff";
+
+
+            if (icon) {
+
+                icon.setAttribute(
+                    "fill",
+                    "currentColor"
+                );
+
+            }
+
+        } else {
+
+            button.style.background =
+                "";
+
+            button.style.color =
+                "";
+
+
+            if (icon) {
+
+                icon.setAttribute(
+                    "fill",
+                    "none"
+                );
+
+            }
+
+        }
+
+    }
+
+
     favoriteButtons.forEach(button => {
 
-        button.addEventListener(
-            "click",
-            (event) => {
+        setFavoriteState(
+            button,
+            button.classList.contains("liked")
+        );
 
-                event.preventDefault();
-
-                event.stopPropagation();
+    });
 
 
-                button.classList.toggle(
+    document.addEventListener(
+        "click",
+        async (event) => {
+
+            const button =
+                event.target.closest(
+                    ".favorite-button"
+                );
+
+            if (!button) return;
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            const petId =
+                button.dataset.petId;
+
+
+            const previous =
+                button.classList.contains(
                     "liked"
                 );
 
 
-                const icon =
-                    button.querySelector(
-                        "svg"
+            if (!petId) {
+
+                setFavoriteState(
+                    button,
+                    !previous
+                );
+
+                return;
+            }
+
+
+            setFavoriteState(
+                button,
+                !previous
+            );
+
+
+            try {
+
+                const data =
+                    await FamiPetAPI.post(
+                        "/users/favorites/" + petId
                     );
 
-
                 if (
-                    button.classList.contains(
-                        "liked"
-                    )
+                    typeof data.isFavorite !==
+                    "undefined"
                 ) {
 
-                    button.style.background =
-                        "#ef78a9";
-
-                    button.style.color =
-                        "#ffffff";
-
-
-                    if (icon) {
-
-                        icon.setAttribute(
-                            "fill",
-                            "currentColor"
-                        );
-
-                    }
-
-                } else {
-
-                    button.style.background =
-                        "";
-
-                    button.style.color =
-                        "";
-
-
-                    if (icon) {
-
-                        icon.setAttribute(
-                            "fill",
-                            "none"
-                        );
-
-                    }
+                    setFavoriteState(
+                        button,
+                        data.isFavorite
+                    );
 
                 }
 
-            }
-        );
+            } catch (error) {
 
-    });
+                setFavoriteState(
+                    button,
+                    previous
+                );
+
+            }
+
+        }
+    );
 
 
 

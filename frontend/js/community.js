@@ -906,22 +906,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 try {
 
                     const result =
-                        await FamiPetAPI.post(
+                        await FamiPetAPI.put(
                             `/community/${postId}/like`
                         );
 
 
-                    post.likesCount =
+                    const likes =
                         (result &&
-                            typeof result.likesCount === "number")
-                            ? result.likesCount
-                            : post.likesCount || 0;
+                            result.likes) ||
+                        [];
+
+
+                    post.likesCount =
+                        likes.length;
 
 
                     post.liked =
-                        result && typeof result.liked === "boolean"
-                            ? result.liked
-                            : !post.liked;
+                        likes.some(
+                            u => (u._id || u) ===
+                                currentUserId
+                        );
 
 
                     countSpan.textContent =
@@ -2373,6 +2377,9 @@ function applyFilters() {
 
         }
 
+
+        resetImageSelection();
+
     }
 
 
@@ -2385,6 +2392,9 @@ function applyFilters() {
 
         document.body.style.overflow =
             "";
+
+
+        resetImageSelection();
 
     }
 
@@ -2533,7 +2543,28 @@ function applyFilters() {
             );
 
 
-        let image = "";
+        const payload =
+            new FormData();
+
+
+        payload.append(
+            "title",
+            title || typeLabel(type)
+        );
+
+
+        payload.append(
+            "content",
+            content
+        );
+
+
+        payload.append(
+            "category",
+            TYPE_TO_CATEGORY[
+                type
+            ] || "general"
+        );
 
 
         if (
@@ -2542,45 +2573,12 @@ function applyFilters() {
             imageInput.files.length > 0
         ) {
 
-            try {
-
-                image =
-                    await fileToDataURL(
-                        imageInput.files[0]
-                    );
-
-            }
-            catch {
-
-                showToast(
-                    "The image could not be loaded.",
-                    "error"
-                );
-
-                return;
-
-            }
+            payload.append(
+                "image",
+                imageInput.files[0]
+            );
 
         }
-
-
-        const payload = {
-
-            title:
-                title ||
-                typeLabel(type),
-
-            content:
-                content,
-
-            category:
-                TYPE_TO_CATEGORY[
-                    type
-                ] || "general",
-
-            image
-
-        };
 
 
         try {
@@ -2616,31 +2614,91 @@ function applyFilters() {
     }
 
 
-    function fileToDataURL(file) {
+    /* =====================================================
+       POST IMAGE SELECTION
+       (multipart file -> preview -> remove -> reset)
+    ===================================================== */
 
-        return new Promise(
-            (resolve, reject) => {
+    const postImageInput =
+        document.getElementById(
+            "postImageInput"
+        );
 
-                const reader =
-                    new FileReader();
+    const postImagePreviewWrap =
+        document.getElementById(
+            "postImagePreviewWrap"
+        );
 
+    const postImagePreview =
+        document.getElementById(
+            "postImagePreview"
+        );
 
-                reader.onload =
-                    () => resolve(
-                        reader.result
-                    );
+    const removePostImage =
+        document.getElementById(
+            "removePostImage"
+        );
 
+    function resetImageSelection() {
 
-                reader.onerror =
-                    reject;
+        if (postImageInput) {
 
+            postImageInput.value = "";
 
-                reader.readAsDataURL(file);
+        }
 
-            }
+        if (postImagePreview) {
+
+            postImagePreview.removeAttribute(
+                "src"
+            );
+
+        }
+
+        postImagePreviewWrap?.classList.add(
+            "hidden"
+        );
+
+        removePostImage?.classList.add(
+            "hidden"
         );
 
     }
+
+    postImageInput?.addEventListener(
+        "change",
+        () => {
+
+            const file =
+                postImageInput.files &&
+                postImageInput.files[0];
+
+            if (!file || !postImagePreview) {
+
+                return;
+
+            }
+
+            postImagePreview.src =
+                URL.createObjectURL(
+                    file
+                );
+
+            postImagePreviewWrap?.classList.remove(
+                "hidden"
+            );
+
+            removePostImage?.classList.remove(
+                "hidden"
+            );
+
+        }
+    );
+
+    removePostImage?.addEventListener(
+        "click",
+        resetImageSelection
+    );
 
 
     /* =====================================================

@@ -2,6 +2,8 @@ const User = require("../models/User");
 const Pet = require("../models/Pet");
 const Adoption = require("../models/Adoption");
 const LostFound = require("../models/LostFound");
+const CommunityPost = require("../models/CommunityPost");
+const mongoose = require("mongoose");
 
 // ==========================
 // Admin Dashboard Statistics
@@ -143,7 +145,7 @@ exports.deleteUser = async (req, res) => {
 exports.getAllPets = async (req, res) => {
   try {
     const pets = await Pet.find()
-      .populate("owner", "name email city")
+      .populate("owner", "name email")
       .populate("breed", "name species")
       .sort({ createdAt: -1 });
 
@@ -157,8 +159,7 @@ exports.getAllPets = async (req, res) => {
       status: pet.status,
       adopted: pet.adopted,
       vaccinated: pet.vaccinated,
-      // Pet model has no `location` field; expose owner city when available.
-      location: pet.owner && pet.owner.city ? pet.owner.city : "",
+      location: pet.location,
       owner: pet.owner ? { id: pet.owner._id, name: pet.owner.name, email: pet.owner.email } : null,
       createdAt: pet.createdAt,
     }));
@@ -222,6 +223,216 @@ exports.getRecentUsers = async (req, res) => {
     });
   } catch (error) {
     console.error("Recent Users Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ==========================
+// Get All Lost & Found Reports
+// ==========================
+exports.getAllLostFoundReports = async (req, res) => {
+  try {
+    const { type, status } = req.query;
+
+    const query = {};
+    if (type) query.type = type;
+    if (status) query.status = status;
+
+    const reports = await LostFound.find(query)
+      .populate("user", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: reports.length,
+      reports,
+    });
+  } catch (error) {
+    console.error("Get All Lost & Found Reports Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ==========================
+// Update Lost & Found Report Status
+// ==========================
+exports.updateLostFoundStatus = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid report ID." });
+    }
+
+    const { status } = req.body;
+
+    if (!["active", "resolved"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be either 'active' or 'resolved'.",
+      });
+    }
+
+    const report = await LostFound.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate("user", "name email phone");
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Report status updated successfully.",
+      report,
+    });
+  } catch (error) {
+    console.error("Update Report Status Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ==========================
+// Delete Lost & Found Report (Admin)
+// ==========================
+exports.deleteLostFoundReport = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid report ID." });
+    }
+
+    const report = await LostFound.findByIdAndDelete(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Report deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete Report Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ==========================
+// Get All Community Posts (Admin)
+// ==========================
+exports.getAllCommunityPosts = async (req, res) => {
+  try {
+    const posts = await CommunityPost.find()
+      .populate("user", "name email avatar")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: posts.length,
+      posts,
+    });
+  } catch (error) {
+    console.error("Get All Community Posts Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ==========================
+// Update Community Post Status (Admin)
+// ==========================
+exports.updateCommunityPostStatus = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
+    const { isActive } = req.body;
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isActive must be a boolean.",
+      });
+    }
+
+    const post = await CommunityPost.findByIdAndUpdate(
+      req.params.id,
+      { isActive },
+      { new: true, runValidators: true }
+    ).populate("user", "name email avatar");
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Post status updated successfully.",
+      post,
+    });
+  } catch (error) {
+    console.error("Update Community Post Status Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ==========================
+// Delete Community Post (Admin)
+// ==========================
+exports.deleteCommunityPost = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
+    const post = await CommunityPost.findByIdAndDelete(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Post deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete Community Post Error:", error);
 
     res.status(500).json({
       success: false,

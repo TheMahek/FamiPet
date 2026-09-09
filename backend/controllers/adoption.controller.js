@@ -124,12 +124,10 @@ exports.updateAdoptionStatus = async (req, res) => {
       });
     }
 
-    const petName = adoption.pet ? adoption.pet.name : "your pet";
-
     await Notification.create({
       user: adoption.user,
       title: `Adoption Request ${status}`,
-      message: `Your adoption request for ${petName} is now ${status.toLowerCase()}.`,
+      message: `Your adoption request for ${adoption.pet.name} is now ${status.toLowerCase()}.`,
       type: "adoption",
     });
 

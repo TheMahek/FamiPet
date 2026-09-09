@@ -1605,6 +1605,71 @@ animation:bell .7s;
 }
 
 
+/* DIGITAL PET ID + QR */
+
+.pet-qr-row {
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+}
+
+.pet-qr-image {
+    width: 110px;
+
+    height: 110px;
+
+    border-radius: 12px;
+
+    border: 1px solid #ffe2e8;
+
+    background: #fff;
+}
+
+.pet-qr-info {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.pet-qr-info strong {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #344054;
+
+    font-size: 13px;
+}
+
+.pet-uid-code {
+    display: inline-block;
+
+    margin: 0 0 8px;
+
+    padding: 4px 10px;
+
+    border-radius: 8px;
+
+    background: #fff1f3;
+
+    color: #e11d48;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    word-break: break-all;
+}
+
+.pet-qr-loading {
+    font-size: 12px !important;
+
+    color: #a3adbe !important;
+}
+
+
 /* FOOTER */
 
 .pet-details-footer {

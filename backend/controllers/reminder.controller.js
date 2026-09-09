@@ -55,6 +55,10 @@ exports.createReminder = async (req, res) => {
 
 exports.updateReminder = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid reminder ID." });
+    }
+
     const reminder = await Reminder.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -65,6 +69,7 @@ exports.updateReminder = async (req, res) => {
     }
 
     delete req.body.user;
+    delete req.body.pet;
     Object.assign(reminder, req.body);
     await reminder.save();
 
@@ -80,6 +85,10 @@ exports.updateReminder = async (req, res) => {
 
 exports.completeReminder = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid reminder ID." });
+    }
+
     const reminder = await Reminder.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
       { isCompleted: true },
@@ -102,6 +111,10 @@ exports.completeReminder = async (req, res) => {
 
 exports.deleteReminder = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid reminder ID." });
+    }
+
     const reminder = await Reminder.findOneAndDelete({
       _id: req.params.id,
       user: req.user._id,

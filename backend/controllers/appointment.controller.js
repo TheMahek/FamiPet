@@ -5,54 +5,6 @@ const Veterinarian = require("../models/Veterinarian");
 const Notification = require("../models/Notification");
 const Reminder = require("../models/Reminder");
 
-// =========================================================
-// Create (or refresh) an automatic reminder for a stored
-// appointment. Deduped on user+pet+date+time so repeated
-// booking calls never create duplicate reminders.
-// =========================================================
-async function syncAppointmentReminder({
-  userId,
-  petId,
-  petName,
-  vet,
-  date,
-  time,
-  type,
-}) {
-  const match = {
-    user: userId,
-    pet: petId,
-    type: "appointment",
-    date: new Date(date),
-    time,
-  };
-
-  const existing = await Reminder.findOne(match);
-
-  if (existing) {
-    existing.isActive = true;
-    existing.isCompleted = false;
-    existing.title = `Appointment${type ? ` ${type}` : ""} for ${petName || "pet"}`;
-    await existing.save();
-    return existing;
-  }
-
-  return Reminder.create({
-    user: userId,
-    pet: petId,
-    title: `Appointment${type ? ` ${type}` : ""} for ${petName || "pet"}`,
-    type: "appointment",
-    description: vet
-      ? `Scheduled with ${vet.name}${vet.clinic ? ` at ${vet.clinic}` : ""}.`
-      : "Automatic reminder for your scheduled appointment.",
-    date: new Date(date),
-    time,
-    frequency: "once",
-    isActive: true,
-    isCompleted: false,
-  });
-}
-
 exports.getAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ user: req.user._id })
@@ -141,16 +93,38 @@ exports.createAppointment = async (req, res) => {
       type: "appointment",
     });
 
-    // Automatically create a linked reminder (no manual reminder needed).
-    await syncAppointmentReminder({
-      userId: req.user._id,
-      petId: pet,
-      petName: petExists ? petExists.name : undefined,
-      vet: veterinarianExists,
+    // -------------------------------------------------
+    // AUTO-CREATE REMINDER
+    // -------------------------------------------------
+
+    const reminderTitle = type
+      ? `Appointment - ${String(type).charAt(0).toUpperCase()}${String(type).slice(1)}`
+      : "Appointment";
+
+    const existingReminder = await Reminder.findOne({
+      user: req.user._id,
+      pet,
+      title: reminderTitle,
       date: appointmentDate,
       time,
-      type: appointment.type,
+      type: "appointment",
+      isActive: true,
     });
+
+    if (!existingReminder) {
+      await Reminder.create({
+        user: req.user._id,
+        pet,
+        title: reminderTitle,
+        type: "appointment",
+        description: notes || `Scheduled ${type || "checkup"} appointment.`,
+        date: appointmentDate,
+        time,
+        frequency: "once",
+        isActive: true,
+        isCompleted: false,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -173,45 +147,43 @@ exports.updateAppointment = async (req, res) => {
       return res.status(404).json({ success: false, message: "Appointment not found." });
     }
 
+    const originalDate = appointment.date;
+    const originalTime = appointment.time;
+
     const allowed = ["date", "time", "type", "symptoms", "notes"];
-    const oldDate = appointment.date;
-    const oldTime = appointment.time;
     allowed.forEach((field) => {
       if (req.body[field] !== undefined) appointment[field] = req.body[field];
     });
 
     await appointment.save();
 
-    // Keep the automatic reminder in sync with the new schedule.
-    const newDate = appointment.date;
-    const newTime = appointment.time;
-    if (
-      String(newDate) !== String(oldDate) ||
-      newTime !== oldTime
-    ) {
-      // Deactivate the reminder for the old slot (if any).
-      await Reminder.updateMany(
-        {
-          user: req.user._id,
-          pet: appointment.pet,
-          type: "appointment",
-          date: oldDate,
-          time: oldTime,
-        },
-        { isActive: false }
-      );
+    // ------------------------------------------------
+    // SYNC THE AUTO-CREATED REMINDER WHEN RESCHEDULED
+    // (only for THIS appointment's slot, not every
+    // reminder sharing the same title)
+    // ------------------------------------------------
 
-      // Create/refresh the reminder for the new slot.
-      await syncAppointmentReminder({
-        userId: req.user._id,
-        petId: appointment.pet,
-        petName: undefined,
-        vet: undefined,
-        date: newDate,
-        time: newTime,
-        type: appointment.type,
-      });
-    }
+    const reminderTitle = appointment.type
+      ? `Appointment - ${String(appointment.type).charAt(0).toUpperCase()}${String(appointment.type).slice(1)}`
+      : "Appointment";
+
+    await Reminder.updateMany(
+      {
+        user: req.user._id,
+        pet: appointment.pet,
+        title: reminderTitle,
+        type: "appointment",
+        date: originalDate,
+        time: originalTime,
+        isActive: true,
+      },
+      {
+        $set: {
+          date: appointment.date,
+          time: appointment.time,
+        },
+      }
+    );
 
     res.json({
       success: true,
@@ -237,14 +209,25 @@ exports.deleteAppointment = async (req, res) => {
     appointment.status = "cancelled";
     await appointment.save();
 
-    // Deactivate any automatic reminder linked to this appointment.
+    // ------------------------------------------------
+    // DEACTIVATE THE AUTO-CREATED REMINDER FOR THIS
+    // APPOINTMENT so cancelled visits do not leave
+    // stale active reminders (GET /reminders only
+    // returns isActive: true).
+    // ------------------------------------------------
+
     await Reminder.updateMany(
       {
         user: req.user._id,
         pet: appointment.pet,
+        date: appointment.date,
+        time: appointment.time,
         type: "appointment",
+        isActive: true,
       },
-      { isActive: false }
+      {
+        $set: { isActive: false },
+      }
     );
 
     res.json({

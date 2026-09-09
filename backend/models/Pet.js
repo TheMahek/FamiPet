@@ -96,6 +96,13 @@ const petSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // Unique digital pet ID (used in QR code / Pet ID card)
+    petUid: {
+      type: String,
+      default: "",
+      unique: false,
+    },
   },
   {
     timestamps: true,

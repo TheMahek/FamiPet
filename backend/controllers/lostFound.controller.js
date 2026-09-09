@@ -142,7 +142,10 @@ exports.createReport = async (req, res) => {
       date,
       contactName,
       contactPhone,
-      images,
+      images:
+        req.file
+          ? [`${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`]
+          : images,
     });
 
     res.status(201).json({
@@ -194,6 +197,15 @@ exports.updateReport = async (req, res) => {
     delete req.body.user;
 
     Object.assign(report, req.body);
+
+    if (req.file) {
+      const uploadedImage = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      if (Array.isArray(report.images)) {
+        report.images.push(uploadedImage);
+      } else {
+        report.images = [uploadedImage];
+      }
+    }
 
     await report.save();
 

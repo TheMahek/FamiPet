@@ -146,6 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
             notes:
                 p.description || "",
 
+            petUid:
+                p.petUid || "",
+
             qrCode:
                 p.qrCode || ""
         };
@@ -1549,13 +1552,6 @@ if (breed === "Other") {
                VALIDATION
             ========================================= */
 
-            const parsedAge =
-                parsePetAge(age);
-
-            const parsedWeight =
-                parseFloat(weight);
-
-
             if (
                 !name ||
                 !species ||
@@ -1590,48 +1586,6 @@ if (breed === "Other") {
 
                 errorMessage.textContent =
                     "Please fill all required fields.";
-
-                return;
-
-            }
-
-
-            /* =========================================
-               NUMERIC VALIDATION
-               The backend requires a numeric age. If the
-               value cannot be parsed to a number, stop here
-               instead of sending NaN and causing a 400.
-            ========================================= */
-
-            if (
-                typeof parsedAge !== "number" ||
-                Number.isNaN(parsedAge) ||
-                parsedAge < 0
-            ) {
-
-                let errorMessage =
-                    modal.querySelector(".pet-form-error");
-
-                if (!errorMessage) {
-                    errorMessage = document.createElement("div");
-                    errorMessage.className = "pet-form-error";
-                    errorMessage.setAttribute("role", "alert");
-
-                    const form = modal.querySelector("#petForm");
-                    const firstField = form.querySelector(".form-group");
-
-                    if (firstField) {
-                        firstField.parentNode.insertBefore(
-                            errorMessage,
-                            firstField
-                        );
-                    } else {
-                        form.prepend(errorMessage);
-                    }
-                }
-
-                errorMessage.textContent =
-                    "Please enter a valid numeric age.";
 
                 return;
 
@@ -2358,66 +2312,56 @@ function viewPetDetails(id) {
             </div>
 
 
-            <!-- DIGITAL PET ID / QR -->
+            <!-- DIGITAL PET ID + QR -->
 
-            ${
-                pet.qrCode
-                    ? `
-                <div class="detail-section petid-qr-section">
+            <div class="detail-section">
 
-                    <h4>
+                <h4>
 
-                        <i class="fa-solid fa-qrcode"></i>
+                    <i class="fa-solid fa-qrcode"></i>
 
-                        Digital Pet ID
+                    Digital Pet ID
 
-                    </h4>
+                </h4>
 
-                    <div
-                        class="petid-qr-box"
-                        style="
-                            display:flex;
-                            gap:1rem;
-                            align-items:center;
-                        "
-                    >
 
-                        <img
-                            src="${escapeHTML(pet.qrCode)}"
-                            alt="Pet ID QR Code"
-                            class="petid-qr-img"
-                            style="
-                                width:110px;
-                                height:110px;
-                                border:1px solid #eee;
-                                border-radius:12px;
-                                flex-shrink:0;
-                            "
-                        />
+                <div class="pet-qr-row">
 
-                        <div style="font-size:0.85rem;color:#64748b;line-height:1.5;">
+                    ${
+                        pet.qrCode
+                            ? `
+                                <img
+                                    class="pet-qr-image"
+                                    src="${escapeHTML(pet.qrCode)}"
+                                    alt="QR code for ${escapeHTML(pet.name)}"
+                                >
+                              `
+                            : `<p class="pet-qr-loading">Generating QR code…</p>`
+                    }
 
-                            <p style="margin-bottom:0.35rem;">
-                                Scan this code to view
-                                <strong>${escapeHTML(pet.name)}'s</strong>
-                                digital ID.
-                            </p>
 
-                            <a
-                                href="pet-id.html"
-                                style="color:#ff5c8a;font-weight:600;"
-                            >
-                                Open digital ID →
-                            </a>
+                    <div class="pet-qr-info">
 
-                        </div>
+                        <strong>${escapeHTML(pet.name)}'s Unique ID</strong>
+
+                        <code class="pet-uid-code">
+                            ${escapeHTML(
+                                pet.petUid ||
+                                "Not available yet"
+                            )}
+                        </code>
+
+                        <p>
+                            Scan this QR code to view
+                            ${escapeHTML(pet.name)}'s
+                            digital pet profile.
+                        </p>
 
                     </div>
 
                 </div>
-                    `
-                    : ""
-            }
+
+            </div>
 
 
             <!-- FOOTER -->
@@ -2445,6 +2389,64 @@ function viewPetDetails(id) {
     ================================================= */
 
     document.body.appendChild(modal);
+
+
+    /* =================================================
+       GENERATE QR WHEN MISSING (older pets)
+    ================================================= */
+
+    if (!pet.qrCode && window.FamiPetAPI) {
+
+        FamiPetAPI.get("/pets/" + id + "/qr")
+            .then((res) => {
+
+                if (!res || !res.qrCode) return;
+
+                pet.qrCode = res.qrCode;
+
+                const img =
+                    modal.querySelector(
+                        ".pet-qr-image"
+                    );
+
+                if (img) {
+
+                    img.src = pet.qrCode;
+
+                } else {
+
+                    const row =
+                        modal.querySelector(
+                            ".pet-qr-row"
+                        );
+
+                    if (row) {
+
+                        const loading =
+                            row.querySelector(
+                                ".pet-qr-loading"
+                            );
+
+                        if (loading) {
+                            loading.remove();
+                        }
+
+                        row.insertAdjacentHTML(
+                            "afterbegin",
+                            `
+                                <img
+                                    class="pet-qr-image"
+                                    src="${escapeHTML(pet.qrCode)}"
+                                    alt="QR code for ${escapeHTML(pet.name)}"
+                                >
+                            `
+                        );
+                    }
+                }
+
+            })
+            .catch(() => { /* keep placeholder */ });
+    }
 
 
     /* =================================================

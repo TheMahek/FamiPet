@@ -56,6 +56,18 @@ document.addEventListener("DOMContentLoaded", () => {
             icon: "fa-solid fa-heart",
             href: "adoptions.html",
         },
+        {
+            page: "lost-found",
+            label: "Lost & Found",
+            icon: "fa-solid fa-magnifying-glass",
+            href: "lost-found.html",
+        },
+        {
+            page: "community",
+            label: "Community",
+            icon: "fa-solid fa-comments",
+            href: "community.html",
+        },
     ];
 
     const sidebar =
