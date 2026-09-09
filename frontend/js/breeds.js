@@ -37,6 +37,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+    function breedTag(text) {
+
+        return `<span class="breed-tag">${escapeHTML(text)}</span>`;
+    }
+
+
     function breedImage(breed, species) {
 
         if (
@@ -117,9 +123,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         grid.innerHTML =
-            filtered.map((breed) => `
+            filtered.map((breed) => {
 
-                <article class="breed-card">
+                const temperament =
+                    Array.isArray(breed.temperament)
+                        ? breed.temperament
+                        : [];
+
+                const diseases =
+                    Array.isArray(breed.commonDiseases)
+                        ? breed.commonDiseases
+                        : [];
+
+                const infoRow = (label, value) =>
+                    value
+                        ? `<div class="breed-info-row">
+                               <strong>${escapeHTML(label)}</strong>
+                               <span>${escapeHTML(value)}</span>
+                           </div>`
+                        : "";
+
+                return `
+
+                <article class="breed-card" data-id="${escapeHTML(breed._id)}">
 
                     <div class="breed-card-img">
 
@@ -176,11 +202,76 @@ document.addEventListener("DOMContentLoaded", () => {
                                 : ""
                         }
 
+
+                        <div class="breed-card-detail">
+
+                            <div class="breed-detail-grid">
+
+                                ${infoRow("Origin", breed.origin)}
+                                ${infoRow("Lifespan", breed.lifespan)}
+                                ${infoRow("Weight", breed.weightRange)}
+                                ${infoRow("Height", breed.heightRange)}
+
+                            </div>
+
+                            ${
+                                temperament.length
+                                    ? `<div class="breed-info-block">
+                                           <h4><i class="fa-solid fa-face-smile"></i> Temperament</h4>
+                                           <div>${temperament.map(breedTag).join("")}</div>
+                                       </div>`
+                                    : ""
+                            }
+
+                            ${infoRow("Exercise", breed.exerciseRequirements).replace("breed-info-row", "breed-info-row full")}
+                            ${infoRow("Grooming", breed.groomingGuide).replace("breed-info-row", "breed-info-row full")}
+                            ${infoRow("Suitable Environment", breed.suitableEnvironment).replace("breed-info-row", "breed-info-row full")}
+
+                            ${
+                                diseases.length
+                                    ? `<div class="breed-info-block">
+                                           <h4><i class="fa-solid fa-heart-pulse"></i> Common Health Concerns</h4>
+                                           <div>${diseases.map(breedTag).join("")}</div>
+                                       </div>`
+                                    : ""
+                            }
+
+                            <a
+                                class="breed-full-link"
+                                href="breed-details.html?id=${encodeURIComponent(breed._id)}"
+                            >
+                                <i class="fa-solid fa-up-right-from-square"></i>
+                                Open Full Page
+                            </a>
+
+                        </div>
+
+
+                        <button
+                            class="breed-toggle-btn"
+                            type="button"
+                            aria-expanded="false"
+                        >
+
+                            <span class="show-label">
+                                View Details
+                            </span>
+
+                            <span class="hide-label">
+                                Hide Details
+                            </span>
+
+                            <i class="fa-solid fa-chevron-down"></i>
+
+                        </button>
+
                     </div>
 
                 </article>
 
-            `).join("");
+                `;
+
+            }).join("");
     }
 
 
@@ -216,235 +307,55 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    /* =====================================================
-       BREED DETAILS MODAL
-    ===================================================== */
-
-    function breedTag(text) {
-
-        return `<span style="
-            display:inline-block;
-            background:#fff0f5;
-            color:#c9184a;
-            border:1px solid #ffc2d1;
-            border-radius:999px;
-            padding:4px 12px;
-            font-size:13px;
-            margin:4px 6px 4px 0;
-        ">${escapeHTML(text)}</span>`;
-    }
-
-
-    function detailRow(label, value) {
-
-        if (!value) return "";
-
-        return `<div style="
-            flex:1 1 45%;
-            min-width:220px;
-            padding:10px 4px;
-        "><strong style="display:block;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">${escapeHTML(label)}</strong>
-        <span style="color:#1f2937;font-size:14px;line-height:1.5;">${escapeHTML(value)}</span></div>`;
-    }
-
-
-    async function openBreedDetails(breed) {
-
-        let detail = breed;
-
-        try {
-
-            const data =
-                await FamiPetAPI.get(
-                    "/breeds/" + breed._id
-                );
-
-            if (data && data.breed) {
-
-                detail = data.breed;
-            }
-
-        } catch (error) { /* fallback to card data */ }
-
-
-        const temperament =
-            Array.isArray(detail.temperament)
-                ? detail.temperament
-                : [];
-
-        const diseases =
-            Array.isArray(detail.commonDiseases)
-                ? detail.commonDiseases
-                : [];
-
-
-        const modal =
-            document.createElement("div");
-
-        modal.className =
-            "breed-detail-overlay";
-
-        modal.style.cssText =
-            "position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.6);backdrop-filter:blur(3px);padding:20px;";
-
-
-        modal.innerHTML = `
-
-            <div style="
-                position:relative;
-                width:100%;
-                max-width:640px;
-                max-height:90vh;
-                overflow:auto;
-                background:#fff;
-                border-radius:18px;
-                box-shadow:0 25px 50px rgba(0,0,0,.25);
-                padding:28px;
-            ">
-
-                <button type="button" data-close aria-label="Close" style="
-                    position:absolute;top:14px;right:14px;width:34px;height:34px;
-                    border:none;cursor:pointer;border-radius:50%;
-                    background:#f3f4f6;color:#374151;font-size:16px;line-height:1;
-                ">&times;</button>
-
-
-                <div style="display:flex;gap:18px;align-items:center;margin-bottom:16px;">
-
-                    <img
-                        src="${escapeHTML(breedImage(detail, detail.species))}"
-                        alt="${escapeHTML(detail.name)}"
-                        style="width:96px;height:96px;object-fit:cover;border-radius:14px;flex-shrink:0;"
-                    />
-
-                    <div>
-
-                        <h2 style="margin:0 0 6px;color:#111827;font-size:22px;">
-                            ${escapeHTML(detail.name)}
-                        </h2>
-
-                        <span style="
-                            display:inline-block;background:#eef2ff;color:#4338ca;
-                            border-radius:999px;padding:3px 12px;font-size:13px;
-                        ">${escapeHTML(speciesLabel(detail.species))}</span>
-
-                    </div>
-
-                </div>
-
-
-                <div style="display:flex;flex-wrap:wrap;border-top:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;margin-bottom:16px;padding:6px 0;">
-
-                    ${detailRow("Origin", detail.origin)}
-                    ${detailRow("Lifespan", detail.lifespan)}
-                    ${detailRow("Weight", detail.weightRange)}
-                    ${detailRow("Height", detail.heightRange)}
-
-                </div>
-
-
-                ${
-                    temperament.length
-                        ? `<p style="margin:10px 0 4px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;"><strong>Temperament</strong></p>
-                           <div>${temperament.map(breedTag).join("")}</div>`
-                        : ""
-                }
-
-                ${
-                    detail.description
-                        ? `<p style="margin:14px 0 0;color:#374151;font-size:14px;line-height:1.6;">${escapeHTML(detail.description)}</p>`
-                        : ""
-                }
-
-                ${
-                    detail.exerciseRequirements
-                        ? `<div style="margin-top:16px;"><strong style="display:block;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Exercise</strong><span style="color:#1f2937;font-size:14px;">${escapeHTML(detail.exerciseRequirements)}</span></div>`
-                        : ""
-                }
-
-                ${
-                    detail.groomingGuide
-                        ? `<div style="margin-top:12px;"><strong style="display:block;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Grooming</strong><span style="color:#1f2937;font-size:14px;">${escapeHTML(detail.groomingGuide)}</span></div>`
-                        : ""
-                }
-
-                ${
-                    detail.suitableEnvironment
-                        ? `<div style="margin-top:12px;"><strong style="display:block;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Suitable Environment</strong><span style="color:#1f2937;font-size:14px;">${escapeHTML(detail.suitableEnvironment)}</span></div>`
-                        : ""
-                }
-
-                ${
-                    diseases.length
-                        ? `<div style="margin-top:14px;"><strong style="display:block;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Common Health Concerns</strong><div>${diseases.map(breedTag).join("")}</div></div>`
-                        : ""
-                }
-
-            </div>
-
-        `;
-
-
-        document.body.appendChild(modal);
-
-
-        const closeModal = () =>
-            modal.remove();
-
-
-        modal.addEventListener(
-            "click",
-            (event) => {
-
-                if (
-                    event.target === modal ||
-                    event.target.closest("[data-close]")
-                ) {
-
-                    closeModal();
-                }
-            }
-        );
-
-
-        document.addEventListener(
-            "keydown",
-            function onKey(event) {
-
-                if (event.key === "Escape") {
-
-                    closeModal();
-
-                    document.removeEventListener(
-                        "keydown",
-                        onKey
-                    );
-                }
-            }
-        );
-    }
-
-
     grid.addEventListener(
         "click",
         (event) => {
+
+            if (event.target.closest("a")) return;
 
             const card =
                 event.target.closest(".breed-card");
 
             if (!card) return;
 
-            const name =
-                card.querySelector("h3").textContent;
+            const wasExpanded =
+                card.classList.contains("expanded");
 
-            const breed =
-                allBreeds.find(
-                    (b) => b.name === name
+            grid.querySelectorAll(
+                ".breed-card.expanded"
+            ).forEach((other) => {
+
+                other.classList.remove("expanded");
+
+                const otherBtn =
+                    other.querySelector(
+                        ".breed-toggle-btn"
+                    );
+
+                if (otherBtn) {
+
+                    otherBtn.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+                }
+            });
+
+            if (wasExpanded) return;
+
+            card.classList.add("expanded");
+
+            const btn =
+                card.querySelector(
+                    ".breed-toggle-btn"
                 );
 
-            if (breed) {
+            if (btn) {
 
-                openBreedDetails(breed);
+                btn.setAttribute(
+                    "aria-expanded",
+                    "true"
+                );
             }
         }
     );

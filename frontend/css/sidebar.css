@@ -200,7 +200,43 @@ body:has(#sidebar-container) {
 
     gap: 4px;
 
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+    scrollbar-color: #ffc2d1 transparent;
+
+    padding-right: 2px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar {
+
+    width: 6px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar-track {
+
+    background: transparent;
+
+    border-radius: 999px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar-thumb {
+
+    background: #ffc2d1;
+
+    border-radius: 999px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar-thumb:hover {
+
+    background: #ff5c8a;
 }
 
 
@@ -477,6 +513,24 @@ body:has(#sidebar-container) {
     height: 100%;
 
     object-fit: cover;
+}
+
+
+#sidebar-container .profile-avatar .profile-initials {
+
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+
+    color: #ff5c8a;
+    background: #ffe5ed;
 }
 
 

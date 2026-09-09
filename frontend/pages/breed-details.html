@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famipet - Breed Details</title>
+  <link rel="stylesheet" href="../css/mypet.css" />
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Lucide Icons for Universal Sidebar -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="../css/responsive.css">
+  <style>
+    .breed-detail-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .breed-detail-hero {
+      display: flex;
+      gap: 1.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid #f1eff5;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+      padding: 1.6rem;
+      margin-bottom: 1.3rem;
+    }
+    .breed-detail-hero img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 18px;
+      flex-shrink: 0;
+      background: #fff6f7;
+    }
+    .breed-detail-hero h2 {
+      margin: 0 0 8px;
+      font-size: 1.7rem;
+      color: #1e293b;
+    }
+    .breed-detail-hero .species-pill {
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: #ffe9ef;
+      color: #ff5c8a;
+      padding: 0.35rem 0.8rem;
+      border-radius: 50px;
+      text-transform: capitalize;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #ff5c8a;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      margin-bottom: 1.1rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: #c9184a;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.1rem;
+      margin-bottom: 1.3rem;
+    }
+    .detail-tile {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #f1eff5;
+      padding: 1.05rem 1.15rem;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+    }
+    .detail-tile .tile-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #ffe9ef;
+      color: #ff5c8a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.6rem;
+    }
+    .detail-tile strong {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #8a96a8;
+      margin-bottom: 0.3rem;
+    }
+    .detail-tile span {
+      font-size: 0.95rem;
+      color: #1e293b;
+      line-height: 1.5;
+    }
+    .breed-section {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #f1eff5;
+      padding: 1.3rem 1.4rem;
+      margin-bottom: 1.1rem;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+    }
+    .breed-section h3 {
+      margin: 0 0 0.6rem;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #ff5c8a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .breed-section p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #374151;
+      line-height: 1.7;
+    }
+    .breed-tag {
+      display: inline-block;
+      background: #fff0f5;
+      color: #c9184a;
+      border: 1px solid #ffc2d1;
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 0.83rem;
+      margin: 4px 7px 4px 0;
+    }
+    .breeds-loading,
+    .breeds-empty {
+      text-align: center;
+      padding: 60px 20px;
+      background: #fff;
+      border-radius: 20px;
+      color: #8a96a8;
+    }
+    .breeds-loading i,
+    .breeds-empty i {
+      font-size: 40px;
+      color: #ff4d6d;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- Top Header Bar -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1>Breed Details <span class="cherry-blossom">🌸</span></h1>
+          <p>Everything you need to know about this breed.</p>
+        </div>
+
+        <div class="header-right">
+          <button class="icon-action-btn"><i class="fa-regular fa-sun"></i></button>
+          <button class="icon-action-btn badge-btn">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-count">0</span>
+          </button>
+          <button class="icon-action-btn" id="themeToggle"><i class="fa-solid fa-moon"></i></button>
+          <button class="profile-btn"></button>
+        </div>
+      </header>
+
+      <section class="dashboard-card">
+        <div class="breed-detail-wrap" id="breedDetailWrap">
+
+          <a class="back-link" href="breeds.html">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to All Breeds
+          </a>
+
+          <div id="breedDetailContent">
+            <div class="breeds-loading">
+              <i class="fa-solid fa-paw"></i>
+              <h3>Loading breed...</h3>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/breed-details.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/theme.js"></script>
+</body>
+</html>

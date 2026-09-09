@@ -119,6 +119,120 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+    .breed-card-detail {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px dashed #f1eff5;
+    }
+    .breed-card.expanded .breed-card-detail {
+      display: block;
+      animation: breedFade 0.22s ease;
+    }
+    @keyframes breedFade {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .breed-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.55rem;
+    }
+    .breed-info-row {
+      background: #fff6f7;
+      border: 1px solid #ffe0e7;
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+    }
+    .breed-info-row strong {
+      display: block;
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #ff5c8a;
+      margin-bottom: 0.2rem;
+    }
+    .breed-info-row span {
+      font-size: 0.82rem;
+      color: #1e293b;
+      line-height: 1.5;
+    }
+    .breed-info-row.full {
+      grid-column: 1 / -1;
+      margin-top: 0.55rem;
+    }
+    .breed-info-block {
+      margin-top: 0.75rem;
+    }
+    .breed-info-block h4 {
+      margin: 0 0 0.35rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #ff5c8a;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .breed-tag {
+      display: inline-block;
+      background: #fff0f5;
+      color: #c9184a;
+      border: 1px solid #ffc2d1;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-size: 0.75rem;
+      margin: 3px 5px 3px 0;
+    }
+    .breed-toggle-btn {
+      width: 100%;
+      margin-top: 0.9rem;
+      border: none;
+      background: #fff0f5;
+      color: #c9184a;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.55rem;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: background 0.2s, color 0.2s;
+    }
+    .breed-toggle-btn:hover {
+      background: #ff5c8a;
+      color: #fff;
+    }
+    .breed-toggle-btn i {
+      transition: transform 0.2s;
+    }
+    .breed-toggle-btn .hide-label {
+      display: none;
+    }
+    .breed-card.expanded .breed-toggle-btn .show-label {
+      display: none;
+    }
+    .breed-card.expanded .breed-toggle-btn .hide-label {
+      display: inline;
+    }
+    .breed-card.expanded .breed-toggle-btn i {
+      transform: rotate(180deg);
+    }
+    .breed-full-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #ff5c8a;
+      text-decoration: none;
+    }
+    .breed-full-link:hover {
+      color: #c9184a;
+    }
     .breeds-loading,
     .breeds-empty {
       text-align: center;
@@ -159,9 +273,7 @@
             <span class="badge-count">0</span>
           </button>
           <button class="icon-action-btn" id="themeToggle"><i class="fa-solid fa-moon"></i></button>
-          <button class="profile-btn">
-            <img src="../assets/images/dashboard/user-profile.svg" alt="Profile" />
-          </button>
+          <button class="profile-btn"></button>
         </div>
       </header>
 

@@ -10,7 +10,11 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  // Uploads (avatars, pet/community/lost-found images) must be embeddable
+  // from the frontend origin (e.g. Live Server on 5502) as <img>, etc.
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(compression());
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5502').split(',').map(v => v.trim()).filter(Boolean);
 // Allow local development origins including LAN access (phone on same Wi-Fi).

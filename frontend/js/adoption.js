@@ -1236,13 +1236,26 @@ function openAddPetForm() {
 
 
           <label>
-            <span>Pet Image URL</span>
+            <span>Pet Image</span>
 
             <input
               name="image"
-              type="url"
-              placeholder="Optional image URL"
+              type="file"
+              accept="image/*"
+              id="adoptionPetImage"
             />
+
+          </label>
+
+          <label class="adoption-image-preview-label">
+            <span>Preview</span>
+
+            <div
+              class="adoption-image-preview"
+              id="adoptionImagePreview"
+            >
+              <i class="fa-solid fa-paw"></i>
+            </div>
 
           </label>
 
@@ -1356,7 +1369,7 @@ function openAddPetForm() {
 
   form.addEventListener(
     "submit",
-    event => {
+    async (event) => {
 
       event.preventDefault();
 
@@ -1369,8 +1382,40 @@ function openAddPetForm() {
         data.get("type");
 
 
-      const image =
-        data.get("image").trim() ||
+      const imageInput =
+        form.querySelector(
+          "#adoptionPetImage"
+        );
+
+      let image =
+        data.get("image") ||
+        "";
+
+      if (imageInput && imageInput.files && imageInput.files[0]) {
+
+        const file =
+          imageInput.files[0];
+
+        image =
+          await new Promise((resolve) => {
+
+            const reader =
+              new FileReader();
+
+            reader.onload = (event) => {
+
+              resolve(event.target.result);
+
+            };
+
+            reader.readAsDataURL(file);
+
+          });
+
+      }
+
+      image =
+        image.trim() ||
         "../assets/images/adoption/pet1.jpg";
 
 
@@ -1474,6 +1519,56 @@ function openAddPetForm() {
       "click",
       modal.close
     );
+
+
+  const imageInput =
+    modal.sheet.querySelector(
+      "#adoptionPetImage"
+    );
+
+  const imagePreview =
+    modal.sheet.querySelector(
+      "#adoptionImagePreview"
+    );
+
+  if (imageInput && imagePreview) {
+
+    imageInput.addEventListener(
+      "change",
+      () => {
+
+        const file =
+          imageInput.files[0];
+
+        if (!file) {
+          return;
+        }
+
+        const reader =
+          new FileReader();
+
+        reader.onload = (event) => {
+
+          imagePreview.innerHTML =
+            `<img
+                src="${event.target.result}"
+                alt="Pet preview"
+                style="
+                  width:100%;
+                  height:100%;
+                  object-fit:cover;
+                  border-radius:10px;
+                "
+              >`;
+
+        };
+
+        reader.readAsDataURL(file);
+
+      }
+    );
+
+  }
 
 }
 

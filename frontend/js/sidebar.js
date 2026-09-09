@@ -38,10 +38,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         role: "Pet Owner",
 
-        image:
-            "../assets/images/dashboard/user-profile.svg"
+        image: ""
 
     };
+
+
+    function getInitials(name) {
+
+        const clean =
+            String(name || "").trim();
+
+        if (!clean) return "PP";
+
+        return clean
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((w) => w[0].toUpperCase())
+            .join("");
+    }
+
+
+    function isRealImage(src) {
+
+        return !!(
+            src &&
+            !String(src).includes("user-profile.svg")
+        );
+    }
 
 
     /* =====================================================
@@ -57,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return {
                     name: apiUser.name || DEFAULT_PROFILE.name,
                     role: apiUser.role === "admin" ? "Admin" : DEFAULT_PROFILE.role,
-                    image: apiUser.avatar || (apiUser.name ? "../assets/images/dashboard/user-profile.svg" : DEFAULT_PROFILE.image),
+                    image: isRealImage(apiUser.avatar) ? apiUser.avatar : "",
                 };
 
             }
@@ -384,13 +408,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 type="button"
             >
 
-                <div class="profile-avatar">
+                <div
+                    class="profile-avatar"
+                    id="sidebarAvatar"
+                >
 
-                    <img
-                        id="sidebarProfileImage"
-                        src="${profile.image}"
-                        alt="${profile.name}"
-                    >
+                    ${
+                        isRealImage(profile.image)
+                            ? `<img
+                                   id="sidebarProfileImage"
+                                   src="${profile.image}"
+                                   alt="${profile.name}"
+                               >`
+                            : `<span
+                                   id="sidebarProfileInitials"
+                                   class="profile-initials"
+                               >
+                                   ${getInitials(profile.name)}
+                               </span>`
+                    }
 
                 </div>
 
@@ -484,6 +520,22 @@ document.addEventListener("DOMContentLoaded", () => {
         lucide.createIcons();
 
     }
+
+
+    /* =====================================================
+       HEADER PROFILE BUTTONS
+       Replace the default placeholder image with the real
+       avatar, or initials when no photo is set.
+    ===================================================== */
+
+    document.querySelectorAll(".profile-btn").forEach((btn) => {
+
+        btn.innerHTML =
+            isRealImage(profile.image)
+                ? `<img src="${profile.image}" alt="${profile.name}">`
+                : `<span class="profile-initials">${getInitials(profile.name)}</span>`;
+
+    });
 
 
     /* =====================================================
@@ -702,24 +754,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            const image =
-                document.getElementById(
-                    "sidebarProfileImage"
-                );
-
-
-            const name =
-                document.getElementById(
-                    "sidebarProfileName"
-                );
-
-
-            const role =
-                document.getElementById(
-                    "sidebarProfileRole"
-                );
-
-
             const profileImage =
                 profileData.image ||
                 profileData.avatar ||
@@ -733,17 +767,38 @@ document.addEventListener("DOMContentLoaded", () => {
                 profileData.role ||
                 DEFAULT_PROFILE.role;
 
+            const hasImage =
+                isRealImage(profileImage);
 
-            if (image) {
 
-                image.src =
-                    profileImage;
+            const sidebarAvatar =
+                document.getElementById(
+                    "sidebarAvatar"
+                );
 
-                image.alt =
-                    profileName;
+            if (sidebarAvatar) {
+
+                sidebarAvatar.innerHTML =
+                    hasImage
+                        ? `<img
+                               id="sidebarProfileImage"
+                               src="${profileImage}"
+                               alt="${profileName}"
+                           >`
+                        : `<span
+                               id="sidebarProfileInitials"
+                               class="profile-initials"
+                           >
+                               ${getInitials(profileName)}
+                           </span>`;
 
             }
 
+
+            const name =
+                document.getElementById(
+                    "sidebarProfileName"
+                );
 
             if (name) {
 
@@ -753,12 +808,29 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
+            const role =
+                document.getElementById(
+                    "sidebarProfileRole"
+                );
+
             if (role) {
 
                 role.textContent =
                     profileRole;
 
             }
+
+
+            document.querySelectorAll(
+                ".profile-btn"
+            ).forEach((btn) => {
+
+                btn.innerHTML =
+                    hasImage
+                        ? `<img src="${profileImage}" alt="${profileName}">`
+                        : `<span class="profile-initials">${getInitials(profileName)}</span>`;
+
+            });
 
         };
 
