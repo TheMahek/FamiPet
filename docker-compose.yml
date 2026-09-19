@@ -1,5 +1,5 @@
 # =========================================================
-# FAMIPET - DOCKER COMPOSE (SECURITY HARDENED - PHASE 7)
+# FAMIPET - DOCKER COMPOSE (SECURITY HARDENED)
 # Runs the existing FamiPet application as a coordinated
 # system: static frontend (nginx) -> Node/Express backend
 # -> MongoDB (container), with Cloudinary / SMTP / Gemini
@@ -12,7 +12,7 @@
 # override is MONGODB_URI, which must point at the Compose
 # service name "mongodb" instead of the old localhost host.
 #
-# SECURITY MODEL (Phase 7):
+# SECURITY MODEL:
 #  - Two isolated networks: "frontend" for the static site
 #    and "backend" for the API + database. The frontend is
 #    static-only (the browser calls the backend, never the
@@ -43,8 +43,8 @@ services:
     init: true
     security_opt:
       - no-new-privileges:true
-    # Internal only (Phase 5): reached exclusively by the Caddy reverse proxy
-    # over the Docker network. No host port is published any more.
+    # Internal only for now: reached exclusively by the Caddy reverse
+    # proxy over the Docker network. No host port is published.
     expose:
       - "5502"
     networks:
@@ -82,8 +82,8 @@ services:
       # Compose network the DB is reachable via its service name.
       # (environment entries override env_file values in Compose.)
       - MONGODB_URI=mongodb://mongodb:27017/petDB
-    # Internal only (Phase 5): reached exclusively by the Caddy reverse proxy
-    # over the Docker network. No host port is published any more.
+    # Internal only for now: reached exclusively by the Caddy reverse
+    # proxy over the Docker network. No host port is published.
     expose:
       - "5000"
     volumes:
@@ -131,7 +131,7 @@ services:
     mem_limit: 2g
     cpus: 1.0
 
-  # -------- CADDY (HTTPS reverse proxy, Phase 5) --------
+  # -------- CADDY (HTTPS reverse proxy) --------
   # Terminates TLS on 80/443 and is the ONLY publicly reachable service.
   # It joins both Docker networks so it can reach the static frontend and
   # the backend API by service name, while MongoDB stays private.

@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 0 checkpoint).
+> Single project-status document for the enhancement work (Phase 1 checkpoint).
 > Companion docs: `ROADMAP.md` (work plan — single source of truth), `bakwas.md` (current-state analysis), `Step10-Report.md` (historical QA report), `DOCKER_DEPLOYMENT.md` (deployment guide).
-> Last update: Phase 0 completed (see end of this file).
+> Last update: Phase 1 completed (see §9).
 
 ---
 
@@ -43,6 +43,8 @@ All four Docker containers are up and **healthy**, plus a parallel host-side dev
 
 > **Environment note:** the Docker stack and a host-side dev stack (node + Live Server + mongod) run **simultaneously**. API and Mongo are reachable through both paths. Not a defect — just both working patterns in use.
 
+> **Phase 1 note:** the Docker stack was fully re-created in Phase 1 (`down`/`up` cold start, `docker compose restart`, and a backend kill → auto-restart). All four containers came back **healthy**; named volumes persisted (mongo marker doc + uploads file both survived). See §9.
+
 ### Verified responses (this session)
 - `GET http://localhost:5000/api/status` → `{"status":"OK","message":"FamiPet API is running!"}`
 - `GET http://localhost:5000/api/breeds` → `{"success":true,"count":16,"breeds":[...]}` (DB-backed read OK)
@@ -77,7 +79,7 @@ All four Docker containers are up and **healthy**, plus a parallel host-side dev
 
 ## 5. What Phase 0 deliberately did NOT verify / deferrals
 - **Full register → login → email-verify → dashboard E2E** requires live email delivery + verification token; not automated in this session. Historically reported passing in `Step10-Report.md`. Deferred to Phase 4 E2E campaign.
-- **Container restart / volume-persistence test** (`down`/`up`, recreate) — deferred to Phase 1 (do not disturb the live stack during Phase 0). Containers already up 13-14 h and healthy.
+- **Container restart / volume-persistence test** (`down`/`up`, recreate) — **DONE in Phase 1** (see §9).
 - No server restart or source changes were made; the running stack was not touched.
 
 ## 6. Rollback point
@@ -105,3 +107,41 @@ All four Docker containers are up and **healthy**, plus a parallel host-side dev
 - `BASELINE.md` (new — this doc)
 - `.gitignore`, `backend/.gitignore` (artifact ignore rules)
 - Git index: `backend/server.log`, `backend/server.err` removed from tracking
+
+## 9. Phase 1 status — ✅ COMPLETED (Docker environment stabilized & verified)
+
+### Docker architecture decisions recorded
+- **Kept as-is (verified correct, no change needed):** 4 services (frontend nginx:alpine, backend node:26-alpine, mongodb mongo:8, caddy:2.9-alpine); two isolated networks (`famipet-frontend-net`, `famipet-backend-net`); Caddy the only published service (80/443); Mongo internal-only; backend `read_only` rootfs + `cap_drop: ALL` + tmpfs + non-root `node` user; named volumes `mongodb_data`, `backend_uploads`, `caddy_data`, `caddy_config`; `restart: unless-stopped` ×4; `init: true` ×4; backend `depends_on mongodb: condition: service_healthy`.
+- **Cleaned only stale comments** in `docker-compose.yml` ("Phase 5 / Phase 7" wording removed — no service/network/volume/resource change) and `backend/Dockerfile` (port note). No routing or structural change (Caddy removal is Phase 2).
+- **For the target architecture (Cloudflare → Tunnel → nginx:alpine {frontend+backend} → MongoDB):** ready except that nginx does not yet join the backend network/proxy `/api` — that is Phase 2 by design. Mongo will remain internal.
+
+### Tests performed (all passed)
+| Test | Result |
+|---|---|
+| `docker compose config` | Valid |
+| `docker compose build` | Both images built |
+| Cold start `down` + `up -d` | All 4 healthy; backend waited on mongo healthy |
+| Volume persistence across down/up | mongo marker doc + uploads file survived; markers then removed |
+| `docker compose restart` | All 4 recovered healthy |
+| Backend non-zero exit (SIGKILL node) | Auto-restarted (`RestartCount` 0→1), healthy |
+| Uploads volume writable (non-root node) | OK |
+| `https://localhost/api/status` | OK |
+| `https://localhost/api/breeds` (DB-backed via Docker) | 200, data returned |
+| `https://localhost/` + `/js/config.js` | 200 |
+| In-container backend→mongo ping (service name) | `{ok:1}` |
+| No host port published for frontend/backend/mongodb | Confirmed (only Caddy 80/443) |
+| `docker compose logs` startup errors | None (mongo INFO + benign Caddy OCSP mkcert warnings only) |
+
+### Findings / notes for later phases
+- **Docker `petDB` dataset is leaner than the host DB**: `/api/breeds` returns **5** via Docker stack vs **16** on host mongo. Sources were populated separately; not a defect. Relevant for Phase 4 (E2E against the intended dataset) and Phase 13 (data migration/cleanup).
+- `kill -9 1` (tini PID 1) does **not** exit the container; the correct crash test is killing the node process (tini propagates the child exit). Working restart behavior confirmed via the node kill.
+- Caddy OCSP warnings on mkcert certs are cosmetic; Cloudflare edge TLS (Phase 3) removes this entirely.
+
+### Files changed in Phase 1
+- `docker-compose.yml` (comment cleanup only)
+- `backend/Dockerfile` (comment cleanup only)
+- `ROADMAP.md` (Phase 1 status)
+- `BASELINE.md` (this update)
+
+### Phase 1 checkpoint
+- Commit `phase1-docker-env` (checkpoint tag). Rollback: `git reset --hard phase1-docker-env` (or `v0-baseline` for pre-Docker-verification state).

@@ -40,7 +40,7 @@ RUN mkdir -p /app/uploads && chown -R node:node /app
 # 4) Run as the non-root "node" user (present in official Node images).
 USER node
 
-# Backend port discovered during Phase 1 (PORT env / default 5000).
+# Backend API port (PORT env / default 5000).
 # NOTE: EXPOSE does not publish the port to Windows by itself — the
 # host mapping is done later at `docker run` / Docker Compose time.
 EXPOSE 5000

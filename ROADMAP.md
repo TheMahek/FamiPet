@@ -137,6 +137,29 @@ Verify and stabilize the existing 4-container Docker environment (frontend, back
 - ✅ Volume persistence proven.
 - ✅ Env/config cleanup confirmed; nothing broken.
 
+## 10. Phase 1 status — ✅ COMPLETED (branch `enhancement/famipet`, commit checkpoint `phase1-docker-env`)
+
+**Changes (config/comment hygiene only — no routing or structural change, no app logic touched):**
+- `docker-compose.yml`: removed stale "Phase 5 / Phase 7 / internal only (Phase 5)" comments; wording now neutral and accurate. No service/network/volume/resource changes.
+- `backend/Dockerfile`: removed stale "discovered during Phase 1" comment (port note made neutral).
+- Verified existing config is already sound: `restart: unless-stopped` ×4, `init: true` ×4, `no-new-privileges` ×4, `cap_drop: ALL` + `read_only` + tmpfs + uploads volume on backend, mongo internal-only, backend `depends_on mongodb` → `service_healthy`, `env_file` wiring, `MONGODB_URI` service-name override (confirmed live in container), `.dockerignore` excludes secrets/logs.
+
+**Verified by execution:**
+- `docker compose config` valid; `docker compose build` → both images built.
+- Cold start: `down` → `up -d` → all 4 healthy; backend started only after mongo healthy.
+- Persistence: `phase1_test` marker doc + uploads file survived `down`/`up` (named volumes persist). Test markers **removed** after verification.
+- Restart: `docker compose restart` → all healthy; backend non-zero-exit (SIGKILL to node → tini propagates) → auto-restarted, `RestartCount` 0→1, healthy.
+- Uploads volume writable by non-root `node` user (backed by local fallback path).
+- App E2E over Docker: `https://localhost/api/status` OK; `https://localhost/api/breeds` DB-backed OK; `https://localhost/` 200; static assets 200; in-container backend→mongo ping `{ok:1}` by service name.
+- Isolation: `docker port` shows no host-published ports for frontend/backend/mongodb — only Caddy (80/443) is published.
+- Logs: no app startup errors (only mongo INFO + benign Caddy OCSP warnings, mkcert).
+
+**Finding recorded:** Docker-stack `petDB` currently holds a leaner dataset than the host DB (`/api/breeds` → 5 vs 16 on host mongo) — seeds/data were populated separately. Not a defect; relevant for Phase 4 E2E (test against intended dataset) and Phase 13.
+
+**Deferred (out of Phase-1 scope, by design):** nginx↔backend direct networking/`/api` proxying (Phase 2, when nginx becomes the reverse proxy and joins the backend network); Caddy removal (Phase 2); Cloudflare Tunnel (Phase 3); host dev-stack was not disturbed.
+
+**Go/no-go: GO** — Docker foundation proven stable/reproducible. Caddy still present (intentional, removal is Phase 2).
+
 ---
 
 # Phase 2 — Caddy Removal & Nginx Routing
