@@ -31,9 +31,152 @@ document.addEventListener(
                 "Pet Parent",
 
             image:
-                "../assets/images/dashboard/user-profile.svg"
+                ""
 
         };
+
+
+        /* =====================================================
+           AVATAR HELPERS
+           Only real uploaded images count as a profile photo.
+           The old default placeholder (user-profile.svg) and empty
+           values always map to the empty profile state (initials).
+        ===================================================== */
+
+        function isRealAvatar(value) {
+
+            if (
+                typeof FamiPetAPI !== "undefined" &&
+                typeof FamiPetAPI.isRealAvatar === "function"
+            ) {
+                return FamiPetAPI.isRealAvatar(value);
+            }
+
+            return typeof value === "string" &&
+                value.trim() !== "" &&
+                !value.includes("user-profile.svg");
+
+        }
+
+
+        function resolveAvatar(value) {
+
+            if (
+                typeof FamiPetAPI !== "undefined" &&
+                typeof FamiPetAPI.resolveAvatarUrl === "function"
+            ) {
+                return FamiPetAPI.resolveAvatarUrl(value);
+            }
+
+            return isRealAvatar(value)
+                ? String(value).trim()
+                : "";
+
+        }
+
+
+        function getInitials(name) {
+
+            const clean =
+                String(name || "").trim();
+
+            if (!clean) return "PP";
+
+            return clean
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(function (w) {
+                    return w[0].toUpperCase();
+                })
+                .join("");
+
+        }
+
+
+        /* =====================================================
+           RENDER SETTINGS AVATAR
+           Shows the uploaded photo when one exists, otherwise the
+           initials empty state. Never a default placeholder.
+        ===================================================== */
+
+        function renderSettingsAvatar(image, name) {
+
+            if (!settingsProfileImage) {
+                return;
+            }
+
+            const initialsEl =
+                document.getElementById(
+                    "settingsProfileInitials"
+                );
+
+            const resolved =
+                resolveAvatar(image);
+
+            const hasImage =
+                !!resolved;
+
+            settingsProfileImage.dataset.avatarName =
+                name || "";
+
+            settingsProfileImage.hidden =
+                !hasImage;
+
+            if (initialsEl) {
+
+                initialsEl.style.display =
+                    hasImage
+                        ? "none"
+                        : "";
+
+                initialsEl.textContent =
+                    hasImage
+                        ? ""
+                        : getInitials(
+                            name
+                        );
+
+            }
+
+            if (hasImage) {
+
+                settingsProfileImage.src =
+                    resolved;
+
+                settingsProfileImage.alt =
+                    name || "Profile";
+
+            }
+
+        }
+
+
+        /* =====================================================
+           PROFILE CACHE KEY
+           The cached profile (including the avatar image) is
+           scoped to the logged-in user so one account's picture
+           is NEVER shown for another account. If no user id is
+           available the legacy shared key is ignored.
+        ===================================================== */
+
+        function profileCacheKey() {
+
+            const currentUser =
+                (typeof FamiPetAPI !== "undefined")
+                    ? FamiPetAPI.getUser()
+                    : null;
+
+            const uid =
+                (currentUser &&
+                    (currentUser.id || currentUser._id))
+                || "";
+
+            return uid
+                ? "annProfile." + uid
+                : "annProfile";
+
+        }
 
 
         /* =====================================================
@@ -44,9 +187,23 @@ document.addEventListener(
 
             try {
 
+                const key =
+                    profileCacheKey();
+
+                if (
+                    key === "annProfile"
+                ) {
+
+                    return {
+                        ...DEFAULT_PROFILE
+                    };
+
+                }
+
+
                 const saved =
                     localStorage.getItem(
-                        "annProfile"
+                        key
                     );
 
 
@@ -86,8 +243,20 @@ document.addEventListener(
 
             try {
 
+                const key =
+                    profileCacheKey();
+
+                if (
+                    key === "annProfile"
+                ) {
+
+                    return;
+
+                }
+
+
                 localStorage.setItem(
-                    "annProfile",
+                    key,
                     JSON.stringify(profile)
                 );
 
@@ -153,6 +322,43 @@ document.addEventListener(
             document.getElementById(
                 "settingsProfileImage"
             );
+
+
+        /* If the stored photo cannot be loaded, fall back to the
+           initials empty state instead of a broken image. */
+
+        if (settingsProfileImage) {
+
+            settingsProfileImage.addEventListener(
+                "error",
+                function () {
+
+                    settingsProfileImage.hidden =
+                        true;
+
+                    const initialsEl =
+                        document.getElementById(
+                            "settingsProfileInitials"
+                        );
+
+                    if (initialsEl) {
+
+                        initialsEl.style.display =
+                            "";
+
+                        initialsEl.textContent =
+                            getInitials(
+                                settingsProfileImage
+                                    .dataset
+                                    .avatarName
+                            );
+
+                    }
+
+                }
+            );
+
+        }
 
 
         const updatePasswordBtn =
@@ -246,11 +452,10 @@ document.addEventListener(
 
         if (settingsProfileImage) {
 
-            settingsProfileImage.src =
-                currentProfile.image;
-
-            settingsProfileImage.alt =
-                currentProfile.name;
+            renderSettingsAvatar(
+                currentProfile.image,
+                currentProfile.name
+            );
 
         }
 
@@ -293,10 +498,7 @@ document.addEventListener(
                             : "Pet Parent",
 
                     image:
-                        u.avatar &&
-                        !String(u.avatar).includes("user-profile.svg")
-                            ? u.avatar
-                            : DEFAULT_PROFILE.image
+                        resolveAvatar(u.avatar)
 
                 };
 
@@ -322,8 +524,10 @@ document.addEventListener(
                 }
 
                 if (settingsProfileImage) {
-                    settingsProfileImage.src =
-                        currentProfile.image;
+                    renderSettingsAvatar(
+                        currentProfile.image,
+                        currentProfile.name
+                    );
                 }
 
 
@@ -459,8 +663,23 @@ document.addEventListener(
                                 settingsProfileImage
                             ) {
 
+                                settingsProfileImage.hidden =
+                                    false;
+
                                 settingsProfileImage.src =
                                     imageData;
+
+                                const initialsEl =
+                                    document.getElementById(
+                                        "settingsProfileInitials"
+                                    );
+
+                                if (initialsEl) {
+
+                                    initialsEl.style.display =
+                                        "none";
+
+                                }
 
                             }
 
@@ -690,8 +909,10 @@ document.addEventListener(
                         settingsProfileImage
                     ) {
 
-                        settingsProfileImage.src =
-                            currentProfile.image;
+                        renderSettingsAvatar(
+                            currentProfile.image,
+                            currentProfile.name
+                        );
 
                     }
 
@@ -1538,6 +1759,10 @@ if (deleteAccountBtn) {
                                 */
 
                                 localStorage.removeItem(
+                                    profileCacheKey()
+                                );
+
+                                localStorage.removeItem(
                                     "annProfile"
                                 );
 
@@ -1707,9 +1932,12 @@ if (deleteAccountBtn) {
 
                 if (settingsProfileImage) {
 
-                    settingsProfileImage.src =
+                    renderSettingsAvatar(
                         updatedProfile.image ||
-                        DEFAULT_PROFILE.image;
+                        updatedProfile.avatar ||
+                        "",
+                        updatedProfile.name
+                    );
 
                 }
 

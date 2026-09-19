@@ -60,6 +60,12 @@ const petSchema = new mongoose.Schema(
       default: false,
     },
 
+    health: {
+      type: String,
+      default: "Good",
+      trim: true,
+    },
+
     // Adoption information
     adopted: {
       type: Boolean,

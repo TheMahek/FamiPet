@@ -159,7 +159,11 @@ form.addEventListener("submit", async (e) => {
 
                     } catch (e) {
 
-                        link.textContent = e.message || "Could not send verification email.";
+                        if (e.status === 503) {
+                            link.textContent = "Verification email cannot be sent right now. The email service has reached its daily sending limit. Please try again later.";
+                        } else {
+                            link.textContent = e.message || "Could not send verification email.";
+                        }
 
                     }
 

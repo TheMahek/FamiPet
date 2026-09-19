@@ -35,6 +35,12 @@ const lostFoundSchema = new mongoose.Schema(
       trim: true,
     },
 
+    age: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     gender: {
       type: String,
       enum: ["male", "female", "unknown"],

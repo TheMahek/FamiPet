@@ -808,6 +808,8 @@ body:has(#sidebar-container) .main-content {
 }
 
 .health-card {
+    box-sizing: border-box;
+
     background: white;
 
     border: 1px solid var(--border);
@@ -872,6 +874,91 @@ body:has(#sidebar-container) .main-content {
     color: var(--text-muted);
 
     cursor: pointer;
+}
+
+.vacc-menu-wrap {
+    position: relative;
+}
+
+.vacc-menu {
+    position: absolute;
+
+    right: 0;
+    top: calc(100% + 0.5rem);
+
+    z-index: 60;
+
+    min-width: 215px;
+
+    max-width: calc(100vw - 1.5rem);
+
+    display: none;
+
+    flex-direction: column;
+
+    gap: 0.15rem;
+
+    padding: 0.4rem;
+
+    background: #fff;
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 14px 35px rgba(31, 57, 51, 0.14);
+}
+
+.vacc-menu.open {
+    display: flex;
+}
+
+/* Flip the menu above the button when there is not enough room below. */
+.vacc-menu.open-up {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+}
+
+.vacc-menu button {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+
+    width: 100%;
+
+    border: none;
+
+    background: transparent;
+
+    padding: 0.55rem 0.65rem;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+
+    font-size: 0.72rem;
+
+    font-weight: 600;
+
+    color: var(--text-dark);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: 0.18s ease;
+}
+
+.vacc-menu button i {
+    width: 16px;
+    color: var(--mint-dark);
+}
+
+.vacc-menu button:hover {
+    background: var(--mint-light);
+
+    color: var(--mint-dark);
 }
 
 
@@ -1290,6 +1377,8 @@ body:has(#sidebar-container) .main-content {
    ========================================================= */
 
 .records-card {
+    box-sizing: border-box;
+
     background: white;
 
     border: 1px solid var(--border);
@@ -1466,9 +1555,15 @@ body:has(#sidebar-container) .main-content {
 
     max-width: 500px;
 
+    max-height: calc(100vh - 2rem);
+
     padding: 1.8rem;
 
     position: relative;
+
+    display: flex;
+
+    flex-direction: column;
 
     background: white;
 
@@ -1480,6 +1575,18 @@ body:has(#sidebar-container) .main-content {
     transform: translateY(20px);
 
     transition: 0.25s ease;
+}
+
+.modal-sheet .modal-header {
+    flex-shrink: 0;
+}
+
+.modal-sheet form {
+    min-height: 0;
+
+    overflow-y: auto;
+
+    overscroll-behavior: contain;
 }
 
 .modal-backdrop.open .modal-sheet {
@@ -1576,6 +1683,8 @@ body:has(#sidebar-container) .main-content {
 .form-group select,
 .form-group textarea {
     width: 100%;
+
+    box-sizing: border-box;
 
     padding: 0.7rem 0.8rem;
 
@@ -1693,6 +1802,20 @@ body:has(#sidebar-container) .main-content {
         grid-template-columns: 1fr;
     }
 
+    .health-grid > * {
+        min-width: 0;
+    }
+
+}
+
+
+@media (max-width: 850px) {
+
+    /* Tablet and below: stack two-column form rows into one column. */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
 }
 
 
@@ -1767,8 +1890,24 @@ body:has(#sidebar-container) .main-content {
         display: none;
     }
 
-    .form-row {
-        grid-template-columns: 1fr;
+    .modal-sheet {
+        padding: 1.4rem 1.2rem;
+
+        max-height: calc(100vh - 1rem);
+    }
+
+    .modal-header {
+        padding-right: 2.2rem;
+    }
+
+    .vaccination-card .card-header {
+        flex-wrap: wrap;
+
+        gap: 0.5rem 0.75rem;
+    }
+
+    .vaccination-card .card-actions-group {
+        margin-left: auto;
     }
 
 }
@@ -1779,4 +1918,52 @@ body:has(#sidebar-container) .main-content {
     text-align: center;
     color: var(--text-muted);
     font-size: 0.68rem;
+}
+
+/* ==================== PHASE 3 ADDITIONS ==================== */
+.card-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.add-vaccine-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    padding: 0.5rem 0.9rem;
+
+    border: none;
+    border-radius: 50px;
+
+    background: var(--mint-light);
+    color: var(--mint-dark);
+
+    font-size: 0.74rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.25s ease;
+}
+
+.add-vaccine-btn:hover {
+    background: var(--mint);
+    color: #fff;
+}
+
+.appointment-card .health-empty-state {
+    padding: 0.9rem 0.6rem;
+    margin: 0.3rem 0;
+}
+
+#appointmentEmpty + .appointment-actions {
+    margin-top: 0.2rem;
+}
+
+.modal-sheet input[type='date'],
+.modal-sheet input[type='time'],
+.modal-sheet input[type='number'] {
+    color-scheme: light;
 }

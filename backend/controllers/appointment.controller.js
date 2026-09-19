@@ -1,9 +1,12 @@
-const mongoose = require("mongoose");
 const Appointment = require("../models/Appointment");
 const Pet = require("../models/Pet");
 const Veterinarian = require("../models/Veterinarian");
 const Notification = require("../models/Notification");
 const Reminder = require("../models/Reminder");
+const {
+  isValidObjectId,
+  APPOINTMENT_TYPES,
+} = require("../utils/validation");
 
 exports.getAppointments = async (req, res) => {
   try {
@@ -14,7 +17,7 @@ exports.getAppointments = async (req, res) => {
 
     res.json({ success: true, count: appointments.length, appointments });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -29,12 +32,29 @@ exports.createAppointment = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(pet) ||
-        !mongoose.Types.ObjectId.isValid(veterinarian)) {
+    if (!isValidObjectId(pet) || !isValidObjectId(veterinarian)) {
       return res.status(400).json({
         success: false,
         message: "Invalid pet or veterinarian ID.",
       });
+    }
+
+    if (typeof time !== "string" || time.trim().length > 10) {
+      return res.status(400).json({ success: false, message: "Invalid time." });
+    }
+
+    if (type !== undefined && type !== null && type !== "") {
+      if (typeof type !== "string" || !APPOINTMENT_TYPES.includes(String(type).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment type." });
+      }
+    }
+
+    if (symptoms !== undefined && (typeof symptoms !== "string" || symptoms.length > 1000)) {
+      return res.status(400).json({ success: false, message: "Invalid symptoms." });
+    }
+
+    if (notes !== undefined && (typeof notes !== "string" || notes.length > 1000)) {
+      return res.status(400).json({ success: false, message: "Invalid notes." });
     }
 
     const [petExists, veterinarianExists] = await Promise.all([
@@ -80,8 +100,8 @@ exports.createAppointment = async (req, res) => {
       pet,
       veterinarian,
       date: appointmentDate,
-      time,
-      type: type || "checkup",
+      time: time.trim(),
+      type: type ? String(type).toLowerCase() : "checkup",
       symptoms: symptoms || "",
       notes: notes || "",
     });
@@ -132,12 +152,16 @@ exports.createAppointment = async (req, res) => {
       appointment,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.updateAppointment = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid appointment ID." });
+    }
+
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -151,9 +175,49 @@ exports.updateAppointment = async (req, res) => {
     const originalTime = appointment.time;
 
     const allowed = ["date", "time", "type", "symptoms", "notes"];
-    allowed.forEach((field) => {
-      if (req.body[field] !== undefined) appointment[field] = req.body[field];
-    });
+
+    const updates = {};
+    for (const field of allowed) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "Nothing to update." });
+    }
+
+    if (updates.date !== undefined) {
+      const d = new Date(updates.date);
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment date." });
+      }
+      updates.date = d;
+    }
+
+    if (updates.time !== undefined) {
+      if (typeof updates.time !== "string" || updates.time.trim().length > 10) {
+        return res.status(400).json({ success: false, message: "Invalid time." });
+      }
+      updates.time = updates.time.trim();
+    }
+
+    if (updates.type !== undefined) {
+      if (typeof updates.type !== "string" || !APPOINTMENT_TYPES.includes(String(updates.type).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment type." });
+      }
+      updates.type = String(updates.type).toLowerCase();
+    }
+
+    for (const field of ["symptoms", "notes"]) {
+      if (updates[field] !== undefined) {
+        if (typeof updates[field] !== "string" || updates[field].length > 1000) {
+          return res.status(400).json({ success: false, message: `Invalid ${field}.` });
+        }
+      }
+    }
+
+    Object.assign(appointment, updates);
 
     await appointment.save();
 
@@ -191,12 +255,16 @@ exports.updateAppointment = async (req, res) => {
       appointment,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.deleteAppointment = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid appointment ID." });
+    }
+
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -235,6 +303,6 @@ exports.deleteAppointment = async (req, res) => {
       message: "Appointment cancelled successfully.",
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };

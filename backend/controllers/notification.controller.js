@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
+const { isValidObjectId } = require("../utils/validation");
 
 exports.getNotifications = async (req, res) => {
   try {
@@ -7,7 +7,7 @@ exports.getNotifications = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json({ success: true, count: notifications.length, notifications });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -19,13 +19,13 @@ exports.getUnreadNotifications = async (req, res) => {
     }).sort({ createdAt: -1 });
     res.json({ success: true, count: notifications.length, notifications });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.markAsRead = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid notification ID." });
     }
 
@@ -45,7 +45,7 @@ exports.markAsRead = async (req, res) => {
       notification,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -57,13 +57,13 @@ exports.markAllAsRead = async (req, res) => {
     );
     res.json({ success: true, message: "All notifications marked as read." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.deleteNotification = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid notification ID." });
     }
 
@@ -78,6 +78,6 @@ exports.deleteNotification = async (req, res) => {
 
     res.json({ success: true, message: "Notification deleted successfully." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

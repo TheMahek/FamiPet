@@ -1,7 +1,10 @@
-const mongoose = require("mongoose");
 const Adoption = require("../models/Adoption");
 const Pet = require("../models/Pet");
 const Notification = require("../models/Notification");
+const {
+  isValidObjectId,
+  ADOPTION_STATUSES,
+} = require("../utils/validation");
 
 exports.getAllAdoptions = async (req, res) => {
   try {
@@ -12,7 +15,7 @@ exports.getAllAdoptions = async (req, res) => {
 
     res.json({ success: true, count: adoptions.length, adoptions });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -24,7 +27,7 @@ exports.getMyAdoptions = async (req, res) => {
 
     res.json({ success: true, count: adoptions.length, adoptions });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -42,8 +45,31 @@ exports.createAdoption = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(pet)) {
+    if (!isValidObjectId(pet)) {
       return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
+    // -------------------------------------------------
+    // STRING LENGTH VALIDATION
+    // -------------------------------------------------
+
+    const lengthLimits = [
+      ["fullName", 100],
+      ["phone", 40],
+      ["address", 300],
+      ["occupation", 100],
+      ["experienceWithPets", 300],
+      ["reasonForAdoption", 1000],
+    ];
+
+    for (const [field, max] of lengthLimits) {
+      const value = req.body[field];
+      if (value !== undefined && value !== null && typeof value !== "string") {
+        return res.status(400).json({ success: false, message: `Invalid ${field}.` });
+      }
+      if (typeof value === "string" && value.trim().length > max) {
+        return res.status(400).json({ success: false, message: `Invalid ${field}.` });
+      }
     }
 
     const petExists = await Pet.findById(pet);
@@ -74,12 +100,12 @@ exports.createAdoption = async (req, res) => {
     const adoption = await Adoption.create({
       pet,
       user: req.user._id,
-      fullName,
-      phone,
-      address,
-      occupation: occupation || "",
-      experienceWithPets: experienceWithPets || "",
-      reasonForAdoption,
+      fullName: String(fullName).trim(),
+      phone: String(phone).trim(),
+      address: String(address).trim(),
+      occupation: occupation ? String(occupation).trim() : "",
+      experienceWithPets: experienceWithPets ? String(experienceWithPets).trim() : "",
+      reasonForAdoption: String(reasonForAdoption).trim(),
     });
 
     res.status(201).json({
@@ -88,13 +114,13 @@ exports.createAdoption = async (req, res) => {
       adoption,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.updateAdoptionStatus = async (req, res) => {
   try {
-    const allowed = ["Pending", "Approved", "Rejected"];
+    const allowed = ADOPTION_STATUSES;
     const { status } = req.body;
 
     if (!allowed.includes(status)) {
@@ -102,6 +128,10 @@ exports.updateAdoptionStatus = async (req, res) => {
         success: false,
         message: "Status must be Pending, Approved or Rejected.",
       });
+    }
+
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid adoption request ID." });
     }
 
     const adoption = await Adoption.findById(req.params.id)
@@ -137,12 +167,16 @@ exports.updateAdoptionStatus = async (req, res) => {
       adoption,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.deleteAdoption = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid adoption request ID." });
+    }
+
     const adoption = await Adoption.findByIdAndDelete(req.params.id);
 
     if (!adoption) {
@@ -157,6 +191,6 @@ exports.deleteAdoption = async (req, res) => {
       message: "Adoption request deleted successfully.",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

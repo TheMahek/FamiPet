@@ -1,6 +1,10 @@
-const mongoose = require("mongoose");
 const Reminder = require("../models/Reminder");
 const Pet = require("../models/Pet");
+const {
+  isValidObjectId,
+  REMINDER_TYPES,
+  REMINDER_FREQUENCIES,
+} = require("../utils/validation");
 
 exports.getReminders = async (req, res) => {
   try {
@@ -13,8 +17,25 @@ exports.getReminders = async (req, res) => {
 
     res.json({ success: true, count: reminders.length, reminders });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
+};
+
+// Validate a pet reference when the client supplies one. Returns true when ok,
+// otherwise sends an error response and returns false.
+const validateOwnedPet = async (req, res, petId) => {
+  if (!isValidObjectId(petId)) {
+    res.status(400).json({ success: false, message: "Invalid pet ID." });
+    return false;
+  }
+
+  const petExists = await Pet.findOne({ _id: petId, owner: req.user._id });
+  if (!petExists) {
+    res.status(404).json({ success: false, message: "Pet not found or not owned by you." });
+    return false;
+  }
+
+  return true;
 };
 
 exports.createReminder = async (req, res) => {
@@ -28,19 +49,43 @@ exports.createReminder = async (req, res) => {
       });
     }
 
-    if (pet) {
-      const petExists = await Pet.findOne({ _id: pet, owner: req.user._id });
-      if (!petExists) {
-        return res.status(404).json({
-          success: false,
-          message: "Pet not found or not owned by you.",
-        });
+    if (typeof title !== "string" || title.trim().length > 200) {
+      return res.status(400).json({ success: false, message: "Invalid title." });
+    }
+
+    if (typeof type !== "string" || !REMINDER_TYPES.includes(type)) {
+      return res.status(400).json({ success: false, message: "Invalid reminder type." });
+    }
+
+    if (req.body.frequency !== undefined && req.body.frequency !== null && req.body.frequency !== "") {
+      if (!REMINDER_FREQUENCIES.includes(req.body.frequency)) {
+        return res.status(400).json({ success: false, message: "Invalid frequency." });
       }
     }
 
+    const reminderDate = new Date(date);
+    if (Number.isNaN(reminderDate.getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid date." });
+    }
+
+    if (typeof time !== "string" || time.trim().length > 10) {
+      return res.status(400).json({ success: false, message: "Invalid time." });
+    }
+
+    if (pet) {
+      const ok = await validateOwnedPet(req, res, pet);
+      if (!ok) return;
+    }
+
     const reminder = await Reminder.create({
-      ...req.body,
       user: req.user._id,
+      title: title.trim(),
+      type,
+      description: typeof req.body.description === "string" ? req.body.description.slice(0, 1000) : "",
+      date: reminderDate,
+      time: time.trim(),
+      frequency: req.body.frequency || "once",
+      pet: pet || undefined,
     });
 
     res.status(201).json({
@@ -49,13 +94,13 @@ exports.createReminder = async (req, res) => {
       reminder,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.updateReminder = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid reminder ID." });
     }
 
@@ -68,9 +113,76 @@ exports.updateReminder = async (req, res) => {
       return res.status(404).json({ success: false, message: "Reminder not found." });
     }
 
-    delete req.body.user;
-    delete req.body.pet;
-    Object.assign(reminder, req.body);
+    // Allowlist of editable fields. user is protected; pet may be updated but
+    // only to another pet owned by the authenticated user.
+    const allowedFields = [
+      "title",
+      "type",
+      "description",
+      "date",
+      "time",
+      "frequency",
+      "isActive",
+      "isCompleted",
+      "pet",
+    ];
+
+    const updates = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "Nothing to update." });
+    }
+
+    if (updates.title !== undefined && (typeof updates.title !== "string" || updates.title.trim().length > 200)) {
+      return res.status(400).json({ success: false, message: "Invalid title." });
+    }
+    if (updates.title !== undefined) updates.title = updates.title.trim();
+
+    if (updates.type !== undefined && !REMINDER_TYPES.includes(updates.type)) {
+      return res.status(400).json({ success: false, message: "Invalid reminder type." });
+    }
+
+    if (updates.frequency !== undefined && !REMINDER_FREQUENCIES.includes(updates.frequency)) {
+      return res.status(400).json({ success: false, message: "Invalid frequency." });
+    }
+
+    if (updates.description !== undefined && typeof updates.description !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid description." });
+    }
+    if (updates.description !== undefined) updates.description = updates.description.slice(0, 1000);
+
+    if (updates.time !== undefined && (typeof updates.time !== "string" || updates.time.trim().length > 10)) {
+      return res.status(400).json({ success: false, message: "Invalid time." });
+    }
+    if (updates.time !== undefined) updates.time = updates.time.trim();
+
+    if (updates.date !== undefined) {
+      const d = new Date(updates.date);
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid date." });
+      }
+      updates.date = d;
+    }
+
+    if (updates.isActive !== undefined && typeof updates.isActive !== "boolean") {
+      return res.status(400).json({ success: false, message: "Invalid isActive." });
+    }
+
+    if (updates.isCompleted !== undefined && typeof updates.isCompleted !== "boolean") {
+      return res.status(400).json({ success: false, message: "Invalid isCompleted." });
+    }
+
+    if (updates.pet !== undefined && updates.pet !== null && updates.pet !== "") {
+      const ok = await validateOwnedPet(req, res, updates.pet);
+      if (!ok) return;
+    }
+
+    Object.assign(reminder, updates);
     await reminder.save();
 
     res.json({
@@ -79,13 +191,13 @@ exports.updateReminder = async (req, res) => {
       reminder,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.completeReminder = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid reminder ID." });
     }
 
@@ -105,13 +217,13 @@ exports.completeReminder = async (req, res) => {
       reminder,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.deleteReminder = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid reminder ID." });
     }
 
@@ -126,6 +238,6 @@ exports.deleteReminder = async (req, res) => {
 
     res.json({ success: true, message: "Reminder deleted successfully." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

@@ -1,0 +1,55 @@
+# =========================================================
+# FAMIPET - CADDY REVERSE PROXY (PHASE 5 HTTPS)
+# Local HTTPS using mkcert-issued certificates mounted
+# read-only at /certs. No public domain / ACME is used.
+#
+# Routing:
+#   /api*     -> backend:5000   (Express API)
+#   /uploads* -> backend:5000   (uploaded / avatar images)
+#   everything else -> frontend:5502 (static site)
+#
+# Only 80 and 443 are published to the host; the frontend,
+# backend and MongoDB stay on the internal Docker networks.
+# =========================================================
+
+# Browsers (Chrome/Edge) send no SNI for raw-IP URLs. Without a default the
+# TLS handshake is rejected (ERR_SSL_PROTOCOL_ERROR). Serve the mkcert cert
+# for connections that omit SNI so https://192.168.0.103, https://172.30.240.1
+# and https://localhost all negotiate TLS correctly.
+{
+	default_sni 192.168.0.103
+}
+
+# HTTP -> HTTPS redirect for every supported host.
+http://172.30.240.1, http://192.168.0.103, http://localhost {
+	redir https://{host}{uri} permanent
+}
+
+https://172.30.240.1, https://192.168.0.103, https://localhost {
+	tls /certs/famipet-local.pem /certs/famipet-local-key.pem
+
+	# Security headers applied at the proxy layer.
+	# NOTE: no Content-Security-Policy on purpose - the existing pages load
+	# Google Fonts, Font Awesome, Lucide and Cloudinary images and use inline
+	# styles/scripts; a strict CSP would break the shipped UI.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# API + uploaded files are served by the backend.
+	handle /api* {
+		reverse_proxy backend:5000
+	}
+	handle /uploads* {
+		reverse_proxy backend:5000
+	}
+
+	# Everything else is the static frontend.
+	handle {
+		reverse_proxy frontend:5502
+	}
+}

@@ -109,7 +109,7 @@
 
                     <i class="fa-regular fa-bell"></i>
 
-                    <span>3</span>
+                    <span id="notifBadge" style="display:none">0</span>
 
                 </button>
 
@@ -224,14 +224,7 @@
 
                 <div class="create-post">
 
-                    <div class="profile-small">
-
-                        <img
-                            src="../assets/images/dashboard/user-profile.svg"
-                            alt="Profile"
-                        >
-
-                    </div>
+                    <div class="profile-small" id="createPostAvatar"></div>
 
                     <div class="post-input-area">
 
@@ -737,9 +730,9 @@
         </div>
 
         <div class="modal-user">
-            <img src="../assets/images/dashboard/user-profile.svg" alt="Mahek Shaikh">
+            <img id="modalUserAvatar" src="" alt="User Avatar" hidden>
             <div>
-                <strong>Mahek Shaikh</strong>
+                <strong id="modalUserName">Pet Parent</strong>
                 <span>Pet Parent</span>
             </div>
         </div>

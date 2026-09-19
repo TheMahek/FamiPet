@@ -3,7 +3,14 @@ const Pet = require("../models/Pet");
 const Adoption = require("../models/Adoption");
 const LostFound = require("../models/LostFound");
 const CommunityPost = require("../models/CommunityPost");
-const mongoose = require("mongoose");
+const {
+  isValidObjectId,
+  LOST_FOUND_TYPES,
+  LOST_FOUND_STATUSES,
+} = require("../utils/validation");
+
+const ADMIN_USER_FIELDS =
+  "-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken -emailVerificationExpire";
 
 // ==========================
 // Admin Dashboard Statistics
@@ -53,7 +60,7 @@ exports.getDashboardStats = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken")
+      .select(ADMIN_USER_FIELDS)
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -76,6 +83,10 @@ exports.getAllUsers = async (req, res) => {
 // ==========================
 exports.toggleUserBlock = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID." });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -116,6 +127,10 @@ exports.toggleUserBlock = async (req, res) => {
 // ==========================
 exports.deleteUser = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID." });
+    }
+
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
@@ -184,6 +199,10 @@ exports.getAllPets = async (req, res) => {
 // ==========================
 exports.deletePet = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
     const pet = await Pet.findByIdAndDelete(req.params.id);
 
     if (!pet) {
@@ -213,7 +232,7 @@ exports.deletePet = async (req, res) => {
 exports.getRecentUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken")
+      .select(ADMIN_USER_FIELDS)
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -239,8 +258,18 @@ exports.getAllLostFoundReports = async (req, res) => {
     const { type, status } = req.query;
 
     const query = {};
-    if (type) query.type = type;
-    if (status) query.status = status;
+    if (type !== undefined && type !== null && type !== "") {
+      if (!LOST_FOUND_TYPES.includes(String(type).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid type." });
+      }
+      query.type = String(type).toLowerCase();
+    }
+    if (status !== undefined && status !== null && status !== "") {
+      if (!LOST_FOUND_STATUSES.includes(String(status).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid status." });
+      }
+      query.status = String(status).toLowerCase();
+    }
 
     const reports = await LostFound.find(query)
       .populate("user", "name email phone")
@@ -266,7 +295,7 @@ exports.getAllLostFoundReports = async (req, res) => {
 // ==========================
 exports.updateLostFoundStatus = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid report ID." });
     }
 
@@ -312,7 +341,7 @@ exports.updateLostFoundStatus = async (req, res) => {
 // ==========================
 exports.deleteLostFoundReport = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid report ID." });
     }
 
@@ -368,7 +397,7 @@ exports.getAllCommunityPosts = async (req, res) => {
 // ==========================
 exports.updateCommunityPostStatus = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid post ID." });
     }
 
@@ -414,7 +443,7 @@ exports.updateCommunityPostStatus = async (req, res) => {
 // ==========================
 exports.deleteCommunityPost = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid post ID." });
     }
 

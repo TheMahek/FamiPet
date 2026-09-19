@@ -316,9 +316,36 @@
                             <h3>Vaccination Tracker</h3>
                         </div>
 
-                        <button class="icon-button">
-                            <i class="fa-solid fa-ellipsis"></i>
-                        </button>
+                        <div class="card-actions-group">
+
+                            <button class="add-vaccine-btn" id="addVaccinationBtn" type="button">
+                                <i class="fa-solid fa-plus"></i>
+                                Add Vaccination
+                            </button>
+
+                            <div class="vacc-menu-wrap">
+
+                                <button class="icon-button" id="vaccMenuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Vaccination actions">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                                <div class="vacc-menu" id="vaccMenu">
+
+                                    <button type="button" data-action="view-history">
+                                        <i class="fa-solid fa-list-check"></i>
+                                        View Vaccination History
+                                    </button>
+
+                                    <button type="button" data-action="add-vaccination">
+                                        <i class="fa-solid fa-plus"></i>
+                                        Add Vaccination
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
@@ -413,27 +440,31 @@
                     </div>
 
 
-                    <div class="appointment-date">
+                    <div class="appointment-date" id="apptBody">
 
                         <div class="date-box">
-                            <span>AUG</span>
-                            <strong>12</strong>
+                            <span id="apptMonth">AUG</span>
+                            <strong id="apptDay">12</strong>
                         </div>
 
                         <div>
-                            <strong>General Checkup</strong>
+                            <strong id="apptType">General Checkup</strong>
 
                             <p>
                                 <i class="fa-regular fa-clock"></i>
-                                10:30 AM
+                                <span id="apptTime">10:30 AM</span>
                             </p>
 
                             <p>
                                 <i class="fa-solid fa-location-dot"></i>
-                                Happy Paws Veterinary Clinic
+                                <span id="apptClinic">Happy Paws Veterinary Clinic</span>
                             </p>
                         </div>
 
+                    </div>
+
+                    <div class="health-empty-state" id="appointmentEmpty" style="display:none;">
+                        No upcoming appointment for this pet.
                     </div>
 
 
@@ -685,6 +716,39 @@
             </div>
 
 
+            <div class="form-row" id="vaccineFields" style="display:none;">
+
+                <div class="form-group">
+
+                    <label for="recordVaccineName">
+                        Vaccine Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="recordVaccineName"
+                        placeholder="e.g. Rabies"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="recordNextDueDate">
+                        Next Due Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="recordNextDueDate"
+                    >
+
+                </div>
+
+            </div>
+
+
             <div class="form-row">
 
                 <div class="form-group">
@@ -737,8 +801,228 @@
             <button
                 type="submit"
                 class="save-record-btn"
+                id="recordSubmitBtn"
             >
                 Save Health Record
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ADD VACCINATION MODAL -->
+
+<div class="modal-backdrop" id="vaccinationModal">
+
+    <div class="modal-sheet">
+
+        <button class="modal-close" id="closeVaccinationModal">
+            &times;
+        </button>
+
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa-solid fa-syringe"></i>
+            </div>
+
+            <div>
+                <h2>Add Vaccination</h2>
+                <p>Record a new vaccination for your pet.</p>
+            </div>
+        </div>
+
+
+        <form id="vaccinationForm">
+
+            <div class="form-group">
+
+                <label for="vaccinePet">
+                    Pet
+                </label>
+
+                <select id="vaccinePet" required></select>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="vaccineName">
+                        Vaccine Name <span style="color:#e05d5d;">*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="vaccineName"
+                        placeholder="e.g. Rabies"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="doseNumber">
+                        Dose Number
+                    </label>
+
+                    <input
+                        type="number"
+                        id="doseNumber"
+                        min="1"
+                        step="1"
+                        value="1"
+                        placeholder="e.g. 1"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="vaccinationDate">
+                        Vaccination Date <span style="color:#e05d5d;">*</span>
+                    </label>
+
+                    <input
+                        type="date"
+                        id="vaccinationDate"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="vaccinationNextDue">
+                        Next Due Date <span style="color:#e05d5d;">*</span>
+                    </label>
+
+                    <input
+                        type="date"
+                        id="vaccinationNextDue"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+<div class="form-group">
+
+                            <label for="vaccinationVet">
+                                Veterinarian
+                            </label>
+
+                            <input
+                                type="text"
+                                id="vaccinationVet"
+                                placeholder="Veterinarian name"
+                            >
+
+                        </div>
+
+
+            <div class="form-group">
+
+                <label for="vaccinationNotes">
+                    Notes
+                </label>
+
+                <textarea
+                    id="vaccinationNotes"
+                    rows="3"
+                    placeholder="Add vaccination notes..."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="save-record-btn"
+            >
+                Save Vaccination
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- RESCHEDULE APPOINTMENT MODAL -->
+
+<div class="modal-backdrop" id="rescheduleModal">
+
+    <div class="modal-sheet">
+
+        <button class="modal-close" id="closeRescheduleModal">
+            &times;
+        </button>
+
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+
+            <div>
+                <h2>Reschedule Appointment</h2>
+                <p>Pick a new date and time for this visit.</p>
+            </div>
+        </div>
+
+
+        <form id="rescheduleForm">
+
+            <div class="form-group">
+
+                <label for="rescheduleDate">
+                    Date <span style="color:#e05d5d;">*</span>
+                </label>
+
+                <input
+                    type="date"
+                    id="rescheduleDate"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="rescheduleTime">
+                    Time <span style="color:#e05d5d;">*</span>
+                </label>
+
+                <input
+                    type="time"
+                    id="rescheduleTime"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="save-record-btn"
+            >
+                Save New Schedule
             </button>
 
         </form>

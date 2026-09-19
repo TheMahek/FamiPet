@@ -259,7 +259,7 @@
 
             panel.querySelectorAll(".notification-item").forEach(el => el.remove());
             panel.insertAdjacentHTML("beforeend", notes.slice(0, 5).map((n, i) => `
-                <div class="notification-item">
+                <div class="notification-item" data-id="${n._id}" data-read="${n.isRead ? "1" : "0"}">
                     <div class="notification-icon ${colors[i % 3]}">
                         <i data-lucide="${icons[i % 3]}"></i>
                     </div>
@@ -269,6 +269,18 @@
                     </div>
                 </div>
             `).join(""));
+
+            panel.querySelectorAll(".notification-item[data-id]").forEach(el => {
+                el.addEventListener("click", async () => {
+                    const id = el.getAttribute("data-id");
+                    if (!id || el.getAttribute("data-read") === "1") return;
+                    try {
+                        await FamiPetAPI.put("/notifications/" + encodeURIComponent(id) + "/read", {});
+                        el.setAttribute("data-read", "1");
+                        loadNotifications();
+                    } catch (e) { /* keep state */ }
+                });
+            });
 
             if (window.lucide) lucide.createIcons();
         } catch (err) {

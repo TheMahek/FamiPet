@@ -1,16 +1,41 @@
-const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { isValidObjectId } = require("../utils/validation");
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
+const MAX_MESSAGE_LENGTH = 2000;
+
+const SYSTEM_PROMPT =
+  "You are PetGPT, an AI assistant focused on pets and responsible pet care. " +
+  "Provide clear, helpful, easy-to-understand information about pets, including " +
+  "dogs, cats, birds, rabbits and other common companion animals.\n\n" +
+  "Health guidance rules:\n" +
+  "- Give general educational information only. Never claim to diagnose diseases.\n" +
+  "- For serious, emergency, or persistent symptoms, recommend consulting a qualified veterinarian.\n" +
+  "- For emergencies, clearly advise contacting a veterinarian or an emergency veterinary service immediately.\n" +
+  "- For questions unrelated to pets, politely explain that PetGPT is designed primarily for pet-related questions.";
+
+function getGenAI() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || !apiKey.trim()) return null;
+  return new GoogleGenerativeAI(apiKey.trim());
+}
+
+function normalizeMessage(body) {
+  const raw =
+    body && typeof body.message === "string"
+      ? body.message
+      : body && typeof body.question === "string"
+      ? body.question
+      : "";
+  return typeof raw === "string" ? raw : "";
+}
 
 async function callGemini(question, petContext) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  const genAI = getGenAI();
+  if (!genAI) return null;
 
-  const system =
-    "You are PetGPT, a friendly pet-care assistant inside the FamiPet app. " +
-    "Answer clearly and helpfully in 2-4 sentences. Focus on pet health, care, " +
-    "nutrition, behavior, and veterinary advice.";
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
   const userPets =
     petContext && petContext.length
@@ -19,66 +44,58 @@ async function callGemini(question, petContext) {
         ". "
       : "";
 
+  const userPrompt = userPets + "User asks: " + question;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    const result = await model.generateContent(
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ parts: [{ text: userPets + "User asks: " + question }] }],
-        }),
-      }
+        systemInstruction: { role: "system", parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      },
+      { signal: controller.signal }
     );
 
-    if (!response.ok) return null;
+    const text =
+      result && result.response && typeof result.response.text === "function"
+        ? String(result.response.text() || "").trim()
+        : "";
 
-    const data = await response.json();
-    const text = (data && data.candidates && data.candidates[0] && data.candidates[0].content &&
-      data.candidates[0].content.parts)
-      ? data.candidates[0].content.parts.map((p) => p.text).filter(Boolean).join(" ").trim()
-      : "";
+    if (!text) {
+      console.error("PetGPT: empty Gemini response.");
+    }
 
     return text || null;
   } catch (error) {
+    console.error("Gemini error:", error.message);
     return null;
   } finally {
     clearTimeout(timer);
   }
 }
 
-function fallbackAnswer(question) {
-  const q = question.toLowerCase();
-  let answer = "I'm PetGPT 🐾. Please provide more details about your pet so I can help you better.";
-
-  if (q.includes("dog")) {
-    answer = "For dogs, provide fresh water, balanced food, regular exercise, grooming, and routine veterinary checkups.";
-  } else if (q.includes("cat")) {
-    answer = "For cats, provide fresh water, suitable food, a clean litter box, playtime, and regular veterinary checkups.";
-  } else if (q.includes("vaccin")) {
-    answer = "Vaccination schedules depend on species, age, and health history. Consult a veterinarian for a proper schedule.";
-  } else if (q.includes("food") || q.includes("diet")) {
-    answer = "A pet's diet should match its species, age, size, and health needs. Avoid foods known to be unsafe for pets.";
-  } else if (q.includes("exercise") || q.includes("walk")) {
-    answer = "Exercise needs depend on species, age, breed, and health. Regular appropriate activity supports good health.";
-  }
-
-  return answer;
-}
-
 exports.askPetGPT = async (req, res) => {
   try {
-    const { question } = req.body;
+    const rawMessage = normalizeMessage(req.body);
+    const message = rawMessage.trim();
 
-    if (!question || !question.trim()) {
+    if (!message) {
+      return res.status(400).json({ success: false, message: "Message is required." });
+    }
+
+    if (message.length > MAX_MESSAGE_LENGTH) {
       return res.status(400).json({
         success: false,
-        message: "Question is required.",
+        message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.`,
+      });
+    }
+
+    if (!getGenAI()) {
+      return res.status(500).json({
+        success: false,
+        message: "PetGPT is not configured yet. Please try again later.",
       });
     }
 
@@ -99,12 +116,19 @@ exports.askPetGPT = async (req, res) => {
       petContext = [];
     }
 
-    let answer = await callGemini(question, petContext);
-    if (!answer) answer = fallbackAnswer(question);
+    const answer = await callGemini(message, petContext);
 
-    res.json({ success: true, question, answer });
+    if (!answer) {
+      return res.status(502).json({
+        success: false,
+        message: "Unable to get a response from PetGPT.",
+      });
+    }
+
+    res.json({ success: true, message: answer });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("PetGPT error:", error.message);
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again later." });
   }
 };
 
@@ -112,7 +136,7 @@ exports.getPetAdvice = async (req, res) => {
   try {
     const { petId } = req.body;
 
-    if (!petId || !mongoose.Types.ObjectId.isValid(petId)) {
+    if (!petId || !isValidObjectId(petId)) {
       return res.status(400).json({ success: false, message: "Valid pet ID is required." });
     }
 
@@ -149,6 +173,7 @@ exports.getPetAdvice = async (req, res) => {
       advice,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("PetGPT error:", error.message);
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again later." });
   }
 };

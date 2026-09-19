@@ -61,10 +61,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function isRealImage(src) {
 
+        if (
+            typeof FamiPetAPI !== "undefined" &&
+            typeof FamiPetAPI.isRealAvatar === "function"
+        ) {
+            return FamiPetAPI.isRealAvatar(src);
+        }
+
         return !!(
             src &&
             !String(src).includes("user-profile.svg")
         );
+    }
+
+
+    function resolveAvatar(src) {
+
+        if (
+            typeof FamiPetAPI !== "undefined" &&
+            typeof FamiPetAPI.resolveAvatarUrl === "function"
+        ) {
+            return FamiPetAPI.resolveAvatarUrl(src);
+        }
+
+        return isRealImage(src)
+            ? String(src).trim()
+            : "";
     }
 
 
@@ -81,13 +103,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 return {
                     name: apiUser.name || DEFAULT_PROFILE.name,
                     role: apiUser.role === "admin" ? "Admin" : DEFAULT_PROFILE.role,
-                    image: isRealImage(apiUser.avatar) ? apiUser.avatar : "",
+                    image: resolveAvatar(apiUser.avatar),
                 };
 
             }
 
+            const uid =
+                (apiUser && (apiUser.id || apiUser._id)) || "";
+
+            if (!uid) return { ...DEFAULT_PROFILE };
+
             const saved =
-                localStorage.getItem("annProfile");
+                localStorage.getItem("annProfile." + uid);
 
             if (saved) {
 
@@ -327,7 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     data-page="pet-id"
                 >
 
-                    <i data-lucide="qrcode"></i>
+                    <i data-lucide="qr-code"></i>
 
                     <span>
                         Pet ID
@@ -419,6 +446,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                    id="sidebarProfileImage"
                                    src="${profile.image}"
                                    alt="${profile.name}"
+                                   data-avatar-img
+                                   data-avatar-name="${profile.name}"
                                >`
                             : `<span
                                    id="sidebarProfileInitials"
@@ -784,6 +813,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                id="sidebarProfileImage"
                                src="${profileImage}"
                                alt="${profileName}"
+                               data-avatar-img
+                               data-avatar-name="${profileName}"
                            >`
                         : `<span
                                id="sidebarProfileInitials"
@@ -827,12 +858,120 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 btn.innerHTML =
                     hasImage
-                        ? `<img src="${profileImage}" alt="${profileName}">`
+                        ? `<img src="${profileImage}" alt="${profileName}" data-avatar-img data-avatar-name="${profileName}">`
                         : `<span class="profile-initials">${getInitials(profileName)}</span>`;
 
             });
 
         };
 
+
+    /* =====================================================
+       AVATAR LOAD FAILURE FALLBACK
+       If a stored photo cannot be loaded, show the initials
+       empty state instead of a broken image.
+    ===================================================== */
+
+    document.addEventListener(
+        "error",
+        function (event) {
+
+            const img = event.target;
+
+            if (
+                !img ||
+                !img.isConnected ||
+                img.tagName !== "IMG" ||
+                !img.hasAttribute("data-avatar-img")
+            ) {
+                return;
+            }
+
+            const name =
+                img.getAttribute("data-avatar-name") ||
+                img.getAttribute("alt") ||
+                "";
+
+            const fallback =
+                document.createElement("span");
+
+            fallback.className =
+                "profile-initials";
+
+            fallback.textContent =
+                getInitials(name);
+
+            img.replaceWith(fallback);
+
+        },
+        true
+    );
+
+
+    /* =====================================================
+       REFRESH PROFILE FROM BACKEND
+       Keeps the sidebar photo in sync with the account even
+       when localStorage still holds an older cached value.
+    ===================================================== */
+
+    async function refreshSidebarProfile() {
+
+        if (
+            typeof FamiPetAPI === "undefined" ||
+            !FamiPetAPI.isLoggedIn()
+        ) {
+            return;
+        }
+
+        try {
+
+            const data =
+                await FamiPetAPI.get("/auth/me");
+
+            const u =
+                data && data.user;
+
+            if (!u) return;
+
+            FamiPetAPI.setUser(
+                Object.assign(
+                    {},
+                    FamiPetAPI.getUser() || {},
+                    u
+                )
+            );
+
+            if (
+                typeof window.updateANNProfile ===
+                "function"
+            ) {
+
+                window.updateANNProfile({
+
+                    name:
+                        u.name ||
+                        DEFAULT_PROFILE.name,
+
+                    role:
+                        u.role === "admin"
+                            ? "Admin"
+                            : DEFAULT_PROFILE.role,
+
+                    image:
+                        resolveAvatar(u.avatar)
+
+                });
+
+            }
+
+        } catch (e) {
+
+            /* Keep the cached sidebar profile. */
+
+        }
+
+    }
+
+    refreshSidebarProfile();
 
 });

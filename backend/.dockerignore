@@ -1,0 +1,36 @@
+# =========================================================
+# FAMIPET - BACKEND .DOCKERIGNORE
+# Keeps the Docker build context (and therefore the image)
+# free of secrets, dependency folders, logs and host data.
+# =========================================================
+
+# Dependencies - never copy node_modules from Windows
+node_modules
+
+# Secrets - NEVER shipped into the image (runtime env only)
+.env
+.env.*
+
+# Local logs / debug output
+*.log
+logs
+server.err
+test-email.js
+
+# Git - the history must not enter the image
+.git
+.gitignore
+
+# Docker configuration itself (not needed inside the image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.yaml
+compose.yml
+compose.yaml
+
+# Host runtime upload data. Uploads are stored in Cloudinary when the
+# Cloudinary credentials are set (primary path), and the local-fallback
+# directory is created empty inside the container during the build, so
+# the historical Windows uploads folder is deliberately excluded.
+uploads

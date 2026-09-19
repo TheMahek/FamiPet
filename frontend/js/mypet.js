@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     : "No",
 
             health:
-                "Good",
+                p.health || "Good",
 
             appointment:
                 !!p.appointment,

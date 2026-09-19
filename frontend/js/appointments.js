@@ -808,6 +808,46 @@ if (
        NOTIFICATIONS
     ===================================================== */
 
+    async function loadNotifications() {
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/notifications"
+                );
+
+            const dbNotifications =
+                (data && data.notifications) || [];
+
+            const localNotifications =
+                notifications.filter(
+                    n => !/^[0-9a-fA-F]{24}$/.test(
+                        String(n.id)
+                    )
+                );
+
+            notifications =
+                dbNotifications
+                    .map(n => ({
+                        id: n._id,
+                        title: n.title || "",
+                        message: n.message || "",
+                        read: Boolean(n.isRead),
+                        db: true
+                    }))
+                    .concat(localNotifications)
+                    .slice(0, 12);
+
+            renderNotifications();
+
+        }
+        catch (e) {
+            /* keep existing notifications on failure */
+        }
+
+    }
+
     function renderNotifications() {
 
         notificationList.innerHTML = "";
@@ -855,6 +895,11 @@ if (
                     item.read ? "read" : ""
                 }`;
 
+            notification.setAttribute(
+                "data-id",
+                item.id || ""
+            );
+
 
             notification.innerHTML = `
 
@@ -877,6 +922,36 @@ if (
 
             notificationList.appendChild(
                 notification
+            );
+
+            notification.addEventListener(
+                "click",
+                async () => {
+
+                    if (item.read) return;
+
+                    const id =
+                        String(item.id);
+
+                    if (!/^[0-9a-fA-F]{24}$/.test(id)) return;
+
+                    try {
+
+                        await FamiPetAPI.put(
+                            "/notifications/" +
+                            encodeURIComponent(id) +
+                            "/read",
+                            {}
+                        );
+
+                        item.read = true;
+
+                        renderNotifications();
+
+                    }
+                    catch (e) { /* keep state */ }
+
+                }
             );
 
         });
@@ -947,7 +1022,21 @@ if (
 
     markNotificationsRead.addEventListener(
         "click",
-        () => {
+        async () => {
+
+            try {
+
+                await FamiPetAPI.put(
+                    "/notifications/read-all",
+                    {}
+                );
+
+            }
+            catch (e) {
+
+                return;
+
+            }
 
             notifications.forEach(
                 item => {
@@ -2003,5 +2092,7 @@ function showAppointmentMessage(message) {
     loadPetsAndVets();
 
     loadAppointments();
+
+    loadNotifications();
 
 });

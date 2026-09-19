@@ -1,0 +1,187 @@
+# =========================================================
+# FAMIPET - DOCKER COMPOSE (SECURITY HARDENED - PHASE 7)
+# Runs the existing FamiPet application as a coordinated
+# system: static frontend (nginx) -> Node/Express backend
+# -> MongoDB (container), with Cloudinary / SMTP / Gemini
+# remaining external outbound services.
+#
+# The backend is supplied at runtime with the variables from
+# backend/.env (same names as the application uses). That file
+# is gitignored and excluded from the images, so no secret
+# value is baked into any image or hardcoded here. The only
+# override is MONGODB_URI, which must point at the Compose
+# service name "mongodb" instead of the old localhost host.
+#
+# SECURITY MODEL (Phase 7):
+#  - Two isolated networks: "frontend" for the static site
+#    and "backend" for the API + database. The frontend is
+#    static-only (the browser calls the backend, never the
+#    container), so it shares no network with the backend or
+#    MongoDB.
+#  - Backend runs as the non-root "node" user with ALL Linux
+#    capabilities dropped, no-new-privileges, and a read-only
+#    root filesystem (writes allowed only in /app/uploads via
+#    the named volume and /tmp via tmpfs).
+#  - Frontend keeps the stock nginx root master (required to
+#    drop to its non-root worker user); only no-new-privileges
+#    is added. An init process (tini) guards all services.
+#  - MongoDB is internal-only (no host port) and isolated on
+#    the backend network.
+#  - Reasonable resource limits prevent runaway containers.
+# =========================================================
+
+services:
+
+  # -------- FRONTEND (static HTML/CSS/JS, nginx) --------
+  frontend:
+    build:
+      context: ./frontend
+    # Deterministic local image name/tag (used by build + rollback; never pushed).
+    image: famipet-frontend:production
+    container_name: famipet-frontend
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Internal only (Phase 5): reached exclusively by the Caddy reverse proxy
+    # over the Docker network. No host port is published any more.
+    expose:
+      - "5502"
+    networks:
+      - famipet-frontend-net
+    # A static site has no dependency on backend/mongo at startup.
+    # Resource protection: nginx is lightweight by nature.
+    mem_limit: 128m
+    cpus: 0.5
+
+  # -------- BACKEND (Node.js + Express) --------
+  backend:
+    build:
+      context: ./backend
+    # Deterministic local image name/tag (used by build + rollback; never pushed).
+    image: famipet-backend:production
+    container_name: famipet-backend
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # The backend never needs Linux capabilities (Node listens
+    # on port 5000 >1024 and makes normal outbound sockets),
+    # so drop them all for defense in depth.
+    cap_drop:
+      - ALL
+    # Root filesystem is read-only. Writes are confined to the
+    # persistent uploads volume and a small tmpfs for /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override ONLY the host part of the connection: inside the
+      # Compose network the DB is reachable via its service name.
+      # (environment entries override env_file values in Compose.)
+      - MONGODB_URI=mongodb://mongodb:27017/petDB
+    # Internal only (Phase 5): reached exclusively by the Caddy reverse proxy
+    # over the Docker network. No host port is published any more.
+    expose:
+      - "5000"
+    volumes:
+      # Persist locally-stored fallback uploads across restarts.
+      # (Cloudinary-stored images remain remote.)
+      - backend_uploads:/app/uploads
+    networks:
+      - famipet-backend-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    # Resource protection: moderate cap for Express + mongoose;
+    # images held in memory (Cloudinary path / local buffer)
+    # give headroom while still stopping runaway containers.
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------- MONGODB (local database, as used by the app) --------
+  mongodb:
+    image: mongo:8
+    container_name: famipet-mongodb
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Capabilities are deliberately left at defaults: the official
+    # mongo image performs privileged host checks at startup and
+    # dropping ALL is known to break it.
+    volumes:
+      - mongodb_data:/data/db
+    # Not published to the host: only the backend reaches it over the
+    # Compose network (backend resolves the service name "mongodb").
+    expose:
+      - "27017"
+    networks:
+      - famipet-backend-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Resource protection: allows the storage engine cache room while
+    # capping runaway memory use.
+    mem_limit: 2g
+    cpus: 1.0
+
+  # -------- CADDY (HTTPS reverse proxy, Phase 5) --------
+  # Terminates TLS on 80/443 and is the ONLY publicly reachable service.
+  # It joins both Docker networks so it can reach the static frontend and
+  # the backend API by service name, while MongoDB stays private.
+  # Certificates are mkcert-issued and mounted read-only from ./certs
+  # (never committed - see the root .gitignore). No secrets live here.
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: famipet-caddy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Public entry point: HTTP (redirect) + HTTPS.
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Reverse-proxy routes + security headers.
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # mkcert certificate + private key (read-only, host-side only).
+      - ./certs:/certs:ro
+      # Caddy state (TLS session data) + autosaved config.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - famipet-frontend-net
+      - famipet-backend-net
+    depends_on:
+      - frontend
+      - backend
+    # Health against Caddy's own admin API (always on localhost:2019).
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    mem_limit: 256m
+    cpus: 0.5
+
+# -------- NETWORKS (isolation: frontend vs backend+db) --------
+networks:
+  famipet-frontend-net:
+    driver: bridge
+  famipet-backend-net:
+    driver: bridge
+
+# -------- PERSISTENT VOLUMES --------
+volumes:
+  mongodb_data:
+  backend_uploads:
+  caddy_data:
+  caddy_config:

@@ -867,6 +867,18 @@ document.addEventListener("DOMContentLoaded", () => {
             "Not specified";
 
 
+        const ageInput =
+            modal.querySelector(
+                "#reportPetAge"
+            );
+
+
+        const age =
+            ageInput
+                ? ageInput.value.trim()
+                : "";
+
+
         const description =
             modal
                 .querySelector("#reportPetDescription")
@@ -965,14 +977,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             species,
 
+            breed:
+                "",
+
+            age,
+
             description,
 
             location,
             date:
                 today,
-
-            breed:
-                "",
 
             gender:
                 genderValue === "male"
@@ -1594,8 +1608,58 @@ messageButton.addEventListener(
 
 
     /* =====================================================
-       NOTIFICATIONS
+       NOTIFICATIONS (LIVE)
     ===================================================== */
+
+    const NOTIF_KEY = "lastNotifRefresh";
+
+    async function refreshNotificationBadge() {
+
+        const badge =
+            document.getElementById(
+                "notificationCount"
+            );
+
+        if (!badge) return;
+
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/notifications/unread"
+                );
+
+
+            const count =
+                Number(data && data.count) || 0;
+
+
+            if (count > 0) {
+
+                badge.textContent =
+                    String(count);
+
+                badge.style.display =
+                    "";
+
+            } else {
+
+                badge.style.display =
+                    "none";
+
+            }
+
+        }
+        catch (error) {
+
+            badge.style.display =
+                "none";
+
+        }
+
+    }
+
 
     if (notificationBtn) {
 
@@ -1638,81 +1702,38 @@ messageButton.addEventListener(
             "notification-panel";
 
 
-        panel.innerHTML = `
-
-            <div class="notification-head">
-
-                <strong>
-                    Notifications
-                </strong>
-
-                <span>
-                    3 new
-                </span>
-
-            </div>
-
-
-            <div class="notification-item">
-
-                <i class="fa-solid fa-paw"></i>
-
-                <div>
-
-                    <strong>
-                        Lost pet report
-                    </strong>
-
-                    <p>
-                        A new lost pet report is available.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="notification-item">
-
-                <i class="fa-solid fa-location-dot"></i>
-
-                <div>
-
-                    <strong>
-                        Nearby report
-                    </strong>
-
-                    <p>
-                        A pet was reported in your area.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="notification-item">
-
-                <i class="fa-solid fa-heart"></i>
-
-                <div>
-
-                    <strong>
-                        Community update
-                    </strong>
-
-                    <p>
-                        Someone may have found a missing pet.
-                    </p>
-
-                </div>
-
-            </div>
-
-        `;
+        panel.innerHTML =
+            '<div class="notification-head"><strong>Notifications</strong><button class="notif-close-btn" id="closeNotificationPanel" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><div class="notif-body" id="notifPanelBody">Loading...</div>';
 
 
         document.body.appendChild(panel);
+
+
+        document
+            .querySelector(
+                "#closeNotificationPanel"
+            )
+            .addEventListener(
+                "click",
+                () => panel.remove()
+            );
+
+
+        document.addEventListener(
+            "keydown",
+            async function handler(event) {
+
+                if (event.key !== "Escape") return;
+
+                document.removeEventListener(
+                    "keydown",
+                    handler
+                );
+
+                panel.remove();
+
+            }
+        );
 
 
         setTimeout(() => {
@@ -1726,6 +1747,154 @@ messageButton.addEventListener(
             );
 
         }, 0);
+
+
+        renderNotificationItems(panel);
+
+    }
+
+
+    async function renderNotificationItems(panel) {
+
+        const body =
+            panel.querySelector(
+                "#notifPanelBody"
+            );
+
+
+        let data = null;
+
+
+        try {
+
+            data =
+                await FamiPetAPI.get(
+                    "/notifications"
+                );
+
+        }
+        catch (error) {
+
+            body.innerHTML =
+                '<div class="notif-empty">Could not load notifications.</div>';
+
+            return;
+
+        }
+
+
+        const notifications =
+            (data && data.notifications) || [];
+
+
+        if (notifications.length === 0) {
+
+            body.innerHTML =
+                '<div class="notif-empty">No new notifications.</div>';
+
+            return;
+
+        }
+
+
+        body.innerHTML =
+            notifications
+                .slice(0, 10)
+                .map(n => {
+
+                    const icon =
+                        n.type === "reminder"
+                            ? "fa-bell"
+                            : n.type === "appointment"
+                                ? "fa-calendar-check"
+                                : n.type === "community"
+                                    ? "fa-users"
+                                    : "fa-paw";
+
+
+                    return `
+                        <div class="notification-item" data-id="${n._id}" data-read="${n.isRead ? "1" : "0"}">
+
+                            <i class="fa-solid ${icon}"></i>
+
+                            <div>
+                                <strong>${escapeHTML(n.title || "Notification")}</strong>
+                                <p>${escapeHTML(n.message || "")}</p>
+                                <span class="notif-time">${escapeHTML(formatTime(n.createdAt))}</span>
+                            </div>
+
+                        </div>
+                    `;
+
+                })
+                .join("");
+
+        body.querySelectorAll(".notification-item[data-id]").forEach((el) => {
+
+            el.addEventListener("click", async () => {
+
+                const id =
+                    el.getAttribute("data-id");
+
+                if (
+                    !id ||
+                    el.getAttribute("data-read") === "1"
+                ) {
+                    return;
+                }
+
+                try {
+
+                    await FamiPetAPI.put(
+                        "/notifications/" +
+                        encodeURIComponent(id) +
+                        "/read",
+                        {}
+                    );
+
+                    el.setAttribute("data-read", "1");
+
+                    refreshNotificationBadge();
+
+                }
+                catch (error) {
+                    /* keep current state on failure */
+                }
+
+            });
+
+        });
+
+    }
+
+
+    function formatTime(value) {
+
+        if (!value) return "";
+
+
+        const parsed =
+            new Date(value);
+
+
+        if (
+            Number.isNaN(
+                parsed.getTime()
+            )
+        ) {
+
+            return "";
+
+        }
+
+
+        return parsed.toLocaleTimeString(
+            [],
+            {
+                hour: "numeric",
+                minute: "2-digit"
+            }
+        );
 
     }
 
@@ -1751,6 +1920,8 @@ messageButton.addEventListener(
         }
 
     }
+
+    refreshNotificationBadge();
 
 
     /* =====================================================
@@ -1865,7 +2036,9 @@ messageButton.addEventListener(
                 "",
 
             age:
-                report.breed || "Not specified",
+                report.age ||
+                report.breed ||
+                "Not specified",
 
             image:
                 images[0] ||

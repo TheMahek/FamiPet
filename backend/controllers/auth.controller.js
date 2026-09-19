@@ -2,28 +2,72 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { sendEmail } = require("../config/email");
+const { isSafeImageValue } = require("../utils/imageUpload");
+
+// Email verification tokens are valid for 24 hours.
+const VERIFY_TOKEN_TTL_MS =
+  24 * 60 * 60 * 1000;
+
+// Minimum time a user must wait before requesting another
+// verification email. Prevents repeated sends that exhaust
+// the provider's daily quota and break older emailed links.
+const RESEND_COOLDOWN_MS =
+  60 * 1000;
 
 // =====================================================
 // FRONTEND BASE URL
 // =====================================================
-
-const getClientBase = (req) => {
-  // Prefer the host the user actually opened the app from (Origin header).
-  // Works on the same machine (http://localhost:5502) and over the LAN
-  // (http://192.168.x.x:5502) so emailed links always point somewhere reachable.
-  // Falls back to the configured CLIENT_URL for mail clients that send no URL.
-  const origin =
-    (req && req.headers && req.headers.origin
-      ? String(req.headers.origin)
-      : "").trim();
-
-  if (/^https?:\/\/[a-zA-Z0-9.\-]+(?::\d{1,5})?$/.test(origin)) {
-    return origin.replace(/\/$/, "");
+// The base URL used to build emailed verification links comes ONLY from the
+// environment configuration (FRONTEND_URL > CLIENT_URL), never from request
+// headers or a hard-coded host.
+//
+//   - Development: FRONTEND_URL may be http://localhost:<port> or a LAN URL.
+//   - Production:   FRONTEND_URL MUST be the deployed public HTTPS frontend
+//     URL. Any localhost / 127.x / LAN (192.168.x, 10.x, 172.16-31.x,
+//     .local, .internal) value is rejected so a verification link can never
+//     point at a machine-local address. This keeps the link valid from ANY
+//     device/network.
+const net = require("net");
+const isPublicUrl = (rawUrl) => {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return false;
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") return false;
+    const ip = net.isIP(host);
+    if (ip === 4) {
+      const p = host.split(".").map(Number);
+      if (p[0] === 0 || p[0] === 10 || p[0] === 127 || p[0] === 169) return false;
+      if (p[0] === 192 && p[1] === 168) return false;
+      if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return false;
+    }
+    if (host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan")) return false;
+    return true;
+  } catch (e) {
+    return false;
   }
-
-  const envBase = (process.env.CLIENT_URL || "http://localhost:5502").trim();
-  return envBase.replace(/\/$/, "");
 };
+
+const getClientBase = () => {
+  const envBase = (process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5502").trim();
+  if (process.env.NODE_ENV === "production") {
+    if (!isPublicUrl(envBase)) {
+      console.error(
+        "Email verification misconfigured: FRONTEND_URL must be a public " +
+          "HTTPS URL in production but is " + JSON.stringify(envBase) + ". " +
+          "Set FRONTEND_URL to the deployed public FamiPet frontend " +
+          "(e.g. https://your-frontend.domain)."
+      );
+      throw new Error(
+        "Server email configuration error. Please contact support."
+      );
+    }
+  }
+  return envBase.replace(/\/+$/, "");
+};
+
+const buildVerificationUrl = (plainToken) =>
+  `${getClientBase()}/pages/verify-email.html?token=${plainToken}`;
 
 // =====================================================
 // GENERATE JWT TOKEN
@@ -62,6 +106,13 @@ const publicUser = (user) => ({
   isBlocked: user.isBlocked,
 });
 
+// Internal error messages (DB details, stack hints) must never reach clients
+// in production. Development keeps the useful detail for debugging.
+const safeErrorMessage = (error) =>
+  process.env.NODE_ENV === "production"
+    ? "Internal server error"
+    : error.message;
+
 // =====================================================
 // REGISTER
 // =====================================================
@@ -73,7 +124,48 @@ exports.register = async (req, res) => {
       email,
       password,
       phone,
+      role,
     } = req.body;
+
+    // -------------------------------------------------
+    // ROLE VALIDATION
+    // Owners and shelters pick a role at signup.
+    // Anything else (e.g. "admin") is rejected so the
+    // role can never be escalated through register.
+    // -------------------------------------------------
+
+    const allowedRoles = [
+      "owner",
+      "shelter",
+    ];
+
+    let selectedRole = "user";
+
+    if (
+      role !== undefined &&
+      role !== null &&
+      role !== ""
+    ) {
+
+      const trimmedRole =
+        String(role).trim()
+          .toLowerCase();
+
+      if (
+        !allowedRoles.includes(
+          trimmedRole
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid role selected.",
+        });
+      }
+
+      selectedRole = trimmedRole;
+
+    }
 
     // -------------------------------------------------
     // VALIDATION
@@ -87,11 +179,32 @@ exports.register = async (req, res) => {
       });
     }
 
+    if (typeof name !== "string" || name.trim().length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid name.",
+      });
+    }
+
+    if (typeof email !== "string" || email.trim().length > 254) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address.",
+      });
+    }
+
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
         message:
           "Password must be at least 6 characters.",
+      });
+    }
+
+    if (typeof password !== "string" || password.length > 128) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password.",
       });
     }
 
@@ -116,6 +229,22 @@ exports.register = async (req, res) => {
         success: false,
         message:
           "Please provide a valid email address.",
+      });
+    }
+
+    // -------------------------------------------------
+    // VALIDATE VERIFICATION LINK CONFIG (fail fast)
+    // In production this throws if FRONTEND_URL is not a
+    // public HTTPS URL, so a broken localhost/LAN link is
+    // never generated and no user is created un-mailable.
+    // -------------------------------------------------
+
+    try {
+      getClientBase();
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: err.message,
       });
     }
 
@@ -159,6 +288,7 @@ exports.register = async (req, res) => {
       email: normalizedEmail,
       password,
       phone: phone || "",
+      role: selectedRole,
 
       isVerified: false,
 
@@ -167,7 +297,7 @@ exports.register = async (req, res) => {
 
       // Token valid for 24 hours
       emailVerificationExpire:
-        Date.now() + 24 * 60 * 60 * 1000,
+        Date.now() + VERIFY_TOKEN_TTL_MS,
     });
 
     // -------------------------------------------------
@@ -175,7 +305,11 @@ exports.register = async (req, res) => {
     // -------------------------------------------------
 
     const verificationUrl =
-      `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
+      buildVerificationUrl(verificationToken);
+
+    if (process.env.NODE_ENV !== "production" || process.env.EMAIL_TRANSPORT === "json") {
+      console.log("📧 Verification URL:", verificationUrl);
+    }
 
     // -------------------------------------------------
     // VERIFICATION EMAIL HTML
@@ -297,14 +431,43 @@ exports.register = async (req, res) => {
     // -------------------------------------------------
     // EMAIL FAILED
     // -------------------------------------------------
+    // If the provider is rate-limited or out of quota we
+    // keep the account (so it is never left unverifiable)
+    // and let the user request a fresh link from the login
+    // page instead of silently deleting a successful signup.
 
-    if (!sent) {
-      await User.findByIdAndDelete(user._id);
+    if (!sent.ok) {
+      console.log(
+        "⚠️ Verification email could not be sent for:",
+        user.email,
+        sent.reason === "quota"
+          ? "(email provider daily sending limit)"
+          : "(send error)"
+      );
 
-      return res.status(500).json({
-        success: false,
+      // Nothing was delivered, so forget the unsent token.
+      // This way "resend" from the login page skips the
+      // cooldown instead of misleading the user into
+      // thinking an email was already sent.
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+
+      await user.save();
+
+      if (sent.reason === "quota") {
+        return res.status(201).json({
+          success: true,
+          message:
+            "Registration successful, but the verification email cannot be sent right now because the email service has reached its daily sending limit. Please request a new verification email from the login page later.",
+          user: publicUser(user),
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
         message:
-          "Unable to send verification email. Please try again.",
+          "Registration successful. We could not send a verification email right now. Please request a new verification email from the login page.",
+        user: publicUser(user),
       });
     }
 
@@ -337,7 +500,7 @@ exports.register = async (req, res) => {
       message:
         error.code === 11000
           ? "Email already registered."
-          : error.message,
+          : safeErrorMessage(error),
     });
   }
 };
@@ -370,34 +533,57 @@ exports.verifyEmail = async (req, res) => {
     // -------------------------------------------------
     // FIND USER
     // -------------------------------------------------
+    // Look up by the token itself (ignoring expiry) so a
+    // repeated click or an email client's link prefetch that
+    // already completed verification is recognised instead of
+    // being reported as a misleading "Verification failed".
 
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
-
-      emailVerificationExpire: {
-        $gt: Date.now(),
-      },
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
         message:
-          "Invalid or expired verification link.",
+          "Verification link is invalid.",
+      });
+    }
+
+    // Already verified → idempotent success, never an error.
+    if (user.isVerified) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "Email already verified. You can now login.",
+        user: publicUser(user),
+      });
+    }
+
+    // -------------------------------------------------
+    // CHECK EXPIRY
+    // -------------------------------------------------
+
+    if (
+      !user.emailVerificationExpire ||
+      user.emailVerificationExpire < Date.now()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Verification link has expired. Please request a new verification email.",
       });
     }
 
     // -------------------------------------------------
     // VERIFY USER
     // -------------------------------------------------
+    // The token is single-use: it is consumed here so the same
+    // link can never be accepted again.
 
     user.isVerified = true;
-
-    user.emailVerificationToken =
-      undefined;
-
-    user.emailVerificationExpire =
-      undefined;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
 
     await user.save();
 
@@ -433,7 +619,7 @@ exports.verifyEmail = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -480,6 +666,50 @@ exports.resendVerification = async (
     }
 
     // -------------------------------------------------
+    // VALIDATE VERIFICATION LINK CONFIG (fail fast)
+    // Refuse to regenerate tokens / send emails when the
+    // production FRONTEND_URL is missing or not a public
+    // HTTPS URL, so users never receive a broken link.
+    // -------------------------------------------------
+
+    try {
+      getClientBase();
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    }
+
+    // -------------------------------------------------
+    // RESEND COOLDOWN
+    // -------------------------------------------------
+    // Sending a fresh token invalidates previously emailed
+    // links, so throttle repeat requests. The token's creation
+    // time is inferred from its expiry (min token is 24h).
+    // This keeps spam clicks from exhausting the provider's
+    // daily sending limit and from breaking older links.
+
+    const tokenCreatedAt =
+      user.emailVerificationToken &&
+      user.emailVerificationExpire
+        ? user.emailVerificationExpire -
+          VERIFY_TOKEN_TTL_MS
+        : 0;
+
+    if (
+      tokenCreatedAt &&
+      Date.now() - tokenCreatedAt <
+        RESEND_COOLDOWN_MS
+    ) {
+      return res.status(429).json({
+        success: false,
+        message:
+          "Please wait before requesting another verification email.",
+      });
+    }
+
+    // -------------------------------------------------
     // GENERATE NEW TOKEN
     // -------------------------------------------------
 
@@ -495,7 +725,7 @@ exports.resendVerification = async (
         .digest("hex");
 
     user.emailVerificationExpire =
-      Date.now() + 24 * 60 * 60 * 1000;
+      Date.now() + VERIFY_TOKEN_TTL_MS;
 
     await user.save();
 
@@ -503,12 +733,12 @@ exports.resendVerification = async (
     // VERIFICATION URL
     // -------------------------------------------------
 
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      "http://localhost:5502";
-
     const verificationUrl =
-      `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
+      buildVerificationUrl(verificationToken);
+
+    if (process.env.NODE_ENV !== "production" || process.env.EMAIL_TRANSPORT === "json") {
+      console.log("📧 Verification URL:", verificationUrl);
+    }
 
     // -------------------------------------------------
     // EMAIL
@@ -586,11 +816,28 @@ exports.resendVerification = async (
       html
     );
 
-    if (!sent) {
+    if (!sent.ok) {
+      if (sent.reason === "quota") {
+        // Keep the generated token so the existing cooldown (60s) blocks
+        // repeated clicks, avoiding hammering the already-limited provider.
+        return res.status(503).json({
+          success: false,
+          code: "EMAIL_QUOTA_EXCEEDED",
+          message:
+            "Verification email cannot be sent right now. The email service has reached its daily sending limit. Please try again later.",
+        });
+      }
+
+      // Non-quota failure: clear the token so the user can retry immediately
+      // (no cooldown for a genuine delivery/SMTP error that is not a quota hit).
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+
+      await user.save();
+
       return res.status(500).json({
         success: false,
-        message:
-          "Unable to send verification email.",
+        message: "Unable to send verification email.",
       });
     }
 
@@ -608,7 +855,7 @@ exports.resendVerification = async (
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -629,6 +876,20 @@ exports.login = async (req, res) => {
         success: false,
         message:
           "Email and password are required.",
+      });
+    }
+
+    if (typeof email !== "string" || email.trim().length > 254) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address.",
+      });
+    }
+
+    if (typeof password !== "string" || password.length > 128) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password.",
       });
     }
 
@@ -711,7 +972,7 @@ exports.login = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -724,7 +985,9 @@ exports.getMe = async (req, res) => {
   try {
     const user =
       await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken -emailVerificationExpire"
+        )
         .populate("pets")
         .populate("favorites");
 
@@ -749,7 +1012,7 @@ exports.getMe = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -782,6 +1045,46 @@ exports.updateProfile = async (
       }
     });
 
+    if (updates.name !== undefined && (typeof updates.name !== "string" || updates.name.trim().length > 100)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid name.",
+      });
+    }
+    if (updates.name !== undefined) updates.name = updates.name.trim();
+
+    for (const field of ["phone", "city"]) {
+      if (updates[field] !== undefined && (typeof updates[field] !== "string" || updates[field].length > 100)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid ${field}.`,
+        });
+      }
+    }
+
+    if (updates.address !== undefined && (typeof updates.address !== "string" || updates.address.length > 300)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid address.",
+      });
+    }
+
+    if (updates.avatar !== undefined && (typeof updates.avatar !== "string" || updates.avatar.length > 1000)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid avatar.",
+      });
+    }
+    // Avatar must be empty (use default) or an application-generated image
+    // value (server URL, base64 image dataURL). Arbitrary payloads such as
+    // javascript:/file:// or external scripts are rejected.
+    if (updates.avatar !== "" && !isSafeImageValue(updates.avatar)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid avatar.",
+      });
+    }
+
     const user =
       await User.findByIdAndUpdate(
         req.user._id,
@@ -790,7 +1093,9 @@ exports.updateProfile = async (
           new: true,
           runValidators: true,
         }
-      ).select("-password");
+      ).select(
+        "-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken -emailVerificationExpire"
+      );
 
     if (!user) {
       return res.status(404).json({
@@ -815,7 +1120,7 @@ exports.updateProfile = async (
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -850,6 +1155,13 @@ exports.changePassword = async (
         success: false,
         message:
           "New password must be at least 6 characters.",
+      });
+    }
+
+    if (typeof newPassword !== "string" || newPassword.length > 128) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid new password.",
       });
     }
 
@@ -898,7 +1210,7 @@ exports.changePassword = async (
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -1126,7 +1438,7 @@ exports.forgotPassword = async (
         html
       );
 
-    if (!sent) {
+    if (!sent.ok) {
       console.error(
         "❌ Password reset email could not be sent."
       );
@@ -1165,7 +1477,7 @@ exports.forgotPassword = async (
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };
@@ -1191,6 +1503,16 @@ exports.resetPassword = async (
         success: false,
         message:
           "Password must be at least 6 characters.",
+      });
+    }
+
+    if (
+      typeof password !== "string" ||
+      password.length > 128
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password.",
       });
     }
 
@@ -1271,7 +1593,7 @@ exports.resetPassword = async (
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: safeErrorMessage(error),
     });
   }
 };

@@ -38,6 +38,156 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
+       CURRENT USER + CHAT PERSISTENCE
+       (live name on the welcome card, saved conversation
+        restored on reload)
+    ===================================================== */
+
+    const STORAGE_KEY =
+        "annPetgptChat";
+
+    const currentUser =
+        FamiPetAPI.getUser();
+
+    const currentUserName =
+        (currentUser && currentUser.name) ||
+        "";
+
+
+    /* =====================================================
+       AVATAR HELPERS
+       Only a real uploaded image counts as a profile photo.
+       Otherwise the chat shows the initials empty state.
+    ===================================================== */
+
+    function isRealAvatar(value) {
+        return typeof value === "string" &&
+            value.trim() !== "" &&
+            !value.includes("user-profile.svg");
+    }
+
+    function getUserInitials() {
+        return String(currentUserName || "Pet Parent")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(function (w) {
+                return w[0].toUpperCase();
+            })
+            .join("") || "PP";
+    }
+
+
+    function setUserName() {
+
+        const nameEl =
+            document.getElementById(
+                "petgptUserName"
+            );
+
+        if (nameEl && currentUserName) {
+
+            nameEl.textContent =
+                currentUserName;
+
+        }
+
+    }
+
+
+    function saveChat() {
+
+        if (!chatMessages) {
+            return;
+        }
+
+        const messages =
+            Array.from(
+                chatMessages.querySelectorAll(".message")
+            ).map(msg => ({
+
+                role:
+                    msg.classList.contains("user-message")
+                        ? "user"
+                        : "ai",
+
+                text:
+                    (msg.querySelector(".message-bubble p") || {}).textContent || ""
+
+            })).filter(item => item.text);
+
+        if (!messages.length) {
+            return;
+        }
+
+        try {
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(messages.slice(-100))
+            );
+
+        } catch (err) {
+        }
+
+    }
+
+
+    function restoreChat() {
+
+        if (!chatMessages) {
+            return;
+        }
+
+        let saved = [];
+
+        try {
+
+            saved =
+                JSON.parse(
+                    localStorage.getItem(STORAGE_KEY) || "[]"
+                );
+
+        } catch (err) {
+            saved = [];
+        }
+
+        if (
+            !Array.isArray(saved) ||
+            !saved.length
+        ) {
+            return;
+        }
+
+        saved.forEach(item => {
+
+            if (item.role === "user") {
+
+                addUserMessage(
+                    typeof item.text === "string"
+                        ? item.text
+                        : ""
+                );
+
+            } else {
+
+                addAIMessage(
+                    typeof item.text === "string"
+                        ? item.text
+                        : ""
+                );
+
+            }
+
+        });
+
+        scrollToBottom();
+
+    }
+
+
+    /* =====================================================
        USER PROFILE IMAGE
        IMPORTANT FIX
     ===================================================== */
@@ -68,13 +218,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /*
-         * Fallback to the normal profile image path.
+         * Fallback to the logged-in user's own avatar
+         * (empty means: no photo — use initials).
          */
 
-        return new URL(
-            "../assets/images/profile.jpg",
-            document.baseURI
-        ).href;
+        const userAvatar =
+            (currentUser &&
+                isRealAvatar(currentUser.avatar)) ?
+                    currentUser.avatar
+                    : "";
+
+        return userAvatar;
 
     }
 
@@ -153,6 +307,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const avatarSource =
             getUserAvatarSource();
 
+        const hasAvatar =
+            isRealAvatar(avatarSource);
+
 
         message.innerHTML = `
 
@@ -177,11 +334,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             <div class="user-avatar">
 
-                <img
-                    src="${avatarSource}"
-                    alt="Mahek"
-                    draggable="false"
-                >
+                ${
+                    hasAvatar
+                        ? `<img
+                               src="${avatarSource}"
+                               alt="${escapeHTML(currentUserName) || "User"}"
+                               draggable="false"
+                           >`
+                        : `<span class="user-initials">
+                               ${getUserInitials()}
+                           </span>`
+                }
 
             </div>
 
@@ -385,213 +548,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
-       PETGPT RESPONSES
-    ===================================================== */
-
-    function getResponse(question) {
-
-        const q =
-            question
-                .toLowerCase()
-                .trim();
-
-
-        /* =================================================
-           DOG FOOD
-        ================================================= */
-
-        if (
-            q.includes("food") &&
-            (
-                q.includes("dog") ||
-                q.includes("golden") ||
-                q.includes("puppy")
-            )
-        ) {
-
-            return (
-                "Choose a complete and balanced dog food " +
-                "appropriate for your pet's age, size and " +
-                "activity level. For puppies, look for food " +
-                "formulated specifically for growth. Fresh " +
-                "water should always be available."
-            );
-
-        }
-
-
-        /* =================================================
-           KITTEN FOOD
-        ================================================= */
-
-        if (
-            q.includes("kitten") &&
-            q.includes("food")
-        ) {
-
-            return (
-                "Kittens need food formulated for growth because " +
-                "they require extra protein, calories and essential " +
-                "nutrients. Feed a complete kitten diet and provide " +
-                "fresh water throughout the day."
-            );
-
-        }
-
-
-        /* =================================================
-           OVERWEIGHT
-        ================================================= */
-
-        if (
-            q.includes("overweight") ||
-            q.includes("weight")
-        ) {
-
-            return (
-                "A healthy weight depends on your pet's breed, age " +
-                "and body condition. Look for a visible waist and " +
-                "ribs that can be felt without being prominently " +
-                "visible. If you are unsure, your veterinarian can " +
-                "perform a proper body-condition assessment."
-            );
-
-        }
-
-
-        /* =================================================
-           WALK
-        ================================================= */
-
-        if (
-            q.includes("walk") ||
-            q.includes("exercise")
-        ) {
-
-            return (
-                "Most dogs benefit from regular daily exercise, but " +
-                "the ideal amount depends on age, breed and health. " +
-                "Puppies usually need shorter walks combined with " +
-                "playtime and rest. Increase activity gradually."
-            );
-
-        }
-
-
-        /* =================================================
-           TRAINING
-        ================================================= */
-
-        if (
-            q.includes("train") ||
-            q.includes("training")
-        ) {
-
-            return (
-                "Use short, positive training sessions and reward " +
-                "good behaviour immediately. Keep sessions consistent " +
-                "and fun. Start with simple commands such as sit, " +
-                "stay and come."
-            );
-
-        }
-
-
-        /* =================================================
-           CAT NOT EATING
-        ================================================= */
-
-        if (
-            q.includes("cat") &&
-            (
-                q.includes("not eating") ||
-                q.includes("eating")
-            )
-        ) {
-
-            return (
-                "A sudden loss of appetite in a cat should not be " +
-                "ignored. Check for other signs such as vomiting, " +
-                "lethargy or difficulty chewing. If your cat stops " +
-                "eating or seems unwell, contact a veterinarian."
-            );
-
-        }
-
-
-        /* =================================================
-           GROOMING
-        ================================================= */
-
-        if (
-            q.includes("groom") ||
-            q.includes("grooming")
-        ) {
-
-            return (
-                "Regular brushing helps remove loose fur and keeps " +
-                "your pet's coat healthy. Check the ears, paws and " +
-                "nails regularly, and use grooming products suitable " +
-                "for your pet's species and coat type."
-            );
-
-        }
-
-
-        /* =================================================
-           HEALTH
-        ================================================= */
-
-        if (
-            q.includes("health") ||
-            q.includes("sick") ||
-            q.includes("problem")
-        ) {
-
-            return (
-                "Common signs that deserve attention include changes " +
-                "in appetite, unusual tiredness, vomiting, diarrhoea, " +
-                "breathing problems or sudden behaviour changes. " +
-                "For serious or persistent symptoms, contact a vet."
-            );
-
-        }
-
-
-        /* =================================================
-           NUTRITION
-        ================================================= */
-
-        if (
-            q.includes("nutrition") ||
-            q.includes("diet") ||
-            q.includes("eat")
-        ) {
-
-            return (
-                "A balanced pet diet should provide the right amount " +
-                "of protein, fats, carbohydrates, vitamins and minerals " +
-                "for your pet's species, age and lifestyle. Avoid giving " +
-                "pets foods that are toxic to them."
-            );
-
-        }
-
-
-        /* =================================================
-           DEFAULT
-        ================================================= */
-
-        return (
-            "I'm here to help with pet care, nutrition, training, " +
-            "grooming and general health questions. Tell me a little " +
-            "more about your pet and I'll guide you."
-        );
-
-    }
-
-
-    /* =====================================================
        SEND MESSAGE
     ===================================================== */
 
@@ -613,9 +569,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
+        if (question.length > 2000) {
+
+            addAIMessage(
+                "Your question is a bit too long. Please keep it under 2000 characters."
+            );
+
+            return;
+
+        }
+
+
         /* ADD USER MESSAGE */
 
         addUserMessage(question);
+
+
+        /* PERSIST CHAT */
+
+        saveChat();
 
 
         /* CLEAR INPUT */
@@ -633,24 +605,33 @@ document.addEventListener("DOMContentLoaded", () => {
         FamiPetAPI.post(
             "/ai/ask",
             {
-                question
+                message: question
             }
         ).then((data) => {
 
             removeTyping();
 
+            const reply =
+                data && typeof data.message === "string"
+                    ? data.message
+                    : "";
+
             addAIMessage(
-                (data && data.answer) ||
-                getResponse(question)
+                reply ||
+                "I couldn't get a proper response from PetGPT. Please try again."
             );
+
+            saveChat();
 
         }).catch(() => {
 
             removeTyping();
 
             addAIMessage(
-                getResponse(question)
+                "I couldn't reach the AI service right now. Please try again in a moment."
             );
+
+            saveChat();
 
         });
 
@@ -806,6 +787,14 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
     }
+
+
+    /* =====================================================
+       LIVE WELCOME NAME + RESTORE SAVED CHAT
+    ===================================================== */
+
+    setUserName();
+    restoreChat();
 
 
     /* =====================================================
