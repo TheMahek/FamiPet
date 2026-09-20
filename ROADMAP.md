@@ -785,12 +785,12 @@ Implement **pet-specific** diet and nutrition functionality (data per pet; not g
 3. **Feeding schedule**: derive Feeding reminders from `mealTimes` + recurrence via the Phase 7 reminder service (`feeding` type). Schedule created/updated when meal times change; cancellations when diet removed.
 4. **UI**: add a diet section in the pet management/health UI (`pages/mypet.html` or `health.html`; new `js/diet.js` or extension of `mypet.js`); display selected food info, portion, meal times, edit form; keep visual style consistent.
 5. **Content safety**: any recommendation copy must be informational; add a disclaimer; never present vet advice as diagnosis/prescription. No automated medical claims in UI copy.
-6. **Notifications**: meal-time feeding reminders come from Phase 7/8 (`feeding` reminders already fire); a "diet updated" notification is optional/conservative and belongs to the deferred Notification Event Integration backlog.
+6. **Notifications**: meal-time feeding reminders come from Phase 7/8 (`feeding` reminders already fire); a "diet updated" notification is optional/conservative and would ride the Phase 8 Notification Event Integration delivery (checkpoint `phase8-notification-events`) — not spec'd until the Phase 9 diet module exists.
 7. **Authorization/validation** done in service/controller consistent with existing patterns.
 
 ## 4. Dependencies
-- Phase 5 (notifications), Phase 7 (feeding reminders from meal times), Phase 8 (pet care reminder engine / deferred event integration).
-- Order note: feeding reminders ship via Phase 7/8; the general Notification Event Integration backlog is deferred (recorded in Phase 8 §10).
+- Phase 5 (notifications), Phase 7 (feeding reminders from meal times), Phase 8 (pet care reminder engine + Notification Event Integration delivered under `phase8-notification-events`).
+- Order note: feeding reminders ship via Phase 7/8; the general Notification Event Integration scope is delivered (Phase 8, checkpoint `phase8-notification-events`).
 
 ## 5. Files/modules likely affected
 - Backend: new `backend/models/PetDiet.js` (or `NutritionPlan.js`), new `backend/controllers/diet.controller.js`, new `backend/routes/diet.routes.js`, `backend/models/Pet.js` (activityLevel etc. if added), `backend/server.js` mount, validation additions in `utils/validation.js`.
@@ -809,7 +809,7 @@ Implement **pet-specific** diet and nutrition functionality (data per pet; not g
 - Informational-only copy with disclaimer; no medical claims.
 
 ## 8. Risks and compatibility concerns
-- Feeding "missed feeding" (deferred Notification Event Integration backlog) must be explicitly opt-in; avoid nagging by default.
+- Feeding "missed feeding" is in Phase 8 event-integration scope and must be explicitly opt-in when wired (Phase 9 consumer); avoid nagging by default.
 - Don't hardcode breed-specific nutritional tables unless sourced — recommend user-entered + informational text only (Phase 11 may propose, user confirms).
 - Adding fields to `Pet` is additive; ensure no breakage of existing pet create/update allowlists.
 
@@ -1080,7 +1080,7 @@ Phase 0 (baseline)
 
 Notes:
 - **Phase 12** depends only on Phase 4; it is listed at phase 12 by specification but can be executed as an interlude before feature work if the bug fixes unblock validation. Where files overlap with Phases 5–9 (settings/preferences, dashboard/reminders), sequence to avoid double-editing the same file concurrently.
-- **Phase 9** relies on Phase 7 feeding reminders (meal-time = `feeding` reminders) and the Phase 8 reminder engine; the deferred Notification Event Integration backlog (incl. "diet updated" events) is a later-phase candidate — feeding reminders themselves already fire in-app/push.
+- **Phase 9** relies on Phase 7 feeding reminders (meal-time = `feeding` reminders) and the Phase 8 reminder engine; the Notification Event Integration delivery (checkpoint `phase8-notification-events`) already covers domain-event notifications — a "diet updated" event remains optional/conservative for Phase 9 to wire. Feeding reminders themselves already fire in-app/push.
 - Single-scheduler assumption (Phase 7) propagates to Phase 13 — one backend replica runs the scheduler.
 
 ## Cross-Cutting Rules
