@@ -1099,6 +1099,291 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
+       AI SUGGESTIONS PANEL (Phase 11 Recommendations)
+       Loads /ai/recommendations on page load, renders each
+       informational item, and lets the user Accept a suggested
+       action -> POST /ai/action (a Phase 10 proposal) -> the
+       existing chat confirmation card appears for confirm.
+    ===================================================== */
+
+    const suggestionsList =
+        document.getElementById("suggestionsList");
+
+    function suggestionCategoryLabel(category) {
+
+        return String(category || "care")
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .split(" ")
+            .map(function (word) {
+                return word
+                    .charAt(0)
+                    .toUpperCase() +
+                    word.slice(1);
+            })
+            .join(" ");
+
+    }
+
+
+    function markSuggestionAccepted(el) {
+
+        el.classList.add("suggested");
+
+        const errorNote =
+            el.querySelector(".suggestion-error");
+
+        if (errorNote) {
+
+            errorNote.remove();
+
+        }
+
+    }
+
+
+    function renderSuggestionItems(items) {
+
+        if (!suggestionsList) {
+
+            return;
+
+        }
+
+        if (
+            !Array.isArray(items) ||
+            !items.length
+        ) {
+
+            suggestionsList.innerHTML =
+                `<p class="suggestions-empty">` +
+                `No suggestions right now. Add a pet and PetGPT ` +
+                `will tailor care tips to your family.` +
+                `</p>`;
+
+            return;
+
+        }
+
+        suggestionsList.innerHTML = "";
+
+        items.forEach(item => {
+
+            if (!item || !item.title) {
+
+                return;
+
+            }
+
+            const el =
+                document.createElement("div");
+
+            el.className =
+                "suggestion-item";
+
+            const petName =
+                item.pet && item.pet.name
+                    ? escapeHTML(item.pet.name)
+                    : "Family";
+
+            const hasAction =
+                item.action &&
+                item.action.tool;
+
+            el.innerHTML = `
+
+                <div class="suggestion-head">
+
+                    <span class="suggestion-pet">
+                        ${petName}
+                    </span>
+
+                    <span class="suggestion-chip">
+                        ${escapeHTML(suggestionCategoryLabel(item.category))}
+                    </span>
+
+                </div>
+
+                <h4 class="suggestion-title">
+                    ${escapeHTML(item.title)}
+                </h4>
+
+                <p class="suggestion-summary">
+                    ${escapeHTML(item.summary)}
+                </p>
+
+                ${
+                    item.detail
+                        ? `<p class="suggestion-detail">
+                               ${escapeHTML(item.detail)}
+                           </p>`
+                        : ""
+                }
+
+                ${
+                    hasAction
+                        ? `<div class="suggestion-actions">
+                               <button
+                                   type="button"
+                                   class="suggestion-accept-btn"
+                               >
+                                   Accept
+                               </button>
+                           </div>`
+                        : ""
+                }
+
+            `;
+
+            if (hasAction) {
+
+                const btn =
+                    el.querySelector(
+                        ".suggestion-accept-btn"
+                    );
+
+                btn.addEventListener(
+                    "click",
+                    () => {
+
+                        acceptSuggestion(
+                            item,
+                            el,
+                            btn
+                        );
+
+                    }
+                );
+
+            }
+
+            suggestionsList.appendChild(el);
+
+        });
+
+    }
+
+
+    function showSuggestionError(el, btn, message) {
+
+        const existing =
+            el.querySelector(".suggestion-error");
+
+        if (existing) {
+
+            existing.remove();
+
+        }
+
+        const note =
+            document.createElement("p");
+
+        note.className =
+            "suggestion-error";
+
+        note.textContent =
+            message ||
+            "Could not propose this action.";
+
+        el.appendChild(note);
+
+        btn.disabled = false;
+
+        btn.textContent = "Accept";
+
+    }
+
+
+    async function acceptSuggestion(item, el, btn) {
+
+        btn.disabled = true;
+
+        btn.textContent = "Proposing…";
+
+        try {
+
+            const data =
+                await FamiPetAPI.post(
+                    "/ai/action",
+                    {
+                        tool: item.action.tool,
+                        args: item.action.args
+                    }
+                );
+
+            if (
+                data &&
+                data.requiresConfirmation &&
+                data.confirmation
+            ) {
+
+                markSuggestionAccepted(el);
+
+                btn.textContent =
+                    "Proposed — check chat";
+
+                addToolActionCard(data);
+
+                return;
+
+            }
+
+            showSuggestionError(
+                el,
+                btn,
+                (data && data.message) ||
+                    "This action was not accepted."
+            );
+
+        } catch (err) {
+
+            showSuggestionError(
+                el,
+                btn,
+                (err && err.message) ||
+                    "Could not propose this action."
+            );
+
+        }
+
+    }
+
+
+    async function loadSuggestions() {
+
+        if (!suggestionsList) {
+
+            return;
+
+        }
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/ai/recommendations"
+                );
+
+            renderSuggestionItems(
+                data && data.recommendations
+            );
+
+        } catch (err) {
+
+            suggestionsList.innerHTML =
+                `<p class="suggestions-empty">` +
+                `Suggestions unavailable right now.` +
+                `</p>`;
+
+        }
+
+    }
+
+
+    loadSuggestions();
+
+
+    /* =====================================================
        INITIAL SCROLL
     ===================================================== */
 

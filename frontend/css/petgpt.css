@@ -2472,3 +2472,225 @@ input {
     transform: translateY(-1px);
 
 }
+
+/* =========================================================
+   AI SUGGESTIONS PANEL (Phase 11 Recommendations)
+========================================================= */
+
+.suggestions-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+}
+
+
+.suggestions-empty {
+
+    margin: 0;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: var(--muted);
+
+}
+
+
+.rec-disclaimer {
+
+    margin: 12px 0 0;
+
+    padding-top: 10px;
+
+    border-top: 1px dashed var(--border);
+
+    font-size: 11px;
+
+    line-height: 1.45;
+
+    color: var(--muted);
+
+}
+
+
+.suggestion-item {
+
+    padding: 12px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 14px;
+
+    background: #ffffff;
+
+}
+
+.suggestion-item.suggested {
+
+    background: var(--purple-soft);
+
+    border-color: var(--purple-light);
+
+}
+
+.suggestion-item.suggested .suggestion-title {
+
+    color: var(--purple);
+
+}
+
+
+.suggestion-head {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 8px;
+
+    margin-bottom: 6px;
+
+}
+
+
+.suggestion-pet {
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    letter-spacing: 0.5px;
+
+    text-transform: uppercase;
+
+    color: var(--purple);
+
+}
+
+
+.suggestion-chip {
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.5px;
+
+    padding: 2px 8px;
+
+    border-radius: 999px;
+
+    background: var(--purple-light);
+
+    color: var(--purple);
+
+}
+
+
+.suggestion-title {
+
+    margin: 0 0 4px;
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    color: var(--text);
+
+}
+
+
+.suggestion-summary {
+
+    margin: 0 0 4px;
+
+    font-size: 12.5px;
+
+    line-height: 1.5;
+
+    color: var(--text);
+
+}
+
+
+.suggestion-detail {
+
+    margin: 0;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+    color: var(--text-light);
+
+}
+
+
+.suggestion-actions {
+
+    margin-top: 10px;
+
+    display: flex;
+
+}
+
+
+.suggestion-accept-btn {
+
+    flex: 1;
+
+    padding: 8px 14px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: var(--pink);
+
+    color: #ffffff;
+
+    font-size: 12.5px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: transform 0.15s ease, opacity 0.15s ease;
+
+}
+
+.suggestion-accept-btn:hover:not(:disabled) {
+
+    transform: translateY(-1px);
+
+}
+
+.suggestion-accept-btn:disabled {
+
+    opacity: 0.65;
+
+    cursor: not-allowed;
+
+}
+
+
+.suggestion-error {
+
+    margin: 8px 0 0;
+
+    font-size: 11.5px;
+
+    line-height: 1.4;
+
+    color: #e04f5f;
+
+}

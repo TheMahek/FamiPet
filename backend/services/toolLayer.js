@@ -800,18 +800,19 @@ const resultFromService = (result) => {
 // Proposal-time authorization: any pet reference in mutation args must be the
 // caller's own (cross-user proposals are denied before a token is minted).
 const checkProposalReferences = async ({ tool, user, args }) => {
-  if (tool === "update_reminder" && args.pet !== undefined) {
-    const owned = await petService.ownedPetResult({ user, petId: args.pet });
-    if (!owned.ok) {
-      return { ok: false, errorCategory: owned.status === 400 ? CATEGORIES.VALIDATION : CATEGORIES.AUTHORIZATION, statusCode: STATUS_FOR_CATEGORY.authorization, message: "That pet does not belong to you." };
-    }
-    return { ok: true };
-  }
+  const deny = (owned) => ({
+    ok: false,
+    errorCategory: owned.status === 400 ? CATEGORIES.VALIDATION : CATEGORIES.AUTHORIZATION,
+    statusCode: STATUS_FOR_CATEGORY.authorization,
+    message: "That pet does not belong to you.",
+  });
   if (args.petId !== undefined) {
     const owned = await petService.ownedPetResult({ user, petId: args.petId });
-    if (!owned.ok) {
-      return { ok: false, errorCategory: owned.status === 400 ? CATEGORIES.VALIDATION : CATEGORIES.AUTHORIZATION, statusCode: STATUS_FOR_CATEGORY.authorization, message: "That pet does not belong to you." };
-    }
+    if (!owned.ok) return deny(owned);
+  }
+  if (args.pet !== undefined) {
+    const owned = await petService.ownedPetResult({ user, petId: args.pet });
+    if (!owned.ok) return deny(owned);
   }
   return { ok: true };
 };

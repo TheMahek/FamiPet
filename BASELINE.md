@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 10 completed).
+> Single project-status document for the enhancement work (Phase 11 completed).
 >
-> Last update: Phase 10 AI Tool Layer completed (see §18).
+> Last update: Phase 11 AI Recommendations & AI CRUD completed (see §19).
 
 ---
 
@@ -11,7 +11,7 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second), `phase9-diet-nutrition` (Phase 9), `phase10-ai-tool-layer` (Phase 10) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second), `phase9-diet-nutrition` (Phase 9), `phase10-ai-tool-layer` (Phase 10), `phase11-ai-recommendations-crud` (Phase 11) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
@@ -436,9 +436,34 @@ Controlled, tool-based AI boundary: PetGPT reaches application data only through
 
 ### Decisions / deferrals recorded
 - Tool set trimmed to the required 9 (no `delete_pet`, no appointment/`delete_reminder` tools) per task §2 + ROADMAP §8 "no scope creep".
-- Per-user tool quota is in-process (resets on service restart) — sufficient first cap; Phase 11 may back it with Mongo.
+- Per-user tool quota is in-process (resets on service restart) — sufficient first cap; Phase 11 evaluated a Mongo-backed quota and **decided against it** (see §19).
 - Gemini-dependent `/ai/ask` tool-loop is structural-only here (no key in CI); function responses always go through token-stripping `resultForModel`, so the loop is safe by construction and verified via the HTTP suite's `/ai/tool` path.
 - `health.service.js` stays as an unused-but-valid extraction. Confirmation frontend card is the Phase 11 `POST /api/ai/action` flow's natural UI surface.
 
 ### Phase 10 checkpoint
 - Commit → tag `phase10-ai-tool-layer`. Rollback: `git reset --hard phase10-ai-tool-layer`.
+
+## 19. Phase 11 status — ✅ COMPLETED (AI Recommendations & AI CRUD)
+
+AI-assisted recommendations + AI-driven CRUD on top of the Phase 10 tool layer (no bypass — every mutation still uses the single-use-token proposal→confirm→cancel flow). Recommendations are strictly informational ("not medical advice" disclaimer; no diagnosis/prescription). Full details in `ROADMAP.md` §11 (Phase 11 status).
+
+### What changed
+- **Backend**: pre-existing untracked WIP finished — `services/recommendation.service.js` (`buildRecommendations({user})`) emits per-pet, priority-sorted, category-stamped suggestions from real data via the shared Phase 5–9 services, with per-pet failure isolation and an optional `suggestedAction` (Phase 10 mutation tool, owned-pet only). Two real bugs fixed in the pre-existing engine: the priority sort was silently broken (`0 || 3` coerced the `high` rank `0` → `3`, so high-priority items sorted last; now `?? 3`) and an in-place done-tracking bug in the `low` task reduced its output (now a proper living index + guarded splice). `services/toolLayer.js` hardened: `checkProposalReferences` now denies **any** cross-user pet reference (`args.pet` OR `args.petId`) at proposal-mint time with 403 (previously `args.pet` outside `update_reminder` was only caught at confirm/execution). New API: `GET /api/ai/recommendations` (protect) → `{success, recommendations, disclaimer}`; `POST /api/ai/action` (protect) accepts `{intent?, tool, args}` and is a thin alias to the Phase 10 `runTool` controller (intent ignored).
+- **Frontend**: `pages/petgpt.html` gains a "Suggestions" side-card (list + informational disclaimer); `js/petgpt.js` renders category chips/priority colors with per-pet attribution, **Accept** → `POST /ai/action` → the existing `addToolActionCard` renders the proposal card inline with Confirm/Cancel; accepted items are marked ✓ so the same underlying recommendation isn't re-offered; errors surface in the card. `css/petgpt.css` adds `.suggestions-*` / `.suggestion-*` styles. Chat reading, lucide init, `annPetgptChat` persistence untouched.
+
+### Verified (2026-09-21, live stack — `ROADMAP.md` §11 for the full matrix)
+- Core in-process suite (`compose/scripts/phase11-recommendation-core.cjs`): **38 checks, 0 failed** — auth/empty-state; deterministic + priority-sorted output (high first — pins the `??` fix); every suggested action accepted by `runTool` as a proposal; proposals never carry read/executed data and minting alone persists nothing; accepted suggestion confirms+executes exactly once (single reminder), re-confirm rejected; cross-user isolation; a null-pet reminder row doesn't break the list.
+- HTTP API suite (`compose/scripts/phase11-recommendations-api.cjs`): **54 checks, 0 failed** — anonymous 401 on both endpoints; no-pets state (suggestions + disclaimer, no actions); owner-scoped real-data suggestions (species-aware dog-only exercise, no internal-field leakage, action tools are mutation-only + pet-scoped); accept→propose→confirm exactly-once + suggestion retired after confirm; identical re-acceptance supersedes (single live token, one execution); cancel blocks; injection/operator/unknown-tool → 400/409; cross-user: proposing on another user's pet → 403 (both `args.pet` and `args.petId`), confirming another user's token → 403.
+- Regression green (Phase 5–10 untouched): `phase10-tool-core` 75/0, `phase10-ai-tools-api` 29/0, `phase9-diet-api` 58/0, `phase9-diet-scheduler` 19/0, `phase8-reminders-api` 59/0, `phase8-scheduler-check` 6/0, `phase8-notification-events` 63/0.
+- `node --check` clean on all touched backend/frontend + suite files.
+- No direct DB from AI (grep audit): `recommendation.service.js` requires only shared services (+ `toolLayer.runtool` for suggested actions); controllers/routes unchanged in boundary shape.
+- E2E: backend rebuilt + stack healthy; nginx proxies `/api/ai/recommendations` / `/api/ai/action` (401 unauth); public HTTPS `https://famipet.catlium.in` → 200 on `/` and `/api/status`.
+- DB hygiene restored: 0 `p11c-*`/`p11a-*` `@famipet.test` fixtures remain (suites self-purge); real data untouched.
+
+### Decisions / deferrals recorded
+- Per-user tool quota **stays in-process** (resolves the §18 "Phase 11 may back it with Mongo" deferral — decided NOT needed: audit log + exactly-once tokens already bound abuse; revisit only if a real quota incident appears).
+- `get_health` tool intentionally **not** added (not in Phase 10 task §2 list); `health.service.js` remains unused-but-valid.
+- "Book a checkup" appointment flow (task §1.3) is a known extension point only — suggestion + confirm flow are in place; scheduling UI not expanded.
+
+### Phase 11 checkpoint
+- Commit → tag `phase11-ai-recommendations-crud`. Rollback: `git reset --hard phase11-ai-recommendations-crud`.

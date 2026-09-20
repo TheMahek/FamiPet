@@ -3,6 +3,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { isValidObjectId } = require("../utils/validation");
 const petService = require("../services/pet.service");
 const toolLayer = require("../services/toolLayer");
+const recommendationService = require("../services/recommendation.service");
 
 const GEMINI_MODEL = "gemini-3.6-flash";
 const MAX_MESSAGE_LENGTH = 2000;
@@ -204,6 +205,26 @@ exports.askPetGPT = async (req, res) => {
     res.json(payload);
   } catch (error) {
     console.error("PetGPT error:", error.message);
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again later." });
+  }
+};
+
+exports.getRecommendations = async (req, res) => {
+  try {
+    const result = await recommendationService.buildRecommendations({ user: req.user });
+    if (!result.ok || !result.data) {
+      return res.status(500).json({
+        success: false,
+        message: "Could not build suggestions right now. Please try again later.",
+      });
+    }
+    return res.json({
+      success: true,
+      recommendations: result.data.recommendations,
+      disclaimer: result.data.disclaimer,
+    });
+  } catch (error) {
+    console.error("Recommendations error:", error.message);
     res.status(500).json({ success: false, message: "Something went wrong. Please try again later." });
   }
 };
