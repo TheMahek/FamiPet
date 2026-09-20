@@ -958,7 +958,7 @@
 
     function dietPayload() {
         var meals = [];
-        (elements.dietMealRows.children).forEach(function (row) {
+        Array.from(elements.dietMealRows.children).forEach(function (row) {
             var time = (row.querySelector(".meal-time") || {}).value || "";
             if (!time) return;
             var m = {
