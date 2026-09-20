@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 8 second checkpoint).
+> Single project-status document for the enhancement work (Phase 9 completed).
 >
-> Last update: Phase 8 Notification Event Integration completed (see §17).
+> Last update: Phase 9 Diet & Nutrition completed (see §17).
 
 ---
 
@@ -11,7 +11,7 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second), `phase9-diet-nutrition` (Phase 9) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
@@ -76,7 +76,7 @@ The Docker stack is up and **healthy** with the Phase 2 topology **plus the live
 - Host-side dev processes are down at this checkpoint (Docker is the active stack).
 
 ## 6. Rollback point
-- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`, `phase6-push-notifications`, `phase7-reminder-scheduler`, `phase8-pet-care-reminders`, `phase8-notification-events`.
+- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`, `phase6-push-notifications`, `phase7-reminder-scheduler`, `phase8-pet-care-reminders`, `phase8-notification-events`, `phase9-diet-nutrition`.
 - `git reset --hard phase2-nginx-routing` returns to the pre-tunnel stack; `phase1-docker-env` to the Caddy era; `v0-baseline` is the pre-Docker state. `.env` files (root + `backend/`), `certs/`, `uploads/` are local and preserved.
 
 ## 7. Bootstrap (for a fresh checkout / next developer)
@@ -392,3 +392,27 @@ Every domain event now flows through the shared Phase 5 service (Phase 6 push fo
 
 ### Phase 8 second checkpoint
 - Commit → tag `phase8-notification-events`. Rollback: `git reset --hard phase8-notification-events`.
+
+## 17. Phase 9 status — ✅ COMPLETED (Diet & Nutrition)
+
+Pet-specific diet/nutrition profile system (one `PetDiet` per pet) replacing the frontend-only mock, wired into the Phase 7/8 reminder engine and Phase 5/6 notifications. Full details in `ROADMAP.md` §10 (Phase 9 status).
+
+### What changed
+- **Backend**: new `models/PetDiet.js` (`user` + `pet` unique index; `foodType` dry|wet|raw|homemade|mixed; `brand`; `dailyPortionGrams` 1–20000; `timezone` IANA default UTC; `activityLevel` low|moderate|high; `allergies[]`; `treatPolicy`; `notes`; `meals[]` `{_id:true, label, time HH:mm, portionGrams 0–20000, isActive}`). New `controllers/diet.controller.js` + `routes/diet.routes.js` (`GET /api/diet`, `GET/PUT/DELETE /api/diet/:petId`, owner-guarded via `Pet.findOne({_id, owner})`); `utils/dietGuide.util.js` informational-only guidance (`completion/summary/notes/gaps/feedsPerDayLabel/disclaimer`, no fabricated medical claims). `models/Reminder.js` source enum + `"diet"`; `services/reminder.service.js` gains `upsertFeedingMealReminder`/`deactivateFeedingMealReminder`/`deactivateDietMealReminders` (one daily `feeding` reminder per active meal, unique `{user, source:"diet", sourceId: meal._id}`). `server.js` mounts `/api/diet`. Conservative notification: "Diet profile created" once per pet on create only (edits/delete silent).
+- **Frontend**: `pages/health.html` nutrition mock card replaced with per-pet card (dynamic completion circle, summary/tags/notes/gaps/disclaimer) + `#dietModal` editor (food type/brand/portion/activity/timezone/allergies/treat policy/notes + up to 8 dynamic meal rows). `js/health.js`: `dietsMap`, `fetchDiets()`, `renderNutrition()` (conic-gradient %), modal open/save/remove + wiring, re-render on pet change. `css/health.css`: `.nutrition-*`, `.meal-row`, `.modal-actions/.modal-cancel/.diet-save-btn` reusing the shared modal/form-row/`.save-record-btn` patterns.
+
+### Verified (2026-09-20, live stack — `ROADMAP.md` §10 for the full matrix)
+- API suite (`compose/scripts/phase9-diet-api.cjs`): **58 checks, 0 failed** — auth/ownership isolation, validation matrix, full-profile completion 100%, meal→reminder linkage + timing/reschedule/deactivate/restore, conservative notification + dedup, preference gate (`types.pet=false` suppresses event, reminders still schedule), delete (diet removed + reminders deactivated, silent), double-delete 404.
+- Scheduler-integration suite (`compose/scripts/phase9-diet-scheduler.cjs`): **19 checks, 0 failed** — full producer loop meal → `upsertFeedingMealReminder` (idempotent) → `processDueReminders` fires → in-app notification (`metadata.reminderType=feeding`, "Food reminder is due", pet name, reminder reference) → daily advance (`fired`); `channels.inApp=false` consumes silently (`skipped`, advances, no notification, no retry loop).
+- Regression green: `phase8-reminders-api.cjs` 59/0, `phase8-notification-events.cjs` 63/0, `phase8-scheduler-check.cjs` 6/0.
+- `node --check` clean on all touched backend files + `frontend/js/health.js`.
+- E2E: `backend` + `frontend` rebuilt + healthy; `pages/health.html` served 200 via nginx `:8080` with Phase 9 DOM markers AND public HTTPS `https://famipet.catlium.in/pages/health.html`.
+- DB hygiene restored: 0 `@famipet.test` fixtures (a pre-fix crashed run's leaked user purged), 0 `petdiets`; real users/data untouched.
+
+### Decisions / deferrals recorded
+- Meals ≤ 8; times strictly `HH:mm`; `meal._id` preserved across edits only when legitimately owned (reminder identity stable through renames).
+- Meal-time → reminder sync is best-effort (`try/catch`, never blocks the diet save); removed/inactive meals deactivate reminders (`lastStatus:"skipped"`); feeding reminders fire through the Phase 7 scheduler (no second scheduler).
+- Notification is conservative and created-once (deferred: phase-11 recs and any "diet expired/missed feeding" nags remain opt-in per ROADMAP §8).
+
+### Phase 9 checkpoint
+- Commit → tag `phase9-diet-nutrition`. Rollback: `git reset --hard phase9-diet-nutrition`.

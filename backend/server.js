@@ -178,6 +178,7 @@ app.use('/api/ai', require('./routes/ai.routes'));
 app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/push', require('./routes/push.routes'));
 app.use('/api/reminders', require('./routes/reminder.routes'));
+app.use('/api/diet', require('./routes/diet.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 
 

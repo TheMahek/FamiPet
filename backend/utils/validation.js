@@ -135,6 +135,12 @@ const NOTIFICATION_CATEGORIES = [
   "pet",
 ];
 const NOTIFICATION_PRIORITIES = ["low", "normal", "high", "urgent"];
+// Diet & Nutrition enums (Phase 9). User-entered values only; see PetDiet
+// model + dietGuide.util.js. Food type + activity level mirror PetDiet enums.
+const FOOD_TYPES = ["dry", "wet", "raw", "homemade", "mixed"];
+const DIET_ACTIVITY_LEVELS = ["low", "moderate", "high"];
+const MAX_MEALS = 8;
+const MAX_PORTION_GRAMS = 20000;
 
 module.exports = {
   isValidObjectId,
@@ -160,4 +166,8 @@ module.exports = {
   NOTIFICATION_TYPES,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_PRIORITIES,
+  FOOD_TYPES,
+  DIET_ACTIVITY_LEVELS,
+  MAX_MEALS,
+  MAX_PORTION_GRAMS,
 };

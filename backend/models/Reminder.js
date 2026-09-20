@@ -95,7 +95,7 @@ const reminderSchema = new mongoose.Schema(
     // Precise producer linkage. `source` distinguishes manual reminders from
     // auto-created ones (e.g. appointments); `sourceId` identifies the exact
     // origin document so updates/cancels never match the wrong reminder.
-    source: { type: String, enum: ["manual", "appointment"], default: "manual" },
+    source: { type: String, enum: ["manual", "appointment", "diet"], default: "manual" },
     sourceId: { type: mongoose.Schema.Types.ObjectId },
   },
   { timestamps: true }

@@ -495,6 +495,102 @@ const cancelAppointmentReminder = async ({ user, appointment }) => {
   return res;
 };
 
+/* =====================================================
+   HELPERS FOR PRODUCERS (Pet Diet feeding schedule, Phase 9)
+   =====================================================
+   Each active meal on a pet's diet profile owns ONE daily "feeding"
+   reminder, linked precisely by source "diet" + sourceId = meal._id (same
+   one-reminder-per-producer guarantee as appointments). Upserting keeps the
+   same reminder aligned when a meal's time/label changes; deactivating turns
+   it off when the meal is removed or disabled. Times are interpreted in the
+   diet's own timezone (the user's wall-clock), exactly like manual reminders.
+ */
+
+const DIET_ANCHOR_RE = /^[0-9a-fA-F]{24}$/;
+
+/**
+ * Create or refresh the single daily feeding reminder for one diet meal.
+ * Idempotent by (user, source, sourceId) — no duplicates across re-saves.
+ * @param {object} args { user, pet, meal, timezone, context? }
+ */
+const upsertFeedingMealReminder = async ({ user, pet, meal, timezone = "UTC", context = "" }) => {
+  const Reminder = require("../models/Reminder");
+  const mealTime = typeof meal.time === "string" ? meal.time.trim() : "";
+  // Anchor on the current calendar day; recurring math steps forward to the
+  // first future occurrence, so the anchor day itself never matters.
+  const anchor = new Date();
+  const nextRunAt = computeNextRunAt({
+    date: anchor,
+    time: mealTime,
+    timezone,
+    frequency: "daily",
+  });
+
+  const label = typeof meal.label === "string" && meal.label.trim()
+    ? meal.label.trim()
+    : "mealtime";
+  const title = `Feed ${label}`;
+  const description = String(context || "")
+    .slice(0, 1000);
+  const mealId = meal._id ? meal._id : meal;
+
+  return Reminder.findOneAndUpdate(
+    { user: user._id ? user._id : user, source: "diet", sourceId: mealId },
+    {
+      $set: {
+        title,
+        type: "feeding",
+        description,
+        pet,
+        date: anchor,
+        time: mealTime,
+        timezone: isValidTimeZone(timezone) ? timezone : "UTC",
+        frequency: "daily",
+        priority: "normal",
+        notificationEnabled: true,
+        isActive: true,
+        isCompleted: false,
+        nextRunAt,
+        lastStatus: "pending",
+        lastError: "",
+        failedAttempts: 0,
+      },
+      $unset: { claimedUntil: "" },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+  );
+};
+
+/**
+ * Deactivate a single meal's feeding reminder (meal removed / disabled).
+ * Scoped strictly to (user, source, sourceId) — can never nudge another row.
+ */
+const deactivateFeedingMealReminder = async ({ user, mealId }) => {
+  const Reminder = require("../models/Reminder");
+  const id = mealId && mealId._id ? mealId._id : mealId;
+  if (!id || !DIET_ANCHOR_RE.test(String(id))) return null;
+  return Reminder.findOneAndUpdate(
+    { user: user._id ? user._id : user, source: "diet", sourceId: id },
+    { $set: { isActive: false, lastStatus: "skipped", lastError: "Meal removed from diet." } },
+    { new: true }
+  );
+};
+
+/**
+ * Deactivate every feeding reminder belonging to a set of meal ids (diet
+ * profile deletion). Best effort; silently no-ops on an empty list.
+ */
+const deactivateDietMealReminders = async ({ user, mealIds }) => {
+  const Reminder = require("../models/Reminder");
+  const ids = Array.isArray(mealIds) ? mealIds.filter((id) => DIET_ANCHOR_RE.test(String(id))) : [];
+  if (!ids.length) return 0;
+  const res = await Reminder.updateMany(
+    { user: user._id ? user._id : user, source: "diet", sourceId: { $in: ids } },
+    { $set: { isActive: false, lastStatus: "skipped", lastError: "Diet profile removed." } }
+  );
+  return res.modifiedCount || 0;
+};
+
 module.exports = {
   TIME_RE,
   timeError,
@@ -513,4 +609,7 @@ module.exports = {
   rescheduleAppointmentReminder,
   cancelAppointmentReminder,
   appointmentTitle,
+  upsertFeedingMealReminder,
+  deactivateFeedingMealReminder,
+  deactivateDietMealReminders,
 };

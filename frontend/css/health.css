@@ -1307,6 +1307,265 @@ body:has(#sidebar-container) .main-content {
     font-weight: 700;
 }
 
+.nutrition-info {
+    flex: 1 1 auto;
+
+    min-width: 0;
+}
+
+.nutrition-notes {
+    list-style: none;
+
+    padding: 0;
+
+    margin: 0 0 0.55rem;
+}
+
+.nutrition-notes li {
+    position: relative;
+
+    padding-left: 0.9rem;
+
+    font-size: 0.66rem;
+
+    line-height: 1.5;
+
+    color: var(--text-muted);
+
+    margin-bottom: 0.25rem;
+}
+
+.nutrition-notes li::before {
+    content: "\2022";
+
+    position: absolute;
+
+    left: 0;
+
+    color: var(--mint-dark);
+}
+
+.nutrition-warning {
+    font-size: 0.62rem;
+
+    line-height: 1.5;
+
+    color: #b45309;
+
+    background: #fef3e2;
+
+    border-radius: 8px;
+
+    padding: 0.4rem 0.55rem;
+
+    margin: 0 0 0.55rem;
+}
+
+.nutrition-disclaimer {
+    font-size: 0.55rem;
+
+    line-height: 1.45;
+
+    font-style: italic;
+
+    color: var(--text-muted);
+
+    opacity: 0.85;
+
+    margin-bottom: 0.55rem;
+}
+
+.nutrition-actions {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 0.45rem;
+
+    margin-top: 0.55rem;
+}
+
+.nutrition-edit-btn,
+.nutrition-remove-btn {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 0.35rem;
+
+    padding: 0.4rem 0.7rem;
+
+    border-radius: 50px;
+
+    font-size: 0.62rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    border: 1px solid var(--border);
+
+    background: white;
+
+    color: var(--mint-dark);
+
+    transition: 0.2s ease;
+}
+
+.nutrition-edit-btn:hover {
+    background: var(--mint-light);
+
+    border-color: var(--mint);
+}
+
+.nutrition-remove-btn {
+    color: #dc6c6c;
+
+    background: #fff8f8;
+}
+
+.nutrition-remove-btn:hover {
+    background: #ffefef;
+}
+
+/* Diet edit modal — meal rows */
+
+.meal-row {
+    display: grid;
+
+    grid-template-columns: 1.2fr 0.9fr 0.8fr auto;
+
+    gap: 0.5rem;
+
+    align-items: center;
+
+    margin-bottom: 0.5rem;
+}
+
+.meal-row input {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 0.55rem 0.6rem;
+
+    border: 1px solid var(--border);
+
+    border-radius: 9px;
+
+    outline: none;
+
+    font-family: inherit;
+
+    font-size: 0.68rem;
+
+    color: var(--text-dark);
+
+    background: #fbfdfc;
+}
+
+.meal-row input:focus {
+    border-color: #9bdaca;
+
+    box-shadow: 0 0 0 3px rgba(59, 191, 155, 0.08);
+}
+
+.remove-meal-btn {
+    width: 30px;
+
+    height: 30px;
+
+    border-radius: 50%;
+
+    border: 1px solid var(--border);
+
+    background: white;
+
+    color: #dc6c6c;
+
+    font-size: 1rem;
+
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.remove-meal-btn:hover {
+    background: #ffefef;
+}
+
+.add-meal-btn {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 0.35rem;
+
+    padding: 0.5rem 0.9rem;
+
+    border-radius: 50px;
+
+    border: 1px dashed var(--mint);
+
+    background: var(--mint-light);
+
+    color: var(--mint-dark);
+
+    font-size: 0.68rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    margin-top: 0.25rem;
+}
+
+.add-meal-btn:hover {
+    background: #d6eee7;
+}
+
+.modal-actions {
+    display: flex;
+
+    gap: 0.7rem;
+
+    margin-top: 0.6rem;
+}
+
+.modal-cancel {
+    flex: 1;
+
+    padding: 0.75rem;
+
+    border-radius: 50px;
+
+    border: 1px solid var(--border);
+
+    background: white;
+
+    color: var(--text-muted);
+
+    font-family: inherit;
+
+    font-size: 0.75rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.modal-cancel:hover {
+    background: #f5f8f7;
+}
+
+.diet-save-btn {
+    flex: 1;
+
+    width: auto;
+}
+
 
 /* =========================================================
    HEALTH TIPS

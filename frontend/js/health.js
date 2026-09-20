@@ -8,6 +8,7 @@
     "use strict";
 
     let petsMap = {};
+    let dietsMap = {};
     let allRecords = [];
     let allVaccinations = [];
     let allAppointments = [];
@@ -110,7 +111,33 @@
         notificationList: $("notificationList"),
         markNotificationsRead: $("markNotificationsRead"),
         vaccMenuBtn: $("vaccMenuBtn"),
-        vaccMenu: $("vaccMenu")
+        vaccMenu: $("vaccMenu"),
+        nutritionCompletion: $("nutritionCompletion"),
+        nutritionCircle: $("nutritionCircle"),
+        nutritionBody: $("nutritionBody"),
+        nutritionTitle: $("nutritionTitle"),
+        nutritionSummary: $("nutritionSummary"),
+        nutritionTags: $("nutritionTags"),
+        nutritionNotes: $("nutritionNotes"),
+        nutritionGaps: $("nutritionGaps"),
+        nutritionDisclaimer: $("nutritionDisclaimer"),
+        editDietBtn: $("editDietBtn"),
+        removeDietBtn: $("removeDietBtn"),
+        dietModal: $("dietModal"),
+        closeDietModal: $("closeDietModal"),
+        cancelDietBtn: $("cancelDietBtn"),
+        dietForm: $("dietForm"),
+        dietModalPetName: $("dietModalPetName"),
+        dietFoodType: $("dietFoodType"),
+        dietBrand: $("dietBrand"),
+        dietDailyPortion: $("dietDailyPortion"),
+        dietActivity: $("dietActivity"),
+        dietTimezone: $("dietTimezone"),
+        dietAllergies: $("dietAllergies"),
+        dietTreatPolicy: $("dietTreatPolicy"),
+        dietNotes: $("dietNotes"),
+        dietMealRows: $("dietMealRows"),
+        addMealBtn: $("addMealBtn")
     };
 
     /* ---------- API helpers ---------- */
@@ -247,6 +274,20 @@
         }
     }
 
+    async function fetchDiets() {
+        dietsMap = {};
+        try {
+            var res = await FamiPetAPI.get("/diet");
+            (res.diets || []).forEach(function (d) {
+                var petId = d.pet && typeof d.pet === "object" ? d.pet._id : d.pet;
+                if (petId) dietsMap[petId] = d;
+            });
+        } catch (err) {
+            console.error("Failed to fetch diets:", err);
+            alert("Could not load diets: " + (err.message || err));
+        }
+    }
+
     function formatTime(timeStr) {
         if (!timeStr) return "\u2014";
         var parts = String(timeStr).split(":");
@@ -299,6 +340,82 @@
 
     /* ---------- UI render ---------- */
 
+    function escAttr(value) {
+        return escapeHtml(value == null ? "" : String(value));
+    }
+
+    function mealCountOf(diet) {
+        return (diet && diet.meals || []).filter(function (m) { return m && m.isActive !== false; }).length || 0;
+    }
+
+    function renderNutrition() {
+        var diet = dietsMap[selectedPet];
+        var guidance = diet && diet.guidance ? diet.guidance : null;
+        var pct = guidance && isFinite(guidance.completion) ? guidance.completion : 0;
+
+        if (elements.nutritionCompletion) {
+            elements.nutritionCompletion.textContent = pct + "%";
+        }
+        if (elements.nutritionCircle) {
+            var deg = Math.max(0, Math.min(360, Math.round(pct * 3.6)));
+            elements.nutritionCircle.style.background =
+                "conic-gradient(var(--mint) 0deg " + deg + "deg, #e8f1ee " + deg + "deg 360deg)";
+        }
+
+        if (!elements.nutritionTitle || !elements.nutritionBody) return;
+
+        if (!diet) {
+            elements.nutritionTitle.textContent = "No Diet Profile";
+            elements.nutritionSummary.textContent =
+                "No diet profile yet for this pet. Add food type, portion and meal times — feeding reminders follow the schedule.";
+            elements.nutritionTags.innerHTML = "";
+            elements.nutritionNotes.innerHTML = "";
+            elements.nutritionGaps.style.display = "none";
+            elements.nutritionDisclaimer.textContent = guidance ? guidance.disclaimer : "";
+            elements.removeDietBtn.style.display = "none";
+            return;
+        }
+
+        elements.nutritionTitle.textContent = "Daily Nutrition";
+
+        var parts = [];
+        if (diet.foodType) parts.push(diet.foodType.charAt(0).toUpperCase() + diet.foodType.slice(1));
+        if (diet.dailyPortionGrams) parts.push(diet.dailyPortionGrams + " g/day");
+        var meals = (diet.meals || []).filter(function (m) { return m && m.isActive !== false; });
+        if (meals.length) parts.push(meals.length === 1 ? "1 meal time" : meals.length + " meal times");
+        elements.nutritionSummary.textContent = parts.length
+            ? parts.join(" • ") + "."
+            : "Food, portion and meal times recorded below.";
+
+        var tags = [];
+        if (diet.foodType) tags.push("Diet: " + diet.foodType);
+        if (diet.brand) tags.push(escAttr(diet.brand));
+        if (diet.dailyPortionGrams) tags.push(diet.dailyPortionGrams + " g/day");
+        if (diet.activityLevel) tags.push(diet.activityLevel + " activity");
+        (diet.allergies || []).forEach(function (a) { tags.push(escAttr(a) + " \u00d7 allergy"); });
+        meals.forEach(function (m) { tags.push(formatTime(m.time)); });
+        if (!diet.foodType && !diet.brand && !diet.dailyPortionGrams && !tags.length) tags.push("Not set");
+        elements.nutritionTags.innerHTML = tags.map(function (t) {
+            return "<span>" + t + "</span>";
+        }).join("");
+
+        var notes = guidance && Array.isArray(guidance.notes) ? guidance.notes : [];
+        elements.nutritionNotes.innerHTML = notes.map(function (n) {
+            return "<li>" + escAttr(n) + "</li>";
+        }).join("");
+
+        var gaps = guidance && Array.isArray(guidance.gaps) ? guidance.gaps : [];
+        if (gaps.length) {
+            elements.nutritionGaps.style.display = "";
+            elements.nutritionGaps.textContent = "Note: " + gaps.join(" ");
+        } else {
+            elements.nutritionGaps.style.display = "none";
+        }
+
+        elements.nutritionDisclaimer.textContent = guidance ? guidance.disclaimer : "";
+        elements.removeDietBtn.style.display = "";
+    }
+
     function updatePet() {
         var pet = petsMap[selectedPet];
         if (!pet) return;
@@ -310,11 +427,6 @@
         elements.currentPetImage.alt = pet.name;
         elements.heroPetImage.src = pet.image;
         elements.heroPetImage.alt = pet.name + " - Healthy Pet";
-
-        var nutritionText = document.querySelector(".nutrition-info p");
-        if (nutritionText) {
-            nutritionText.textContent = pet.name + "'s current diet is well balanced.";
-        }
 
         var healthText = String(pet.health || "Good").toLowerCase();
         var cardStrong = document.querySelector(".health-floating-card strong");
@@ -758,6 +870,158 @@
         }
     }
 
+    /* ---------- diet & nutrition modal ---------- */
+
+    function closeDietModal() {
+        elements.dietModal?.classList.remove("open");
+    }
+
+    function mealRowTemplate(meal) {
+        var row = document.createElement("div");
+        row.className = "meal-row";
+        if (meal && meal._id) row.setAttribute("data-id", meal._id);
+
+        var label = document.createElement("input");
+        label.type = "text";
+        label.className = "meal-label";
+        label.placeholder = "e.g. Breakfast";
+        label.maxLength = 40;
+        label.value = meal && meal.label ? meal.label : "";
+        row.appendChild(label);
+
+        var time = document.createElement("input");
+        time.type = "time";
+        time.className = "meal-time";
+        time.value = meal && meal.time ? meal.time : "";
+        row.appendChild(time);
+
+        var portion = document.createElement("input");
+        portion.type = "number";
+        portion.className = "meal-portion";
+        portion.placeholder = "g";
+        portion.min = "0";
+        portion.max = "20000";
+        portion.step = "1";
+        if (meal && meal.portionGrams !== undefined && meal.portionGrams !== null) {
+            portion.value = meal.portionGrams;
+        }
+        row.appendChild(portion);
+
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove-meal-btn";
+        remove.setAttribute("aria-label", "Remove meal time");
+        remove.innerHTML = "&times;";
+        remove.addEventListener("click", function () { row.remove(); });
+        row.appendChild(remove);
+
+        return row;
+    }
+
+    function renderMealRows(meals) {
+        if (!elements.dietMealRows) return;
+        elements.dietMealRows.innerHTML = "";
+        (meals || []).forEach(function (meal) {
+            elements.dietMealRows.appendChild(mealRowTemplate(meal));
+        });
+    }
+
+    function openDietModal() {
+        var diet = dietsMap[selectedPet];
+        var petName = petsMap[selectedPet] ? petsMap[selectedPet].name : "this pet";
+        if (elements.dietModalPetName) elements.dietModalPetName.textContent = petName;
+
+        elements.dietFoodType.value = diet && diet.foodType ? diet.foodType : "";
+        elements.dietBrand.value = diet && diet.brand ? diet.brand : "";
+        elements.dietDailyPortion.value = diet && diet.dailyPortionGrams ? diet.dailyPortionGrams : "";
+        elements.dietActivity.value = diet && diet.activityLevel ? diet.activityLevel : "";
+        elements.dietTimezone.value = diet && diet.timezone && diet.timezone !== "UTC" ? diet.timezone : "";
+        elements.dietAllergies.value = diet && diet.allergies ? diet.allergies.join(", ") : "";
+        elements.dietTreatPolicy.value = diet && diet.treatPolicy ? diet.treatPolicy : "";
+        elements.dietNotes.value = diet && diet.notes ? diet.notes : "";
+
+        renderMealRows((diet && diet.meals || []).filter(function (m) { return m.isActive !== false; }));
+        if (!elements.dietMealRows.children.length) renderMealRows([null]);
+
+        elements.dietModal?.classList.add("open");
+        setTimeout(function () { elements.dietFoodType?.focus(); }, 100);
+    }
+
+    function addMealRow() {
+        if (!elements.dietMealRows) return;
+        if (elements.dietMealRows.children.length >= 8) {
+            alert("You can set at most 8 meal times.");
+            return;
+        }
+        elements.dietMealRows.appendChild(mealRowTemplate(null));
+    }
+
+    function dietPayload() {
+        var meals = [];
+        (elements.dietMealRows.children).forEach(function (row) {
+            var time = (row.querySelector(".meal-time") || {}).value || "";
+            if (!time) return;
+            var m = {
+                label: (row.querySelector(".meal-label") || {}).value || "",
+                time: time
+            };
+            var portion = (row.querySelector(".meal-portion") || {}).value;
+            if (portion === "" || portion === null || portion === undefined) {
+                m.portionGrams = undefined;
+            } else {
+                m.portionGrams = Number(portion);
+            }
+            var rowId = row.getAttribute("data-id");
+            if (rowId) m._id = rowId;
+            meals.push(m);
+        });
+
+        var payload = { meals: meals };
+        if (elements.dietFoodType.value) payload.foodType = elements.dietFoodType.value;
+        if (elements.dietBrand.value.trim()) payload.brand = elements.dietBrand.value.trim();
+        if (elements.dietDailyPortion.value) payload.dailyPortionGrams = Number(elements.dietDailyPortion.value);
+        if (elements.dietActivity.value) payload.activityLevel = elements.dietActivity.value;
+        if (elements.dietTimezone.value.trim()) payload.timezone = elements.dietTimezone.value.trim();
+        var allergies = elements.dietAllergies.value.split(",")
+            .map(function (s) { return s.trim(); })
+            .filter(Boolean);
+        if (allergies.length) payload.allergies = allergies;
+        if (elements.dietTreatPolicy.value.trim()) payload.treatPolicy = elements.dietTreatPolicy.value.trim();
+        if (elements.dietNotes.value.trim()) payload.notes = elements.dietNotes.value.trim();
+        return payload;
+    }
+
+    async function saveDiet(event) {
+        event.preventDefault();
+        if (!selectedPet) return;
+
+        var payload = dietPayload();
+        try {
+            await FamiPetAPI.put("/diet/" + encodeURIComponent(selectedPet), payload);
+            closeDietModal();
+            await fetchDiets();
+            renderNutrition();
+            var petName = petsMap[selectedPet] ? petsMap[selectedPet].name : "your pet";
+            addNotification("Diet updated", "The diet profile for " + petName + " was saved. Feeding reminders follow the schedule.");
+        } catch (err) {
+            alert("Failed to save diet: " + (err.message || err));
+        }
+    }
+
+    async function removeDiet() {
+        if (!selectedPet) return;
+        var petName = petsMap[selectedPet] ? petsMap[selectedPet].name : "this pet";
+        if (!confirm("Remove the diet profile and feeding reminders for " + petName + "?")) return;
+        try {
+            await FamiPetAPI.del("/diet/" + encodeURIComponent(selectedPet));
+            await fetchDiets();
+            renderNutrition();
+            addNotification("Diet removed", "The diet profile for " + petName + " was removed.");
+        } catch (err) {
+            alert("Failed to remove diet: " + (err.message || err));
+        }
+    }
+
     /* ---------- events ---------- */
 
     function setupEvents() {
@@ -809,6 +1073,7 @@
             renderRecords();
             renderVaccinations();
             renderAppointment();
+            renderNutrition();
         });
 
         elements.healthSearch?.addEventListener("input", function () {
@@ -836,6 +1101,16 @@
         elements.rescheduleAppointmentBtn?.addEventListener("click", openRescheduleModal);
         elements.cancelAppointmentBtn?.addEventListener("click", cancelAppointment);
 
+        elements.editDietBtn?.addEventListener("click", openDietModal);
+        elements.closeDietModal?.addEventListener("click", closeDietModal);
+        elements.cancelDietBtn?.addEventListener("click", closeDietModal);
+        elements.dietModal?.addEventListener("click", function (event) {
+            if (event.target === elements.dietModal) closeDietModal();
+        });
+        elements.dietForm?.addEventListener("submit", saveDiet);
+        elements.addMealBtn?.addEventListener("click", addMealRow);
+        elements.removeDietBtn?.addEventListener("click", removeDiet);
+
         elements.notificationBtn?.addEventListener("click", function (event) {
             event.stopPropagation();
             var open = elements.notificationPanel.classList.toggle("open");
@@ -855,6 +1130,7 @@
                 closeModal();
                 closeVaccinationModal();
                 closeRescheduleModal();
+                closeDietModal();
                 toggleVaccMenu(false);
                 elements.notificationPanel?.classList.remove("open");
                 elements.notificationBtn?.setAttribute("aria-expanded", "false");
@@ -878,13 +1154,14 @@
         notifications = [];
 
         await fetchPets();
-        await Promise.all([fetchHealthRecords(), fetchVaccinations(), fetchNotifications(), fetchAppointments()]);
+        await Promise.all([fetchHealthRecords(), fetchVaccinations(), fetchNotifications(), fetchAppointments(), fetchDiets()]);
 
         updatePet();
         updateStats();
         renderRecords();
         renderVaccinations();
         renderAppointment();
+        renderNutrition();
         renderNotifications();
         setupEvents();
         syncRecordTypeFields();
