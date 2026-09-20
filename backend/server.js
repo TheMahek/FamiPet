@@ -35,6 +35,12 @@ const app = express();
 
 app.disable('x-powered-by');
 
+// Requests arrive through the nginx reverse proxy with a single trusted hop
+// (X-Forwarded-For). Trust that hop so req.ip and the rate-limit keys see the
+// real client address instead of the proxy container's IP. Direct dev access
+// without the proxy sends no X-Forwarded-For and falls back to the socket IP.
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet({
   // Uploads (avatars, pet/community/lost-found images) must be embeddable
@@ -225,6 +231,12 @@ function startFrontendFallback() {
   });
 }
 
-startFrontendFallback();
+// The nginx reverse proxy serves the static frontend in Docker, so the built-in
+// Express fallback listener is redundant there and is disabled via
+// SERVE_FRONTEND_FALLBACK=false (set in docker-compose.yml). The host dev flow
+// (npm start outside Docker) keeps it by default.
+if (process.env.SERVE_FRONTEND_FALLBACK !== 'false') {
+  startFrontendFallback();
+}
 
 module.exports = app;

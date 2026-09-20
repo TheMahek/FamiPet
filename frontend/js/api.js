@@ -28,7 +28,8 @@ const FamiPetAPI = (function () {
     // API base resolution, evaluated lazily on EVERY request:
     //   1. window.__FAMIPET_CONFIG__.API_BASE  – set by frontend/js/config.js
     //      to the PUBLIC backend URL (production) or the same-origin "/api"
-    //      (HTTPS through the Caddy reverse proxy). config.js is loaded
+    //      (served through the nginx reverse proxy / future Cloudflare HTTPS).
+    //      config.js is loaded
     //      asynchronously via document.write above, so reading it eagerly at
     //      parse time can grab the value BEFORE config.js ran and wrongly fall
     //      back to the local dev URL. Lazy resolution fixes that: by the time

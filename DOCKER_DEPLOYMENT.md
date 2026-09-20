@@ -38,7 +38,8 @@ Names only — values are never stored in Dockerfiles, images, or Compose:
 
 `PORT`, `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRE`, `CLIENT_URL`, `FRONTEND_URL`,
 `BACKEND_URL`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`,
-`EMAIL_SERVICE`, `EMAIL_USER`, `EMAIL_PASS`, `GEMINI_API_KEY`, `NODE_ENV`.
+`EMAIL_SERVICE`, `EMAIL_USER`, `EMAIL_PASS`, `GEMINI_API_KEY`, `NODE_ENV`,
+`SERVE_FRONTEND_FALLBACK` (set `false` by Compose — see §13).
 
 Copy the template and fill real (never-committed) values:
 
@@ -84,9 +85,10 @@ docker compose build --no-cache    # only if stale layers are suspected
 
 Images (built locally; never pushed):
 
-- `famipet-frontend:production` — nginx static site on port 5502
-- `famipet-backend:production` — Node 26 alpine API on port 5000
-- `mongo:8` — official database image
+- `famipet-nginx:production` — dedicated nginx reverse proxy on port 80 (the ONLY published service)
+- `famipet-frontend:production` — nginx static site on port 5502 (internal)
+- `famipet-backend:production` — Node 26 alpine API on port 5000 (internal)
+- `mongo:8` — official database image (internal)
 
 ## 7. Stopping Containers
 
@@ -102,6 +104,7 @@ docker compose down       # stop AND remove containers/networks
 ```
 docker compose logs -f backend
 docker compose logs -f frontend
+docker compose logs -f nginx
 docker compose logs -f mongodb
 ```
 
@@ -109,11 +112,12 @@ Logs do **not** print environment variables or secrets.
 
 ## 9. Health Checks
 
-| Service  | Endpoint                                      | Notes             |
-|----------|-----------------------------------------------|-------------------|
-| frontend | `http://127.0.0.1:5502/` (wget)               | added             |
-| backend  | `http://127.0.0.1:5000/api/status` (wget)     | existing endpoint |
-| mongodb  | `mongosh --eval "db.runCommand({ping:1}).ok"` | built-in ping     |
+| Service  | Endpoint                                      | Notes                  |
+|----------|-----------------------------------------------|------------------------|
+| nginx    | `http://127.0.0.1/` (wget, via proxy → frontend) | proxy entry, Phase 2  |
+| frontend | `http://127.0.0.1:5502/` (wget)               | internal static server |
+| backend  | `http://127.0.0.1:5000/api/status` (wget)     | existing endpoint      |
+| mongodb  | `mongosh --eval "db.runCommand({ping:1}).ok"` | built-in ping          |
 
 ```
 docker compose ps
@@ -156,20 +160,22 @@ never hardcoded):
 
 ## 13. Security Considerations
 
-- Backend runs as the non-root `node` user with **ALL Linux capabilities dropped**,
-  `no-new-privileges`, and a **read-only root filesystem** (writes only in `/app/uploads`
-  and `/tmp`).
 - nginx hides its version and sends `nosniff`/`X-Frame-Options`/`Referrer-Policy` headers.
 - MongoDB is internal-only; no host port.
 - `.env` is excluded from images and Git.
-- Firewall: only ports 5502 (frontend) and 5000 (backend API) are ever published.
+- Firewall: only the nginx proxy ports `80` and `8080` are published. Frontend
+  (5502), backend API (5000) and MongoDB (27017) stay on the internal Docker
+  networks and are **never** published. The backend additionally runs with its
+  built-in frontend-fallback listener disabled (`SERVE_FRONTEND_FALLBACK=false`).
 
 ## 14. HTTPS Requirement
 
-Production **must** use HTTPS (TLS) in front of the frontend and backend ports — via a
-platform load balancer / reverse proxy with Let's Encrypt or a provider certificate.
-This phase intentionally created **no** certificates or private keys. Build/up tests use
-plain HTTP on localhost only.
+Production **must** use HTTPS (TLS). The Phase-2 Compose stack is HTTP-only:
+the dedicated nginx proxy publishes plain HTTP on `:80`/`:8080` and terminates
+no TLS itself. Public HTTPS is delivered by the Cloudflare edge and Tunnel
+(next deployment phase) which routes straight into the nginx proxy container;
+until then, use plain HTTP on localhost/LAN only. This phase introduced **no**
+certificates or private keys.
 
 ## 15. Domain Configuration
 
@@ -210,8 +216,11 @@ Configuration values that will eventually need the production domain (not yet se
   restart Docker Desktop, re-run `docker info`.
 - **Backend container unhealthy** → MySQL/Mongo not ready or `.env` incomplete:
   check `docker compose logs backend` and confirm `MONGODB_URI` host value.
-- **Frontend can't reach API** → the browser calls port 5000; ensure backend port is
-  published and firewall allows it. Long-term: put both behind one domain (reverse proxy).
+- **Frontend can't reach API** → the browser hits the same-origin `/api` path,
+  which the nginx proxy forwards to the private backend. If it fails, check
+  `docker compose logs nginx` (proxy/upstream errors) and `docker compose logs
+  backend`. Long-term: keep both behind the nginx proxy and the public domain
+  (Cloudflare Tunnel in a later phase).
 - **Uploads fail** → Cloudinary credentials missing/invalid; fallback writes to the
   `backend_uploads` volume.
 - **Email verification links broken** → `CLIENT_URL` mismatch between backend config and

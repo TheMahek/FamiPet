@@ -30,14 +30,18 @@
 window.__FAMIPET_CONFIG__ = window.__FAMIPET_CONFIG__ || {};
 
 // API base resolution:
-//   - HTTPS pages (served through the Caddy reverse proxy): talk to the API on
-//     the SAME origin via the relative "/api" path (avoids mixed content).
-//   - HTTP pages (Live Server / local fallback): leave API_BASE empty so api.js
-//     falls back to the local backend on the same host, port 5000
-//     ("http://<host>:5000/api"). Pointing these pages at "https://<host>/api"
-//     would fail with a connection error whenever the Caddy proxy is not
-//     reachable on port 443.
+//   - HTTPS pages: talk to the API on the SAME origin via "/api" (avoids
+//     mixed content; delivered by the Cloudflare edge in production).
+//   - HTTP pages served through the dedicated nginx reverse proxy (the Docker
+//     entry point on the default port 80 or the published alternative 8080):
+//     same-origin "/api" again — nginx proxies /api* to the private backend.
+//   - Any other HTTP page (Live Server 5502/5503 or the Express dev fallback):
+//     leave API_BASE empty so api.js falls back to the local backend on the
+//     same host, port 5000 ("http://<host>:5000/api").
 if (!window.__FAMIPET_CONFIG__.API_BASE) {
+    const proxyPorts = ["", "80", "8080"]; // empty = default port 80
     window.__FAMIPET_CONFIG__.API_BASE =
-        window.location.protocol === "https:" ? "/api" : "";
+        window.location.protocol === "https:" || proxyPorts.includes(window.location.port)
+            ? "/api"
+            : "";
 }

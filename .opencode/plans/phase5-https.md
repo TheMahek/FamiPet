@@ -1,5 +1,11 @@
 # Phase 5 — FamiPet HTTPS/SSL Security: Implementation Plan
 
+> **STATUS: SUPERSEDED (2026-09-19).** This plan's Caddy + mkcert approach was
+> executed and then replaced by `ROADMAP.md` Phase 2, which removes Caddy. The
+> Compose stack now exposes a dedicated `nginx:alpine` reverse proxy on plain
+> HTTP (`:80`/`:8080`); public HTTPS moves to a Cloudflare Tunnel in `ROADMAP.md`
+> Phase 3. This document is kept for history only.
+
 Status: APPROVED by user (further questions answered: mkcert OK, only 80/443 exposed,
 cert covers 172.30.240.1 + localhost). Session is awaiting exit from plan mode to execute.
 

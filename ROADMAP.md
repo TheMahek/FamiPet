@@ -220,6 +220,37 @@ Remove Caddy entirely. Nginx (the existing frontend container) becomes the singl
 - ✅ Full user journey over nginx (register→verify→login→dashboard→upload).
 - ✅ Backend/Mongo private; no leftover Caddy artifacts or references.
 
+## 10. Phase 2 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase2-nginx-routing`)
+
+**Architecture decision (documented):** A **dedicated `nginx:alpine` proxy container** now fronts the stack, rather than extending the static frontend container — matching the agreed target architecture (`nginx:alpine ─ / → frontend, /api/, /uploads/ → backend → MongoDB`). The existing frontend nginx container stays static-only (internal 5502).
+
+**Implemented:**
+- New service `nginx` (`nginx/Dockerfile`, `nginx/nginx.conf`, `nginx/.dockerignore`; image `famipet-nginx:production`): sole published entry (`80:80`, `8080:80`), joins both networks, `depends_on` frontend+backend healthy, `client_max_body_size 10m` (≥ multer 5MB cap). Routing: `^~ /api` and `^~ /uploads` → `proxy_pass http://backend:5000` (original URI preserved — no double-slash), `/` → `http://frontend:5502`; X-Real-IP / X-Forwarded-* headers set.
+- **Caddy removed**: service, `Caddyfile` (git rm), `caddy_data`/`caddy_config` volumes (compose + orphan volumes deleted).
+- `docker-compose.yml`: two networks unchanged; mongodb + backend still internal & unpublished; backend gains `SERVE_FRONTEND_FALLBACK=false`.
+- `backend/server.js`: `app.set('trust proxy', 1)` (correct client IP / rate-limit keys behind the proxy); Express frontend-fallback listener gated by `SERVE_FRONTEND_FALLBACK` (off in Docker, default on for host dev).
+- `frontend/js/config.js`: API base resolution for the new topology — HTTPS **or** proxy ports `80`/`8080` (incl. default no-port) → same-origin `/api`; other HTTP dev ports (5502/5503/…) keep the `<host>:5000` dev fallback. `api.js` comment updated.
+- `backend/.env.example`, `DOCKER_DEPLOYMENT.md`: nginx proxy + `SERVE_FRONTEND_FALLBACK`; `.opencode/plans/phase5-https.md` marked superseded.
+
+**Verified (all against the rebuilt Docker stack):**
+- `docker compose config` valid; 3 images built; cold `up -d` → nginx/frontend/backend/mongodb all healthy.
+- No caddy container/volume/reference remains (incl. orphan volumes removed).
+- `http://localhost/` (and `:8080`) → 200 frontend; `/js/config.js`, pages, css, real `/assets/...` 200.
+- `/api/status` OK; `/api/breeds` DB-backed **count 5 = data persisted**; `/api/pets` 200; `/api/nonexistent` 404 JSON (no double-slash).
+- `/uploads/phase2-proxy-test.png` proxied to backend (then removed). In-container backend→mongo ping `{ok:1}`.
+- Backend listens on :5000 **only** (fallback disabled); frontend/backend/mongodb publish **no** host ports; nginx publishes 80+8080.
+- Port 443 is dark (HTTPS terminator intentionally removed until Phase 3 cloudflared) — verified connection-refused.
+- Logs clean; `node --check` passed on edited JS.
+
+**Findings / notes for later phases:**
+- API responses can carry duplicate `X-Content-Type-Options`/`X-Frame-Options` and conflicting `Referrer-Policy` (`no-referrer` from helmet + `strict-origin-when-cross-origin` from nginx). Cosmetic/pre-existing (existed under Caddy too). Optional tidy in a later phase.
+- `/assets/logo.png` does not exist (assets live in `icons/images/logos` subfolders) — 404 is correct, not a regression.
+- Host-side dev processes (`node` on 5000/5502, Live Server 5503) are **not running** as of this checkpoint; Docker is the only active stack. Host dev flow still documented in `DOCKER_DEPLOYMENT.md` §4 and works unchanged.
+- verify→login→dashboard E2E and email links still deferred to Phase 4 / Phase 3 (HTTPS).
+- Rate-limit keys now see the real client IP (trust proxy 1 + nginx XFF) — pre-existing `req.ip`-keying issue resolved by design.
+
+**Go/no-go: GO** — Caddy-free, nginx-proxied stack is live and verified; Cloudflare Tunnel (Phase 3) will route into the `nginx` container.
+
 ---
 
 # Phase 3 — Cloudflare Tunnel

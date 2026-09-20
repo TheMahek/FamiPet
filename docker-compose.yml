@@ -13,22 +13,20 @@
 # service name "mongodb" instead of the old localhost host.
 #
 # SECURITY MODEL:
-#  - Two isolated networks: "frontend" for the static site
-#    and "backend" for the API + database. The frontend is
-#    static-only (the browser calls the backend, never the
-#    container), so it shares no network with the backend or
-#    MongoDB.
+#  - Two isolated networks: "frontend" for the static site and "backend"
+#    for the API + database. The dedicated nginx reverse proxy (service
+#    "nginx") is the SINGLE published entry point and joins BOTH networks
+#    so it can reach the static frontend and the backend API by service
+#    name, while neither is exposed to the host.
 #  - Backend runs as the non-root "node" user with ALL Linux
-#    capabilities dropped, no-new-privileges, and a read-only
-#    root filesystem (writes allowed only in /app/uploads via
-#    the named volume and /tmp via tmpfs).
-#  - Frontend keeps the stock nginx root master (required to
-#    drop to its non-root worker user); only no-new-privileges
-#    is added. An init process (tini) guards all services.
-#  - MongoDB is internal-only (no host port) and isolated on
-#    the backend network.
-#  - Reasonable resource limits prevent runaway containers.
-# =========================================================
+#    capabilities dropped, no-new-privileges, and a read-only root
+#    filesystem (writes allowed only in /app/uploads via the named
+#    volume and /tmp via tmpfs).
+#  - nginx keeps the stock nginx root master, which is required to drop
+#    to its non-root worker user; only no-new-privileges is added. An
+#    init process (tini) guards all services.
+#  - MongoDB is internal-only (no host port) and isolated on the
+#    backend network.
 
 services:
 
@@ -43,8 +41,8 @@ services:
     init: true
     security_opt:
       - no-new-privileges:true
-    # Internal only for now: reached exclusively by the Caddy reverse
-    # proxy over the Docker network. No host port is published.
+    # Internal only: reached exclusively by the nginx reverse proxy over
+    # the Docker network. No host port is published.
     expose:
       - "5502"
     networks:
@@ -82,8 +80,11 @@ services:
       # Compose network the DB is reachable via its service name.
       # (environment entries override env_file values in Compose.)
       - MONGODB_URI=mongodb://mongodb:27017/petDB
-    # Internal only for now: reached exclusively by the Caddy reverse
-    # proxy over the Docker network. No host port is published.
+      # The nginx proxy now serves the frontend, so the backend's built-in
+      # Express frontend-fallback listener must be disabled in Docker.
+      - SERVE_FRONTEND_FALLBACK=false
+    # Internal only: reached exclusively by the nginx reverse proxy over
+    # the Docker network. No host port is published.
     expose:
       - "5000"
     volumes:
@@ -131,45 +132,37 @@ services:
     mem_limit: 2g
     cpus: 1.0
 
-  # -------- CADDY (HTTPS reverse proxy) --------
-  # Terminates TLS on 80/443 and is the ONLY publicly reachable service.
-  # It joins both Docker networks so it can reach the static frontend and
-  # the backend API by service name, while MongoDB stays private.
-  # Certificates are mkcert-issued and mounted read-only from ./certs
-  # (never committed - see the root .gitignore). No secrets live here.
-  caddy:
-    image: caddy:2.9-alpine
-    container_name: famipet-caddy
+  # -------- NGINX (single public entry point / reverse proxy) --------
+  # Dedicated nginx:alpine container: the ONLY published application
+  # service (host HTTP :80 and :8080). It joins both Docker networks so
+  # it can reverse-proxy /api* + /uploads* to the private backend and
+  # serve the static frontend container. Terminates no TLS itself:
+  # HTTPS arrives via Cloudflare Tunnel in a later phase.
+  nginx:
+    build:
+      context: ./nginx
+    # Deterministic local image name/tag (used by build + rollback; never pushed).
+    image: famipet-nginx:production
+    container_name: famipet-nginx
     restart: unless-stopped
     init: true
     security_opt:
       - no-new-privileges:true
-    # Public entry point: HTTP (redirect) + HTTPS.
+    # Public entry point: HTTP on 80 (primary) + 8080 (alternative/published
+    # LAN port). Planned phase-3 Cloudflare Tunnel routes into this container.
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      # Reverse-proxy routes + security headers.
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # mkcert certificate + private key (read-only, host-side only).
-      - ./certs:/certs:ro
-      # Caddy state (TLS session data) + autosaved config.
-      - caddy_data:/data
-      - caddy_config:/config
+      - "8080:80"
     networks:
       - famipet-frontend-net
       - famipet-backend-net
     depends_on:
-      - frontend
-      - backend
-    # Health against Caddy's own admin API (always on localhost:2019).
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
-      interval: 30s
-      timeout: 5s
-      start_period: 10s
-      retries: 3
-    mem_limit: 256m
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    # Resource protection: nginx proxy is lightweight.
+    mem_limit: 128m
     cpus: 0.5
 
 # -------- NETWORKS (isolation: frontend vs backend+db) --------
@@ -183,5 +176,3 @@ networks:
 volumes:
   mongodb_data:
   backend_uploads:
-  caddy_data:
-  caddy_config:
