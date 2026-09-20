@@ -1347,6 +1347,20 @@ if (country) {
         toggles.forEach(
             toggle => {
 
+                /* Phase 5: backend-backed toggles (notification
+                   preferences) are managed by js/notifications.js;
+                   skip them here so localStorage never fights the
+                   server-persisted value. */
+
+                if (
+                    toggle.hasAttribute(
+                        "data-preferences"
+                    )
+                ) {
+                    return;
+                }
+
+
                 const setting =
                     toggle.dataset.setting;
 

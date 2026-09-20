@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 4 checkpoint).
+> Single project-status document for the enhancement work (Phase 5 checkpoint).
 >
-> Last update: Phase 4 completed (see §12).
+> Last update: Phase 5 completed (see §13).
 
 ---
 
@@ -11,7 +11,7 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
@@ -76,7 +76,7 @@ The Docker stack is up and **healthy** with the Phase 2 topology **plus the live
 - Host-side dev processes are down at this checkpoint (Docker is the active stack).
 
 ## 6. Rollback point
-- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`.
+- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`.
 - `git reset --hard phase2-nginx-routing` returns to the pre-tunnel stack; `phase1-docker-env` to the Caddy era; `v0-baseline` is the pre-Docker state. `.env` files (root + `backend/`), `certs/`, `uploads/` are local and preserved.
 
 ## 7. Bootstrap (for a fresh checkout / next developer)
@@ -258,3 +258,27 @@ Test user `e2e.owner1@test.famipet.in` + all test records deleted (users 3, pets
 
 ### Phase 4 checkpoint
 - Commit → tag `phase4-e2e-validation`. Rollback: `git reset --hard phase4-e2e-validation`.
+
+## 13. Phase 5 status — ✅ COMPLETED (Notification Core)
+
+Shared notification foundation: extended model + preferences model, single service entry point, backward-compatible API with pagination/filters/preferences, shared opt-in frontend component, and a Notification Preferences panel on Settings. Full details in `ROADMAP.md` §10 (Phase 5 status).
+
+### What changed
+- **Backend** (uncommitted-at-start work finished, rebuilt into the image): `models/Notification.js` extended additively (`category`, `priority`, `referenceType`/`referenceId`, `metadata`, `dedupKey` + 3 indexes), new `models/NotificationPreference.js` (unique `user`, channels + per-type Map), new `services/notification.service.js` (`createNotification` with validation/dedup/preferences-gate — never throws, never breaks producers), `controllers/notification.controller.js` + `routes/notification.routes.js` (pagination `page`/`limit` capped at 200, `type`/`category` filters, `GET/PUT /preferences`, `PUT /read-all`; old shape preserved), producers migrated (`appointment.controller.js` booking, `adoption.controller.js` status), `Dockerfile` `COPY services ./services`, `utils/validation.js` enum helpers.
+- **Frontend**: new shared opt-in `js/notifications.js` (`window.FamiPetNotifications`: list, badge, mark-read/all-read, delete, preferences renderer); Notification Preferences card on `pages/settings.html`; `js/settings.js` skips `[data-preferences]` toggles in the generic toggle handler; small styles in `css/settings.css`.
+
+### Verified (see ROADMAP §10 for the full matrix)
+- API suite: **52 checks, 0 failed** (auth 401/403, empty state, preferences, filter validation, pagination, mark-read idempotent, read-all, delete, cross-user isolation, producer E2E, regression endpoints).
+- In-container service probe: **18 checks, 0 failed** (dedup collapses within window, type/channel gates, skipPreferences bypass, validation edge cases; rows cleaned).
+- Indexes confirmed in `petDB`; stack healthy after `docker compose build backend` + recreate; nginx `:8080` and public tunnel both serve `/`, `/api/status`, `settings.html`, `/js/notifications.js` (200); `/api/notifications` over tunnel unauth → 401.
+
+### Decisions / deferrals recorded
+- The 9 per-page notification dropdowns are preserved (already backward-compatible with the API); shared component is opt-in — full dropdown refactor deferred (avoid unnecessary rewrites). Details in ROADMAP.
+- Dedup is opt-in per producer via `dedupKey` (appointment/adoption already pass stable keys).
+- `User.notifications[]` backref remains dead; additive-only phase, no migration run.
+
+### State restored after tests
+Test users `phase5.ownerA/B/C@test.famipet.in` deleted (3 users, 2 pets, 2 appointments, 2 reminders, 1 preference row, 0 notifications); `backend/.env` `EMAIL_TRANSPORT=json` removed (default transport restored) and backend recreated healthy; seed users and real user `siddiquiummehabiba41@gmail.com` untouched.
+
+### Phase 5 checkpoint
+- Commit → tag `phase5-notification-core`. Rollback: `git reset --hard phase5-notification-core`.

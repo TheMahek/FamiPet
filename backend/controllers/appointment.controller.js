@@ -1,8 +1,8 @@
 const Appointment = require("../models/Appointment");
 const Pet = require("../models/Pet");
 const Veterinarian = require("../models/Veterinarian");
-const Notification = require("../models/Notification");
 const Reminder = require("../models/Reminder");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   APPOINTMENT_TYPES,
@@ -106,11 +106,23 @@ exports.createAppointment = async (req, res) => {
       notes: notes || "",
     });
 
-    await Notification.create({
+    await notificationService.createNotification({
       user: req.user._id,
+      type: "appointment",
+      category: "appointment",
       title: "Appointment Booked",
       message: `Your appointment is booked for ${appointmentDate.toDateString()} at ${time}.`,
-      type: "appointment",
+      priority: "normal",
+      referenceType: "appointment",
+      referenceId: appointment._id,
+      metadata: {
+        pet,
+        veterinarian,
+        date: appointmentDate.toISOString(),
+        time,
+        type: type ? String(type).toLowerCase() : "checkup",
+      },
+      dedupKey: `appointment-booked-${appointment._id}`,
     });
 
     // -------------------------------------------------

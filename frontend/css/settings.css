@@ -925,6 +925,38 @@ select {
 
 
 /* =========================================================
+   NOTIFICATION PREFERENCES (Phase 5 shared component)
+========================================================= */
+
+.preferences-heading {
+
+    padding: 12px 12px 6px;
+
+    margin: 0;
+
+    color: var(--purple);
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.08em;
+
+}
+
+
+.preference-row.unavailable {
+
+    opacity: 0.55;
+
+    pointer-events: none;
+
+}
+
+
+/* =========================================================
    PASSWORD
 ========================================================= */
 

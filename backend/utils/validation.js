@@ -105,6 +105,29 @@ const REMINDER_TYPES = [
 const REMINDER_FREQUENCIES = ["once", "daily", "weekly", "monthly"];
 const VACCINATION_STATUSES = ["Pending", "Completed"];
 const ADOPTION_STATUSES = ["Pending", "Approved", "Rejected"];
+// Notification enums (Phase 5). Additive only — values must match
+// backend/models/Notification.js; new values appended, never reordered.
+const NOTIFICATION_TYPES = [
+  "adoption",
+  "appointment",
+  "vaccination",
+  "health",
+  "reminder",
+  "system",
+  "other",
+];
+const NOTIFICATION_CATEGORIES = [
+  "adoption",
+  "appointment",
+  "vaccination",
+  "health",
+  "reminder",
+  "community",
+  "lost_found",
+  "system",
+  "other",
+];
+const NOTIFICATION_PRIORITIES = ["low", "normal", "high", "urgent"];
 
 module.exports = {
   isValidObjectId,
@@ -126,4 +149,7 @@ module.exports = {
   REMINDER_FREQUENCIES,
   VACCINATION_STATUSES,
   ADOPTION_STATUSES,
+  NOTIFICATION_TYPES,
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_PRIORITIES,
 };

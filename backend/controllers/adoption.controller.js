@@ -1,6 +1,6 @@
 const Adoption = require("../models/Adoption");
 const Pet = require("../models/Pet");
-const Notification = require("../models/Notification");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   ADOPTION_STATUSES,
@@ -154,11 +154,21 @@ exports.updateAdoptionStatus = async (req, res) => {
       });
     }
 
-    await Notification.create({
+    await notificationService.createNotification({
       user: adoption.user,
+      type: "adoption",
+      category: "adoption",
       title: `Adoption Request ${status}`,
       message: `Your adoption request for ${adoption.pet.name} is now ${status.toLowerCase()}.`,
-      type: "adoption",
+      priority: status === "Approved" ? "high" : "normal",
+      referenceType: "adoption",
+      referenceId: adoption._id,
+      metadata: {
+        adoptionStatus: status,
+        petName: adoption.pet.name,
+        petId: adoption.pet._id,
+      },
+      dedupKey: `adoption-status-${adoption._id}-${status.toLowerCase()}`,
     });
 
     res.json({

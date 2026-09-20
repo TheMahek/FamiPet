@@ -477,6 +477,32 @@ Design and implement a **shared, reusable notification system** — model, servi
 - ✅ Shared service in place; legacy producers migrated; dedup + preferences verified.
 - ✅ Backward-compatible API + UI (existing pages unaffected).
 
+## 10. Phase 5 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase5-notification-core`)
+
+**What shipped**
+- `backend/models/Notification.js` extended additively: `category` (defaults to `type`), `priority` (`low|normal|high|urgent`, default `normal`), `referenceType`/`referenceId`, `metadata` (plain-object, ≤2000 serialized bytes), optional `dedupKey`. Indexes added: `{user,isRead,createdAt:-1}`, `{user,type,category,dedupKey,createdAt:-1}`, `{referenceType,referenceId}`. Old enum values preserved in `NOTIFICATION_TYPES`/`NOTIFICATION_CATEGORIES`/`NOTIFICATION_PRIORITIES` (see `backend/utils/validation.js`).
+- `backend/models/NotificationPreference.js` (new): one doc per user, `channels { inApp, email, push }`, `types` as Map, unique `user` index; lazily created with defaults (`inApp:true`, email/push off, no type overrides).
+- `backend/services/notification.service.js` (new): single `createNotification(input)` entry point used by all producers. Ownership comes from caller context (never client input). Validates every field (bad input → graceful `{success:false, skipped:true, reason}`; never throws and never breaks the triggering feature op). Optional dedup (`dedupKey` + default 1h window, capped at 7d). Preferences gate: `channels.inApp === false` or `types[type] === false` suppress creation (could be bypassed via `options.skipPreferences` for critical/system events). Also exports `getOrCreatePreferences`, `updatePreferences`, `countUnread`.
+- `backend/controllers/notification.controller.js` + `backend/routes/notification.routes.js`: paginated/filterable list (`page`, `limit` capped at 200, default 50; `type`/`category` filters validated), retuned `total/totalPages` added while old shape preserved; `/unread` stays fully unpaginated by design (badge count = true unread total); GET/PUT `/preferences` (self-only, strict field allowlist); `PUT /:id/read`, `PUT /read-all`, `DELETE /:id` all user-scoped; static routes ordered above `/:id`.
+- Producers migrated to the service: `appointment.controller.js` (booking → "Appointment Booked") and `adoption.controller.js` (status update → "Adoption Request …"). `server.js` already mounted `/api/notifications` (unchanged).
+- `backend/Dockerfile`: added `COPY services ./services` so the new service file ships in the image.
+- Frontend: new shared opt-in component `frontend/js/notifications.js` (`window.FamiPetNotifications` — list, unread badge, mark-read/all-read, delete, and a preferences renderer driving the backend endpoints). Notification Preferences card added to `frontend/pages/settings.html` behind `<div id="notificationPreferences">`; `frontend/js/settings.js` generic toggle handler now skips inputs with `data-preferences` so backend-persisted toggles never fight the localStorage `annSetting_` logic; small `.preferences-heading`/`.unavailable` styles added to `frontend/css/settings.css`.
+
+**Decisions / deferrals (recorded)**
+- The 9 per-page notification dropdowns (`dashboard-data.js`, `appointments.js`, `health.js`, `community.js`, `breeds.js`, `breed-details.js`, `pet-id.js`, `lost-found.js`, `adoption.js`) already fetch/render list + badge + mark-read/all-read against the backward-compatible API. They are preserved untouched; the shared component is **opt-in** for new UI (preferences panel) and future phases. A top-down dropdown refactor is deferred (consistent with "avoid unnecessary rewrites"; existing pages verified unaffected).
+- Dedup is opt-in per producer via `dedupKey` (appointment/adoption events already pass stable keys) rather than blanket dedup-on-every-create.
+- `User.notifications[]` backref remains dead/unused; no migration run (additive-only phase).
+
+**Validation run (2026-09-20, live stack)**
+- `node --check` on all 10 touched backend JS files + `notifications.js`/`settings.js`.
+- API suite (52 checks, 0 failed): unverified login blocked (403); unauth endpoints 401; empty state; default + updated preferences; invalid PUT bodies 400; appointment booking emits notification E2E; unread badge; type/category filter + invalid filter 400; mark-read idempotent, unknown-id 404, bad-id 400; read-all → unread 0; pagination (limit/`totalPages`/cap at 200); cross-user isolation (A cannot read/delete B's: 404, lists exclude); delete + gone 404; regression on `/api/status`, `/api/health`, `/api/auth/me`, `/api/pets/my`, `/api/appointments`, `/api/breeds`.
+- In-container service probe (18 checks, 0 failed): dedup collapses identical events inside the window (1 row), type-disabled and channel-inApp-disabled gates skip, `skipPreferences` bypass works, validation rejects invalid user/type/category/title/priority/oversized-metadata/bad-reference, normal create succeeds; probe rows cleaned up.
+- Indexes verified in `petDB` for `notifications` (3) and `notificationpreferences` (unique `user`).
+- E2E: stack healthy; nginx on :8080 and public tunnel both serve `/`, `/api/status` (200), `/js/notifications.js` (200), `settings.html` (200); `/api/notifications` over tunnel returns 401 unauthenticated.
+- Test users (A/B/C), their pets/appointments/reminders and the preference row deleted; `EMAIL_TRANSPORT=json` temporary override removed from `backend/.env` (reverted to normal transport) and the backend recreated healthy.
+
+**Commits/tags**: checkpoint commit `Phase 5: notification core (model, service, API, preferences, shared UI)`, tag `phase5-notification-core`.
+
 ---
 
 # Phase 6 — Push Notifications
