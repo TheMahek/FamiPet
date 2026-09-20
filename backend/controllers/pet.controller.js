@@ -1,6 +1,7 @@
 const Pet = require("../models/Pet");
 const Breed = require("../models/Breed");
 const QRCode = require("qrcode");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   escapeRegExp,
@@ -329,6 +330,29 @@ exports.createPet = async (req, res) => {
     } catch (qrError) {
       console.error("QR Generation Warning:", qrError);
     }
+
+    // -------------------------------------------------
+    // PET CREATED NOTIFICATION (Phase 8 events): only the
+    // owner is notified; the created pet references types
+    // added for the pet-management module.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user.id,
+      type: "pet",
+      category: "pet",
+      title: "Pet Added",
+      message: `Your pet ${pet.name} has been added to your family.`,
+      priority: "normal",
+      referenceType: "pet",
+      referenceId: pet._id,
+      metadata: {
+        petId: String(pet._id),
+        petName: pet.name,
+        species: pet.species,
+      },
+      dedupKey: `pet-created-${pet._id}`,
+    });
 
     res.status(201).json({
       success: true,

@@ -205,21 +205,57 @@ exports.updateAppointment = async (req, res) => {
       }
     }
 
+    const prevDate = appointment.date;
+    const prevTime = appointment.time;
+
     Object.assign(appointment, updates);
 
     await appointment.save();
 
-    // ------------------------------------------------
+    // -------------------------------------------------
     // RESYNC THE AUTO-CREATED REMINDER WHEN RESCHEDULED
     // (Phase 7: targeted via source+sourceId — the old
     // fuzzy title+slot updateMany could touch the wrong
     // reminder)
-    // ------------------------------------------------
+    // -------------------------------------------------
 
     try {
       await reminderService.rescheduleAppointmentReminder({ user: req.user, appointment });
     } catch (reminderErr) {
       console.error("Appointment reminder resync failed (non-blocking):", reminderErr.message);
+    }
+
+    // -------------------------------------------------
+    // RESCHEDULE NOTIFICATION (Phase 8 events): only a real
+    // date/time move is user-noticeable; symptom/note edits
+    // (the user's own ongoing entry) do not notify.
+    // -------------------------------------------------
+
+    const rescheduled =
+      (updates.date !== undefined &&
+        prevDate &&
+        updates.date.getTime() !== prevDate.getTime()) ||
+      (updates.time !== undefined &&
+        prevTime &&
+        String(updates.time) !== String(prevTime));
+
+    if (rescheduled) {
+      await notificationService.createNotification({
+        user: req.user._id,
+        type: "appointment",
+        category: "appointment",
+        title: "Appointment Rescheduled",
+        message: `Your appointment was rescheduled to ${appointment.date.toDateString()} at ${appointment.time}.`,
+        priority: "normal",
+        referenceType: "appointment",
+        referenceId: appointment._id,
+        metadata: {
+          pet: appointment.pet,
+          date: appointment.date.toISOString(),
+          time: appointment.time,
+        },
+        dedupKey: `appointment-rescheduled-${appointment._id}`,
+      });
     }
 
     res.json({
@@ -260,6 +296,27 @@ exports.deleteAppointment = async (req, res) => {
     } catch (reminderErr) {
       console.error("Appointment reminder cancel failed (non-blocking):", reminderErr.message);
     }
+
+    // ------------------------------------------------
+    // CANCELLATION NOTIFICATION (Phase 8 events)
+    // ------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user._id,
+      type: "appointment",
+      category: "appointment",
+      title: "Appointment Cancelled",
+      message: `Your appointment for ${appointment.date.toDateString()} at ${appointment.time} was cancelled.`,
+      priority: "normal",
+      referenceType: "appointment",
+      referenceId: appointment._id,
+      metadata: {
+        pet: appointment.pet,
+        date: appointment.date.toISOString(),
+        time: appointment.time,
+      },
+      dedupKey: `appointment-cancelled-${appointment._id}`,
+    });
 
     res.json({
       success: true,

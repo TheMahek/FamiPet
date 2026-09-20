@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { sendEmail } = require("../config/email");
 const { isSafeImageValue } = require("../utils/imageUpload");
+const notificationService = require("../services/notification.service");
 
 // Email verification tokens are valid for 24 hours.
 const VERIFY_TOKEN_TTL_MS =
@@ -301,6 +302,25 @@ exports.register = async (req, res) => {
     });
 
     // -------------------------------------------------
+    // WELCOME NOTIFICATION (Phase 8 events): a brand-new
+    // user has no notification prefs yet, so the service
+    // defaults to in-app delivery.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: user._id,
+      type: "system",
+      category: "system",
+      title: "Welcome to FamiPet!",
+      message: `Hi ${user.name}! Your account has been created. Verify your email address to unlock everything FamiPet offers.`,
+      priority: "normal",
+      metadata: {
+        userId: String(user._id),
+      },
+      dedupKey: `user-welcome-${user._id}`,
+    });
+
+    // -------------------------------------------------
     // FRONTEND VERIFICATION URL
     // -------------------------------------------------
 
@@ -586,6 +606,23 @@ exports.verifyEmail = async (req, res) => {
     user.emailVerificationExpire = undefined;
 
     await user.save();
+
+    // -------------------------------------------------
+    // EMAIL VERIFIED NOTIFICATION (Phase 8 events).
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: user._id,
+      type: "system",
+      category: "system",
+      title: "Email Verified",
+      message: "Your email address is verified and your FamiPet account is now fully active.",
+      priority: "normal",
+      metadata: {
+        userId: String(user._id),
+      },
+      dedupKey: `user-verified-${user._id}`,
+    });
 
     console.log(
       "================================="
@@ -1195,6 +1232,23 @@ exports.changePassword = async (
       newPassword;
 
     await user.save();
+
+    // -------------------------------------------------
+    // PASSWORD CHANGED NOTIFICATION (Phase 8 events).
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: user._id,
+      type: "system",
+      category: "system",
+      title: "Password Changed",
+      message: "Your FamiPet account password was successfully updated.",
+      priority: "high",
+      metadata: {
+        userId: String(user._id),
+      },
+      dedupKey: `password-changed-${user._id}`,
+    });
 
     return res.status(200).json({
       success: true,

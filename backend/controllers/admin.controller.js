@@ -5,6 +5,7 @@ const LostFound = require("../models/LostFound");
 const CommunityPost = require("../models/CommunityPost");
 const PushSubscription = require("../models/PushSubscription");
 const Reminder = require("../models/Reminder");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   LOST_FOUND_TYPES,
@@ -101,6 +102,27 @@ exports.toggleUserBlock = async (req, res) => {
     user.isBlocked = !user.isBlocked;
 
     await user.save();
+
+    // ------------------------------------------------
+    // ACCOUNT BLOCK/UNBLOCK NOTIFICATION (Phase 8 events):
+    // sent to the affected user themselves; blocking is
+    // urgent, unblocking is informational.
+    // ------------------------------------------------
+
+    await notificationService.createNotification({
+      user: user._id,
+      type: "system",
+      category: "system",
+      title: user.isBlocked ? "Account Blocked" : "Account Unblocked",
+      message: user.isBlocked
+        ? "Your account has been blocked by an administrator. Please contact support for assistance."
+        : "Your account has been unblocked and is fully active again.",
+      priority: user.isBlocked ? "urgent" : "normal",
+      metadata: {
+        blocked: user.isBlocked,
+      },
+      dedupKey: `user-block-${user._id}-${user.isBlocked}`,
+    });
 
     res.status(200).json({
       success: true,
@@ -345,6 +367,32 @@ exports.updateLostFoundStatus = async (req, res) => {
       });
     }
 
+    // ------------------------------------------------
+    // LOST & FOUND STATUS CHANGE NOTIFICATION
+    // (Phase 8 events): informs the original reporter
+    // (orphan reports with a deleted user skip silently).
+    // ------------------------------------------------
+
+    if (report.user && report.user._id) {
+      await notificationService.createNotification({
+        user: report.user._id,
+        type: "lost_found",
+        category: "lost_found",
+        title: `Report Marked ${status[0].toUpperCase() + status.slice(1)}`,
+        message: `Your ${report.type} report for ${report.petName} is now marked as ${status}.`,
+        priority: status === "resolved" ? "high" : "normal",
+        referenceType: "lost_found",
+        referenceId: report._id,
+        metadata: {
+          reportId: String(report._id),
+          reportType: report.type,
+          petName: report.petName,
+          status,
+        },
+        dedupKey: `lostfound-status-${report._id}-${status}`,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Report status updated successfully.",
@@ -444,6 +492,31 @@ exports.updateCommunityPostStatus = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Post not found.",
+      });
+    }
+
+    // ------------------------------------------------
+    // POST MODERATION NOTIFICATION (Phase 8 events):
+    // tells the author their post was hidden or restored.
+    // ------------------------------------------------
+
+    if (post.user && post.user._id) {
+      await notificationService.createNotification({
+        user: post.user._id,
+        type: "community",
+        category: "community",
+        title: isActive ? "Post Restored" : "Post Hidden",
+        message: isActive
+          ? "Your community post is visible again."
+          : "Your community post was hidden by a moderator.",
+        priority: isActive ? "normal" : "high",
+        referenceType: "community",
+        referenceId: post._id,
+        metadata: {
+          postId: String(post._id),
+          isActive,
+        },
+        dedupKey: `community-post-status-${post._id}-${isActive}`,
       });
     }
 

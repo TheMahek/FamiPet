@@ -674,7 +674,7 @@ Implement the scheduled-reminder engine: reminders for feeding, walking, medicat
 
 # Phase 8 — Pet Care Reminder System
 
-> **Scope change recorded:** the original plan for this phase was *Notification Event Integration* (wiring every existing domain through the Phase 5 service). Executing phases sequentially, the work that actually shipped here is the **Pet Care Reminder System** — a rich, pet-attached reminder UX layered on the Phase 7 scheduler (categories, repeat rules, priorities, per-reminder notification toggles, and a full reminders page). The original event-integration plan is preserved as a **Deferred backlog** in §10 below so nothing is lost.
+> **Scope change recorded:** the original plan for this phase was *Notification Event Integration* (wiring every existing domain through the Phase 5 service). Executing phases sequentially, the work that actually shipped first is the **Pet Care Reminder System** — a rich, pet-attached reminder UX layered on the Phase 7 scheduler (categories, repeat rules, priorities, per-reminder notification toggles, and a full reminders page). The original event-integration plan was preserved as a **Deferred backlog** in §10 below (nothing lost) and was subsequently implemented as a **second Phase 8 delivery** under checkpoint tag `phase8-notification-events` — see §10.
 
 ## 1. Objective
 Turn the Phase 7 scheduler's raw reminders into a real user-facing feature: pet-attached reminders with meaningful categories, flexible repeat rules, priorities, and per-reminder notification control — surfaced on a dedicated Reminders page (sections, filter tabs, calendar, search) and wired to the scheduler/notifications.
@@ -722,7 +722,7 @@ Turn the Phase 7 scheduler's raw reminders into a real user-facing feature: pet-
 - ✅ Frontend page served via nginx `:8080` with all Phase 8 markers and no JS errors (`node --check` clean).
 - ✅ Backend left green; Phase 5/6/7 regression suites still pass.
 
-## 10. Phase 8 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase8-pet-care-reminders`)
+## 10. Phase 8 status — ✅ COMPLETED (branch `enhancement/famipet`; two checkpoints: tag `phase8-pet-care-reminders`, then tag `phase8-notification-events`)
 
 **What shipped**
 - Backend: `Reminder` model + `utils/validation.js` add types `droplet`/`bath`, frequency `interval` + `repeatInterval` (1–365), `daysOfWeek` (0..6, ≤7 distinct), `priority` (`low|normal|high`), `notificationEnabled` (default true). Controller: `validateScheduleConfig` + owned-pet guard on create/edit, `filter` query (`active` default | `completed` | `inactive` | `all`), `effectiveNext` in list payloads. Scheduler: `notificationEnabled:false` → silent consume; weekly honors `daysOfWeek`.
@@ -730,7 +730,7 @@ Turn the Phase 7 scheduler's raw reminders into a real user-facing feature: pet-
 - Type map: feeding/Food(green), exercise/Walk(blue), droplet/Water(blue), medicine/Medicine(pink), grooming/Grooming(blue), bath/Bath(purple), appointment/Vet Checkup(purple), vaccination/Vaccination(green), custom/Custom(orange).
 
 **Decisions / deferrals (recorded)**
-- **Scope change**: the original "Notification Event Integration" plan is deferred to the backlog below (becomes a later-phase candidate). Nothing was lost.
+- **Scope change**: the original "Notification Event Integration" plan was implemented as a second Phase 8 delivery (checkpoint `phase8-notification-events`, full event inventory + validation in §10).
 - `GET /reminders` default stays **active** for dashboard compatibility; the page requests `?filter=all` and sections client-side.
 - Repeat payload rules: `repeatInterval` sent only when `frequency:interval`; `daysOfWeek` sent only when `frequency:weekly`; other frequencies normalize server-side.
 - Frontend deliberately omits `timezone` → server default `UTC` (consistent app convention, matches Phase 7 tests).
@@ -744,8 +744,24 @@ Turn the Phase 7 scheduler's raw reminders into a real user-facing feature: pet-
 - E2E: stack rebuilt + healthy; `pages/reminders.html`, `js/reminders.js`, `css/reminders.css` served 200 via nginx `:8080` with the Phase 8 DOM/JS markers present; `docker compose ps` all healthy; dashboard loads (backward-compat call shape intact).
 - Schema changes all additive — no migrations required; indexes verified in `petDB`.
 
-**Deferred backlog — Notification Event Integration (original Phase 8 plan, superseded)**
-- Wire the remaining domain events through the Phase 5 service with `dedupKey`s and preference respect (today only adoption-status and appointment-creation notify): appointments (created/upcoming/changed/cancelled), diet & feeding updates (Phase 9 consumer), walking (via Phase 7 `exercise` reminders), health/vaccination "due"-window notifications, lost&found reporter status changes + adoption pet-owner notification, pet created/deleted, community moderation results, system notices. Cross-cutting: register new types additively in the notification enum/preferences; conservative defaults; nothing invented (lost&found matching stays out-of-scope).
+**Deferred backlog — Notification Event Integration (original Phase 8 plan) — ✅ IMPLEMENTED (checkpoint `phase8-notification-events`)**
+- Wired the remaining domain events through the shared Phase 5 service (Phase 6 push for free) with `dedupKey`s + preference respect. New additive types/categories `community`/`lost_found`/`pet` in `NOTIFICATION_TYPES` (+`pet` category) mirrored across `Notification.js`, `utils/validation.js`, `frontend/js/notifications.js`. `pushTargetUrl` maps `appointment`/`community`/`lost_found` deep links.
+- **Event inventory (all with server-derived recipients — the client never picks the recipient):**
+  - Pet mgmt: `pet-created-<id>` (owner).
+  - Health: `health-record-created-<id>` (owner, references the pet).
+  - Vaccination: `vaccination-created-<id>` (owner); `vaccination-status-<id>-completed` on the Pending→Completed transition only (re-save of Completed is silent).
+  - Appointments: `appointment-booked-<id>` (already existed — kept, regression-tested); `appointment-rescheduled-<id>` fires **only** when date/time actually move (symptom/notes edits stay silent); `appointment-cancelled-<id>`.
+  - Lost & Found: `lostfound-created-<id>` (reporter confirmation); `lostfound-status-<id>-<status>` (admin resolve → reporter, priority `high`).
+  - Adoption: `adoption-created-<id>` (applicant submission); `adoption-status-<id>-<status>` (applicant — kept from Phase 5); `adoption-owner-status-<id>-<status>` **pet owner informed** (skipped when the owner is the applicant).
+  - Community: `community-comment-<postId>-<commentId>` + `community-like-<postId>-<actorId>` (author only, self-comments/self-likes silent, repeat likes deduped); `community-post-status-<postId>-<bool>` (admin hide/restore → author).
+  - System/account: `user-welcome-<id>`, `user-verified-<id>`, `password-changed-<id>`; `user-block-<id>-<true|false>` (admin block/unblock → affected user, priority `urgent` when blocked).
+- **Explicitly NOT in scope (recorded):** pet deleted; health/vaccination update/delete; appointment partial (notes-only) edits; self like/comment; lost&found "matching"/subscriptions (nothing invented); community post-create; admin-side "new application" alert; forgot/reset-password via notifications (email-only flows). Default dedup window is the service default (1h; 7d cap).
+- **Validation run (2026-09-20, live stack):**
+  - `node --check` clean on all 8 touched controllers + model + validation + notification service + `frontend/js/notifications.js`.
+  - New suite `compose/scripts/phase8-notification-events.cjs`: **63 checks, 0 failed** — per event group: type/category/dedupKey/title/reference correctness, recipient isolation (no cross-user leakage), preference gating (`channels.inApp=false` and `types.community=false`), dedup idempotency (repeat like, Completed→Completed), and priority checks.
+  - Phase 8 reminder regression: `phase8-reminders-api.cjs` **59 checks, 0 failed**; `phase8-scheduler-check.cjs` **6 checks, 0 failed** (silent consume + scheduler untouched).
+  - E2E: stack rebuilt (`backend` + `frontend`) + healthy (`docker compose ps` all healthy); frontend 200 via nginx `:8080`; public HTTPS 200 at `https://famipet.catlium.in`; `/api/*` proxied through nginx (401 on protected route = routing OK).
+  - DB hygiene restored post-tests (3 real users, 0 `@famipet.test` fixtures; fixture notifications/reminders/adoptions/etc. purged).
 
 ---
 

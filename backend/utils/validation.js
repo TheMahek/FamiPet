@@ -118,6 +118,9 @@ const NOTIFICATION_TYPES = [
   "reminder",
   "system",
   "other",
+  "community",
+  "lost_found",
+  "pet",
 ];
 const NOTIFICATION_CATEGORIES = [
   "adoption",
@@ -129,6 +132,7 @@ const NOTIFICATION_CATEGORIES = [
   "lost_found",
   "system",
   "other",
+  "pet",
 ];
 const NOTIFICATION_PRIORITIES = ["low", "normal", "high", "urgent"];
 

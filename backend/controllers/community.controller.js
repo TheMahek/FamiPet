@@ -1,4 +1,5 @@
 const CommunityPost = require("../models/CommunityPost");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   escapeRegExp,
@@ -347,6 +348,29 @@ exports.toggleLike = async (req, res) => {
 
     await post.save();
 
+    // ------------------------------------------------
+    // NEW LIKE NOTIFICATION (Phase 8 events): only a
+    // freshly-added like from someone other than the author
+    // is notified; unlikes and self-likes stay silent.
+    // ------------------------------------------------
+
+    if (!alreadyLiked && String(post.user) !== userId) {
+      await notificationService.createNotification({
+        user: post.user,
+        type: "community",
+        category: "community",
+        title: "Post Liked",
+        message: "Someone liked your community post.",
+        priority: "normal",
+        referenceType: "community",
+        referenceId: post._id,
+        metadata: {
+          postId: String(post._id),
+        },
+        dedupKey: `community-like-${post._id}-${userId}`,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: alreadyLiked ? "Post unliked." : "Post liked.",
@@ -400,6 +424,31 @@ exports.addComment = async (req, res) => {
     });
 
     await post.save();
+
+    // ------------------------------------------------
+    // NEW COMMENT NOTIFICATION (Phase 8 events): fires for
+    // the post author when someone else replies; own
+    // comments don't notify.
+    // ------------------------------------------------
+
+    const newComment = post.comments[post.comments.length - 1];
+    if (String(post.user) !== String(req.user.id) && newComment && newComment._id) {
+      await notificationService.createNotification({
+        user: post.user,
+        type: "community",
+        category: "community",
+        title: "New Comment on Your Post",
+        message: "Someone commented on your community post.",
+        priority: "normal",
+        referenceType: "community",
+        referenceId: post._id,
+        metadata: {
+          postId: String(post._id),
+          commentId: String(newComment._id),
+        },
+        dedupKey: `community-comment-${post._id}-${newComment._id}`,
+      });
+    }
 
     const updatedPost = await CommunityPost.findById(post._id)
       .populate("user", "name email avatar")

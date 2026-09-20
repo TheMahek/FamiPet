@@ -1,4 +1,5 @@
 const LostFound = require("../models/LostFound");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   escapeRegExp,
@@ -251,6 +252,28 @@ exports.createReport = async (req, res) => {
       contactName: contactName.trim(),
       contactPhone: contactPhone.trim(),
       images: finalImages,
+    });
+
+    // -------------------------------------------------
+    // REPORT CREATED NOTIFICATION (Phase 8 events):
+    // confirms the submission to the reporter.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user.id,
+      type: "lost_found",
+      category: "lost_found",
+      title: "Lost & Found Report Posted",
+      message: `Your ${String(type).toLowerCase()} report for ${petName.trim()} is now live and visible to the community.`,
+      priority: "normal",
+      referenceType: "lost_found",
+      referenceId: report._id,
+      metadata: {
+        reportType: String(type).toLowerCase(),
+        petName: petName.trim(),
+        reportId: String(report._id),
+      },
+      dedupKey: `lostfound-created-${report._id}`,
     });
 
     res.status(201).json({

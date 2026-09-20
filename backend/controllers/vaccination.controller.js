@@ -1,5 +1,6 @@
 const Vaccination = require("../models/Vaccination");
 const Pet = require("../models/Pet");
+const notificationService = require("../services/notification.service");
 const {
   isValidObjectId,
   VACCINATION_STATUSES,
@@ -85,6 +86,28 @@ exports.createVaccination = async (req, res) => {
       veterinarian: typeof req.body.veterinarian === "string" ? req.body.veterinarian.slice(0, 200) : "",
       hospital: typeof req.body.hospital === "string" ? req.body.hospital.slice(0, 200) : "",
       notes: typeof req.body.notes === "string" ? req.body.notes.slice(0, 1000) : "",
+    });
+
+    // -------------------------------------------------
+    // VACCINATION ADDED NOTIFICATION (Phase 8 events).
+    // References the pet so it deep-links to the pet page.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user._id,
+      type: "vaccination",
+      category: "vaccination",
+      title: "Vaccination Added",
+      message: `${vaccineName.trim()} vaccination added for ${petExists.name} (next due ${nextDueDateObj.toDateString()}).`,
+      priority: "normal",
+      referenceType: "pet",
+      referenceId: pet,
+      metadata: {
+        petId: String(pet),
+        petName: petExists.name,
+        vaccinationId: String(vaccination._id),
+      },
+      dedupKey: `vaccination-created-${vaccination._id}`,
     });
 
     res.status(201).json({
@@ -181,8 +204,39 @@ exports.updateVaccination = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid status." });
     }
 
+    const prevStatus = vaccination.status;
+
     Object.assign(vaccination, updates);
     await vaccination.save();
+
+    // -------------------------------------------------
+    // VACCINATION COMPLETED NOTIFICATION (Phase 8 events):
+    // fires on the Pending -> Completed transition (and any
+    // non-Completed -> Completed move), not on re-saves of
+    // an already-completed record.
+    // -------------------------------------------------
+
+    if (updates.status === "Completed" && prevStatus !== "Completed") {
+      const petRef = await Pet.findById(vaccination.pet).select("name").lean();
+      const petName = petRef ? petRef.name : "your pet";
+
+      await notificationService.createNotification({
+        user: req.user._id,
+        type: "vaccination",
+        category: "vaccination",
+        title: "Vaccination Completed",
+        message: `${vaccination.vaccineName} vaccination for ${petName} is now marked complete.`,
+        priority: "normal",
+        referenceType: "pet",
+        referenceId: vaccination.pet,
+        metadata: {
+          petId: String(vaccination.pet),
+          vaccinationId: String(vaccination._id),
+          status: "Completed",
+        },
+        dedupKey: `vaccination-status-${vaccination._id}-completed`,
+      });
+    }
 
     res.json({
       success: true,

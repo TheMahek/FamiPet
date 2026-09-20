@@ -11,6 +11,11 @@ const NOTIFICATION_TYPES = [
   "reminder",
   "system",
   "other",
+  // Phase 8 feature-event integration: community, lost & found and pet
+  // management now flow through the same notification service.
+  "community",
+  "lost_found",
+  "pet",
 ];
 
 // Broader UI-facing group (superset of `type`). Service defaults category to
@@ -26,6 +31,7 @@ const NOTIFICATION_CATEGORIES = [
   "lost_found",
   "system",
   "other",
+  "pet",
 ];
 
 const NOTIFICATION_PRIORITIES = ["low", "normal", "high", "urgent"];

@@ -108,6 +108,28 @@ exports.createAdoption = async (req, res) => {
       reasonForAdoption: String(reasonForAdoption).trim(),
     });
 
+    // -------------------------------------------------
+    // APPLICATION SUBMITTED NOTIFICATION (Phase 8 events):
+    // confirms the request to the applicant and deep-links
+    // to the pet.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user._id,
+      type: "adoption",
+      category: "adoption",
+      title: "Adoption Application Submitted",
+      message: `Your adoption application for ${petExists.name} has been received. We will let you know once it is reviewed.`,
+      priority: "normal",
+      referenceType: "adoption",
+      referenceId: adoption._id,
+      metadata: {
+        petId: String(pet),
+        petName: petExists.name,
+      },
+      dedupKey: `adoption-created-${adoption._id}`,
+    });
+
     res.status(201).json({
       success: true,
       message: "Adoption request submitted successfully.",
@@ -135,7 +157,7 @@ exports.updateAdoptionStatus = async (req, res) => {
     }
 
     const adoption = await Adoption.findById(req.params.id)
-      .populate("pet", "name status adopted");
+      .populate("pet", "name status adopted owner");
 
     if (!adoption) {
       return res.status(404).json({
@@ -170,6 +192,36 @@ exports.updateAdoptionStatus = async (req, res) => {
       },
       dedupKey: `adoption-status-${adoption._id}-${status.toLowerCase()}`,
     });
+
+    // -------------------------------------------------
+    // PET OWNER NOTIFICATION (Phase 8 events): the pet's
+    // owner should be aware when the listing's status + the
+    // linked application move on, unless they are the very
+    // applicant (self-plot — no duplicate).
+    // -------------------------------------------------
+
+    const petOwnerId = adoption.pet && adoption.pet.owner;
+    if (
+      petOwnerId &&
+      String(petOwnerId) !== String(adoption.user)
+    ) {
+      await notificationService.createNotification({
+        user: petOwnerId,
+        type: "adoption",
+        category: "adoption",
+        title: "Adoption Update for Your Pet",
+        message: `${adoption.pet.name} received an adoption update: the request is now ${status.toLowerCase()}.`,
+        priority: "normal",
+        referenceType: "adoption",
+        referenceId: adoption._id,
+        metadata: {
+          adoptionStatus: status,
+          petName: adoption.pet.name,
+          petId: adoption.pet._id,
+        },
+        dedupKey: `adoption-owner-status-${adoption._id}-${status.toLowerCase()}`,
+      });
+    }
 
     res.json({
       success: true,

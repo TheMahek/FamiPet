@@ -266,6 +266,12 @@ const pushTargetUrl = (referenceType, referenceId) => {
   switch (referenceType) {
     case "adoption":
       return "/pages/adoption.html" + (id ? `?id=${encodeURIComponent(id)}` : "");
+    case "appointment":
+      return "/pages/appointments.html";
+    case "community":
+      return "/pages/community.html";
+    case "lost_found":
+      return "/pages/lost-found.html";
     case "pet":
       if (id) return `/pages/pet-details.html?id=${encodeURIComponent(id)}`;
       return "/pages/dashboard.html";

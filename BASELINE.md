@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 6 checkpoint).
+> Single project-status document for the enhancement work (Phase 8 second checkpoint).
 >
-> Last update: Phase 6 completed (see §14).
+> Last update: Phase 8 Notification Event Integration completed (see §17).
 
 ---
 
@@ -11,7 +11,7 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
@@ -76,7 +76,7 @@ The Docker stack is up and **healthy** with the Phase 2 topology **plus the live
 - Host-side dev processes are down at this checkpoint (Docker is the active stack).
 
 ## 6. Rollback point
-- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`, `phase6-push-notifications`.
+- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`, `phase6-push-notifications`, `phase7-reminder-scheduler`, `phase8-pet-care-reminders`, `phase8-notification-events`.
 - `git reset --hard phase2-nginx-routing` returns to the pre-tunnel stack; `phase1-docker-env` to the Caddy era; `v0-baseline` is the pre-Docker state. `.env` files (root + `backend/`), `certs/`, `uploads/` are local and preserved.
 
 ## 7. Bootstrap (for a fresh checkout / next developer)
@@ -339,7 +339,9 @@ Backend healthy; DB back to seed/real users only (`admin@animalplanet.com`, `use
 ### Phase 7 checkpoint
 - Commit → tag `phase7-reminder-scheduler`. Rollback: `git reset --hard phase7-reminder-scheduler`.
 
-## 16. Phase 8 status — ✅ COMPLETED (Pet Care Reminder System)
+## 16. Phase 8 status — ✅ COMPLETED (two checkpoints: Pet Care Reminder System then Notification Event Integration)
+
+### 16a. First checkpoint — `phase8-pet-care-reminders` (Pet Care Reminder System)
 
 Pet-attached reminders with categories, repeat rules, priorities, and per-reminder notification toggles, surfaced on a remade Reminders page (sections, filter tabs, calendar, search) and wired to the Phase 7 scheduler + Phase 5/6 notifications. Full details in `ROADMAP.md` §10 (Phase 8 status).
 
@@ -356,7 +358,7 @@ Pet-attached reminders with categories, repeat rules, priorities, and per-remind
 - Schema changes all additive — no migrations; indexes verified in `petDB`.
 
 ### Decisions / deferrals recorded
-- **Scope change**: the original Phase 8 plan (Notification Event Integration) is deferred to a backlog recorded in `ROADMAP.md` §10 — nothing lost; it becomes a later-phase candidate.
+- **Scope change**: the original Phase 8 plan (Notification Event Integration) shipped as a **second Phase 8 delivery** — checkpoint `phase8-notification-events`, §16b below (full event inventory + validation in `ROADMAP.md` §10).
 - `GET /reminders` default stays **active** for dashboard compatibility; the page requests `?filter=all` and sections client-side.
 - Repeat payload rules: `repeatInterval` sent only when `frequency:interval`; `daysOfWeek` sent only when `frequency:weekly`; other frequencies normalize server-side.
 - Frontend omits `timezone` → server default `UTC` (consistent app convention).
@@ -367,3 +369,26 @@ Backend healthy; DB back to seed/real users only; Phase 8 suites create + purge 
 
 ### Phase 8 checkpoint
 - Commit → tag `phase8-pet-care-reminders`. Rollback: `git reset --hard phase8-pet-care-reminders`.
+
+### 16b. Second checkpoint — `phase8-notification-events` (Notification Event Integration)
+
+Every domain event now flows through the shared Phase 5 service (Phase 6 push for free) with `dedupKey`s and preference respect; recipients are always **derived server-side** from the resource (never client-supplied). New additive types/categories `community`/`lost_found`/`pet` mirrored across `backend/models/Notification.js`, `backend/utils/validation.js`, and `frontend/js/notifications.js`; `pushTargetUrl` deep links added for `appointment`/`community`/`lost_found`.
+
+### What changed
+- **Producers wired** (all fire-and-forget via `notificationService.createNotification`): `pet.controller.js` (pet created), `health.controller.js` (record created, references pet), `vaccination.controller.js` (added + Pending→Completed transition only), `appointment.controller.js` (rescheduled — only when date/time actually move; cancelled), `lostFound.controller.js` (report created → reporter), `adoption.controller.js` (application submitted; pet-owner status change when the owner isn't the applicant), `community.controller.js` (comment + new-like → author, self silent; admin hide/restore → author via `admin.controller.js`), `admin.controller.js` (lost-found resolve → reporter; user block/unblock → affected user, urgent when blocked), `auth.controller.js` (welcome, email verified, password changed).
+- **Frontend**: `js/notifications.js` NOTIFICATION_TYPES + icon mapping extended for the 3 new types (settings prefs renderer shows the new toggles).
+- **Suite**: new `compose/scripts/phase8-notification-events.cjs` (reusable in-container; purges its fixtures).
+
+### Verified (2026-09-20, live stack — `ROADMAP.md` §10 for the full inventory)
+- Event suite **63 checks, 0 failed** — per-group type/category/dedupKey/reference/priority correctness; recipient isolation (no cross-user leakage); preference gating (`channels.inApp=false` and `types.community=false` suppress in-app docs; re-enable restores); dedup idempotency (repeat like, Completed→Completed re-save); self-actions silent; `appointment-booked` regression intact.
+- Phase 8 reminder regression re-run: API **59/59**, scheduler probe **6/6**; `node --check` clean on all touched files.
+- E2E: `backend`+`frontend` containers rebuilt; `docker compose ps` all healthy; frontend 200 via nginx `:8080`; public HTTPS 200; `/api/*` proxied (401 on protected route).
+- DB hygiene: 3 real users, 0 `@famipet.test` fixtures; test notifications/reminders/appointments/adoptions/lost-found/community/pets purged.
+
+### Decisions / deferrals recorded
+- Excluded by design (documented in `ROADMAP.md` §10): pet deleted; health/vaccination update/delete; appointment notes-only edits; self like/comment; lost&found "matching" (nothing invented); community post-create; admin-side "new application" alert; forgot/reset-password notifications.
+- Default dedup window is the service default (1h; since retries share stable `dedupKey`s, re-submits collapse harmlessly).
+- Email quota quirk noted for future suites: the container's provider hits its daily limit, so `register`'s quota path clears the verification token — tests inject a fresh single-use token when exercising verify-email.
+
+### Phase 8 second checkpoint
+- Commit → tag `phase8-notification-events`. Rollback: `git reset --hard phase8-notification-events`.

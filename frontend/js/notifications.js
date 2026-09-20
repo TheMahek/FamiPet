@@ -34,6 +34,9 @@
         "reminder",
         "system",
         "other",
+        "community",
+        "lost_found",
+        "pet",
     ];
 
     // Channels stored by the backend NotificationPreference model.
@@ -293,7 +296,13 @@
                                 ? "activity"
                                 : type === "reminder"
                                     ? "alarm-clock"
-                                    : "bell-ring",
+                                    : type === "community"
+                                        ? "messages-square"
+                                        : type === "lost_found"
+                                            ? "search"
+                                            : type === "pet"
+                                                ? "paw-print"
+                                                : "bell-ring",
                 type.charAt(0).toUpperCase() + type.slice(1),
                 "Receive " + type + " notifications.",
                 type,

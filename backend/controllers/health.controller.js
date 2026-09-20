@@ -1,5 +1,6 @@
 const HealthRecord = require("../models/HealthRecord");
 const Pet = require("../models/Pet");
+const notificationService = require("../services/notification.service");
 const { isValidObjectId } = require("../utils/validation");
 
 exports.getHealthRecords = async (req, res) => {
@@ -74,6 +75,29 @@ exports.createHealthRecord = async (req, res) => {
       visitDate: req.body.visitDate ? new Date(req.body.visitDate) : Date.now(),
       nextVisit: req.body.nextVisit ? new Date(req.body.nextVisit) : undefined,
       notes: typeof req.body.notes === "string" ? req.body.notes.slice(0, 1000) : "",
+    });
+
+    // -------------------------------------------------
+    // HEALTH RECORD CREATED NOTIFICATION (Phase 8 events).
+    // Reference is the pet so the notification deep-links
+    // to the pet's page; the record id rides in metadata.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user._id,
+      type: "health",
+      category: "health",
+      title: "Health Record Added",
+      message: `A health record was added for ${petExists.name}.`,
+      priority: "normal",
+      referenceType: "pet",
+      referenceId: pet,
+      metadata: {
+        petId: String(pet),
+        petName: petExists.name,
+        recordId: String(record._id),
+      },
+      dedupKey: `health-record-created-${record._id}`,
     });
 
     res.status(201).json({
