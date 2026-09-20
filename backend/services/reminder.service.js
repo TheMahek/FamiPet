@@ -24,6 +24,13 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 
+const {
+  isValidObjectId,
+  REMINDER_TYPES,
+  REMINDER_FREQUENCIES,
+  REMINDER_PRIORITIES,
+} = require("../utils/validation");
+const petService = require("./pet.service");
 const INTERVAL_MS = {
   daily: DAY_MS,
   weekly: WEEK_MS,
@@ -591,6 +598,314 @@ const deactivateDietMealReminders = async ({ user, mealIds }) => {
   return res.modifiedCount || 0;
 };
 
+/* =====================================================
+   OWNER-SCOPED REMINDER OPERATIONS (shared by the reminder routes and the
+   Phase 10 AI tool layer)
+   =====================================================
+   The list/create/update paths below were extracted from reminder.controller.js
+   so both entry points enforce identical validation and scheduling rules.
+   Ownership always comes from the authenticated caller context.
+ */
+
+const REMINDER_FILTERS = ["active", "completed", "inactive", "all"];
+
+/**
+ * Validates the Phase 8 schedule extras. Returns an error message string or
+ * null when valid.
+ */
+const validateScheduleConfig = (frequency, repeatInterval, daysOfWeek) => {
+  if (frequency === "interval") {
+    const n = Number(repeatInterval);
+    if (!Number.isInteger(n) || n < 1 || n > 365) {
+      return "repeatInterval must be an integer between 1 and 365.";
+    }
+  }
+  if (daysOfWeek !== undefined && daysOfWeek !== null && daysOfWeek !== "") {
+    if (!Array.isArray(daysOfWeek)) return "daysOfWeek must be an array.";
+    const nums = daysOfWeek.map(Number);
+    if (nums.some((n) => !Number.isInteger(n) || n < 0 || n > 6)) {
+      return "daysOfWeek values must be integers 0 (Sunday) to 6 (Saturday).";
+    }
+    if (nums.length > 7 || new Set(nums).size !== nums.length) {
+      return "daysOfWeek must contain at most 7 distinct weekday numbers.";
+    }
+  }
+  return null;
+};
+
+const weekdaysArray = (value) => (Array.isArray(value) ? value.map(Number) : []);
+
+/**
+ * List a user's reminders for a status filter with an effective next-run
+ * instant attached (materializes legacy rows deterministically for ordering).
+ */
+const listReminders = async ({ user, filter = "active", extra = {} }) => {
+  const Reminder = require("../models/Reminder");
+  const base = { user: user._id || user.id, ...extra };
+  if (filter === "completed") {
+    Object.assign(base, { isCompleted: true });
+  } else if (filter === "inactive") {
+    Object.assign(base, { isActive: false });
+  } else if (filter !== "all") {
+    Object.assign(base, { isActive: true, isCompleted: false });
+  }
+
+  const rows = await Reminder.find(base)
+    .populate("pet", "name species images")
+    .lean();
+
+  const now = Date.now();
+  for (const r of rows) {
+    r.effectiveNext = r.nextRunAt
+      ? new Date(r.nextRunAt).getTime()
+      : computeNextRunAt({
+          date: r.date,
+          time: r.time,
+          timezone: r.timezone,
+          frequency: r.frequency,
+          repeatInterval: r.repeatInterval,
+          daysOfWeek: r.daysOfWeek,
+          now,
+        }).getTime();
+  }
+
+  rows.sort((a, b) => {
+    if (a.effectiveNext !== b.effectiveNext) return a.effectiveNext - b.effectiveNext;
+    return String(a.date).localeCompare(String(b.date));
+  });
+
+  return rows;
+};
+
+/**
+ * Create one owned reminder. Returns { ok, status, body }.
+ */
+const createReminderForUser = async ({ user, input }) => {
+  const Reminder = require("../models/Reminder");
+  const { title, type, date, time, pet } = input;
+
+  if (!title || !type || !date || !time) {
+    return { ok: false, status: 400, body: { message: "Title, type, date and time are required." } };
+  }
+
+  if (typeof title !== "string" || title.trim().length > 200) {
+    return { ok: false, status: 400, body: { message: "Invalid title." } };
+  }
+
+  if (typeof type !== "string" || !REMINDER_TYPES.includes(type)) {
+    return { ok: false, status: 400, body: { message: "Invalid reminder type." } };
+  }
+
+  if (!pet) {
+    return { ok: false, status: 400, body: { message: "A pet is required." } };
+  }
+  const petOk = await petService.ownedPetResult({ user, petId: pet });
+  if (!petOk.ok) {
+    return { ok: false, status: petOk.status, body: { message: petOk.message } };
+  }
+
+  const frequency = input.frequency || "once";
+  if (!REMINDER_FREQUENCIES.includes(frequency)) {
+    return { ok: false, status: 400, body: { message: "Invalid frequency." } };
+  }
+
+  const schedErr = validateScheduleConfig(frequency, input.repeatInterval, input.daysOfWeek);
+  if (schedErr) {
+    return { ok: false, status: 400, body: { message: schedErr } };
+  }
+
+  const priority = input.priority === undefined ? "normal" : input.priority;
+  if (!REMINDER_PRIORITIES.includes(priority)) {
+    return { ok: false, status: 400, body: { message: "Invalid priority." } };
+  }
+
+  if (input.notificationEnabled !== undefined && typeof input.notificationEnabled !== "boolean") {
+    return { ok: false, status: 400, body: { message: "Invalid notificationEnabled." } };
+  }
+
+  const reminderDate = new Date(date);
+  if (Number.isNaN(reminderDate.getTime())) {
+    return { ok: false, status: 400, body: { message: "Invalid date." } };
+  }
+
+  const timeErr = timeError(time);
+  if (timeErr) {
+    return { ok: false, status: 400, body: { message: timeErr } };
+  }
+
+  const timezone = input.timezone === undefined ? "UTC" : input.timezone;
+  if (!isValidTimeZone(timezone)) {
+    return { ok: false, status: 400, body: { message: "Invalid timezone." } };
+  }
+
+  const repeatInterval = frequency === "interval" ? Number(input.repeatInterval) : 1;
+  const daysOfWeek = frequency === "weekly" ? weekdaysArray(input.daysOfWeek) : [];
+
+  const reminder = await Reminder.create({
+    user: user._id || user.id,
+    title: title.trim(),
+    type,
+    description: typeof input.description === "string" ? input.description.slice(0, 1000) : "",
+    date: reminderDate,
+    time: time.trim(),
+    frequency,
+    timezone,
+    repeatInterval,
+    daysOfWeek,
+    priority,
+    notificationEnabled: input.notificationEnabled !== false,
+    nextRunAt: computeNextRunAt({
+      date: reminderDate,
+      time,
+      timezone,
+      frequency,
+      repeatInterval,
+      daysOfWeek,
+    }),
+    source: "manual",
+    pet,
+  });
+
+  return {
+    ok: true,
+    status: 201,
+    body: { message: "Reminder created successfully.", reminder },
+  };
+};
+
+/**
+ * Update one owned reminder. Returns { ok, status, body }.
+ */
+const updateReminderForUser = async ({ user, reminderId, input }) => {
+  const Reminder = require("../models/Reminder");
+
+  if (!isValidObjectId(reminderId)) {
+    return { ok: false, status: 400, body: { message: "Invalid reminder ID." } };
+  }
+
+  const reminder = await Reminder.findOne({ _id: reminderId, user: user._id || user.id });
+  if (!reminder) {
+    return { ok: false, status: 404, body: { message: "Reminder not found." } };
+  }
+
+  const allowedFields = [
+    "title", "type", "description", "date", "time", "timezone", "frequency",
+    "repeatInterval", "daysOfWeek", "priority", "notificationEnabled",
+    "isActive", "isCompleted", "pet",
+  ];
+
+  const updates = {};
+  for (const field of allowedFields) {
+    if (input[field] !== undefined) updates[field] = input[field];
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return { ok: false, status: 400, body: { message: "Nothing to update." } };
+  }
+
+  if (updates.title !== undefined && (typeof updates.title !== "string" || updates.title.trim().length > 200)) {
+    return { ok: false, status: 400, body: { message: "Invalid title." } };
+  }
+  if (updates.title !== undefined) updates.title = updates.title.trim();
+
+  if (updates.type !== undefined && !REMINDER_TYPES.includes(updates.type)) {
+    return { ok: false, status: 400, body: { message: "Invalid reminder type." } };
+  }
+
+  if (updates.frequency !== undefined && !REMINDER_FREQUENCIES.includes(updates.frequency)) {
+    return { ok: false, status: 400, body: { message: "Invalid frequency." } };
+  }
+
+  const schedErr = validateScheduleConfig(
+    updates.frequency !== undefined ? updates.frequency : reminder.frequency,
+    updates.repeatInterval,
+    updates.daysOfWeek
+  );
+  if (schedErr) {
+    return { ok: false, status: 400, body: { message: schedErr } };
+  }
+
+  if (updates.daysOfWeek !== undefined) updates.daysOfWeek = weekdaysArray(updates.daysOfWeek);
+
+  if (updates.priority !== undefined && !REMINDER_PRIORITIES.includes(updates.priority)) {
+    return { ok: false, status: 400, body: { message: "Invalid priority." } };
+  }
+
+  if (updates.notificationEnabled !== undefined && typeof updates.notificationEnabled !== "boolean") {
+    return { ok: false, status: 400, body: { message: "Invalid notificationEnabled." } };
+  }
+
+  if (updates.description !== undefined && typeof updates.description !== "string") {
+    return { ok: false, status: 400, body: { message: "Invalid description." } };
+  }
+  if (updates.description !== undefined) updates.description = updates.description.slice(0, 1000);
+
+  if (updates.time !== undefined) {
+    const tErr = timeError(updates.time);
+    if (tErr) {
+      return { ok: false, status: 400, body: { message: tErr } };
+    }
+    updates.time = updates.time.trim();
+  }
+
+  if (updates.timezone !== undefined && !isValidTimeZone(updates.timezone)) {
+    return { ok: false, status: 400, body: { message: "Invalid timezone." } };
+  }
+
+  if (updates.date !== undefined) {
+    const d = new Date(updates.date);
+    if (Number.isNaN(d.getTime())) {
+      return { ok: false, status: 400, body: { message: "Invalid date." } };
+    }
+    updates.date = d;
+  }
+
+  if (updates.isActive !== undefined && typeof updates.isActive !== "boolean") {
+    return { ok: false, status: 400, body: { message: "Invalid isActive." } };
+  }
+
+  if (updates.isCompleted !== undefined && typeof updates.isCompleted !== "boolean") {
+    return { ok: false, status: 400, body: { message: "Invalid isCompleted." } };
+  }
+
+  if (updates.pet !== undefined && updates.pet !== null && updates.pet !== "") {
+    const ok = await petService.ownedPetResult({ user, petId: updates.pet });
+    if (!ok.ok) {
+      return { ok: false, status: ok.status, body: { message: ok.message } };
+    }
+  }
+
+  Object.assign(reminder, updates);
+
+  reminder.repeatInterval = reminder.frequency === "interval" ? Math.max(1, Number(reminder.repeatInterval) || 1) : 1;
+  reminder.daysOfWeek = reminder.frequency === "weekly" ? weekdaysArray(reminder.daysOfWeek) : [];
+
+  const scheduleChanged = ["date", "time", "timezone", "frequency", "repeatInterval", "daysOfWeek"].some(
+    (f) => updates[f] !== undefined
+  );
+  if (scheduleChanged || updates.isActive === true || updates.isCompleted === true) {
+    reminder.failedAttempts = 0;
+    reminder.lastStatus = "pending";
+    reminder.lastError = "";
+    if (reminder.isCompleted) {
+      reminder.nextRunAt = null;
+    } else {
+      reminder.nextRunAt = computeNextRunAt({
+        date: reminder.date,
+        time: reminder.time,
+        timezone: reminder.timezone,
+        frequency: reminder.frequency,
+        repeatInterval: reminder.repeatInterval,
+        daysOfWeek: reminder.daysOfWeek,
+      });
+    }
+  }
+
+  await reminder.save();
+
+  return { ok: true, status: 200, body: { message: "Reminder updated successfully.", reminder } };
+};
+
 module.exports = {
   TIME_RE,
   timeError,
@@ -612,4 +927,9 @@ module.exports = {
   upsertFeedingMealReminder,
   deactivateFeedingMealReminder,
   deactivateDietMealReminders,
+  REMINDER_FILTERS,
+  validateScheduleConfig,
+  listReminders,
+  createReminderForUser,
+  updateReminderForUser,
 };

@@ -455,6 +455,301 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
+       TOOL CONFIRMATION CARD (Phase 10 AI Tool Layer)
+       Rendered when PetGPT proposes a data-changing action.
+       Confirm -> POST /ai/tools/confirm (executes ONCE)
+       Cancel  -> POST /ai/tools/cancel  (invalidates token)
+    ===================================================== */
+
+    const TOOL_LABELS = {
+
+        create_pet: "Add a pet",
+
+        update_pet: "Update a pet",
+
+        update_diet: "Update diet profile",
+
+        create_reminder: "Add a reminder",
+
+        update_reminder: "Update a reminder"
+
+    };
+
+
+    function toolLabel(tool) {
+
+        return TOOL_LABELS[tool] || (tool || "Action");
+
+    }
+
+
+    function fieldsToList(fields) {
+
+        if (!fields || typeof fields !== "object") {
+
+            return "";
+
+        }
+
+        const entries =
+            Object.entries(fields)
+                .filter(([, value]) =>
+                    value !== undefined &&
+                    value !== null &&
+                    value !== "" &&
+                    !(Array.isArray(value) && !value.length)
+                );
+
+        if (!entries.length) {
+
+            return "";
+
+        }
+
+        return entries
+            .map(([key, value]) => {
+                const pretty =
+                    Array.isArray(value) ?
+                        value.map(v => (v && v.time ? `${v.label || "Meal"} ${v.time}` : v)).join(", ")
+                        : typeof value === "object" ?
+                            JSON.stringify(value)
+                            : value;
+                return `<li><strong>${escapeHTML(key)}:</strong> ${escapeHTML(String(pretty))}</li>`;
+            })
+            .join("");
+
+    }
+
+
+    function markCardFinal(card, note) {
+
+        const buttons =
+            card.querySelector(".tool-actions");
+
+        if (buttons) {
+
+            buttons.remove();
+
+        }
+
+        const label =
+            card.querySelector(".tool-note");
+
+        if (label) {
+
+            label.textContent = note;
+
+        }
+
+    }
+
+
+    function setCardBusy(card, busy, doneLabel) {
+
+        const buttons =
+            card.querySelectorAll(".tool-action-btn");
+
+        buttons.forEach(btn => {
+            btn.disabled = busy;
+            if (busy && doneLabel && btn.classList.contains("confirm")) {
+                btn.textContent = doneLabel;
+            }
+        });
+
+    }
+
+
+    async function runToolConfirm(card, action, confirm) {
+
+        const token =
+            action &&
+            action.confirmation &&
+            action.confirmation.token;
+
+        if (!token) {
+
+            markCardFinal(card, "Confirmation expired — please ask PetGPT again.");
+
+            return;
+
+        }
+
+        setCardBusy(card, true, confirm ? "Confirming…" : "Cancelling…");
+
+        const path =
+            confirm ? "/ai/tools/confirm" : "/ai/tools/cancel";
+
+        try {
+
+            const data =
+                await FamiPetAPI.post(path, { token });
+
+            const note =
+                confirm ?
+                    (data.message || "Action completed.") :
+                    (data.message || "Action cancelled.");
+
+            markCardFinal(card, note);
+
+            if (confirm && data && data.data && data.data.guidanceOfPet) {
+
+                return;
+
+            }
+
+        } catch (err) {
+
+            markCardFinal(
+                card,
+                confirm ? "This action could not be completed." : "Could not cancel that action."
+            );
+
+            return;
+
+        }
+
+        if (confirm) {
+
+            scrollToBottom();
+
+        }
+
+    }
+
+
+    function addToolActionCard(action) {
+
+        if (!chatMessages || !action || !action.preview) {
+
+            return;
+
+        }
+
+        const wrapper =
+            document.createElement("div");
+
+        wrapper.className =
+            "message ai-message tool-message";
+
+
+        const summary =
+            action.preview.summary || toolLabel(action.action);
+
+        const details =
+            fieldsToList(action.preview.fields);
+
+        const confirmBtnLabel = "Confirm";
+        const cancelBtnLabel  = "Cancel";
+
+
+        wrapper.innerHTML = `
+
+            <div class="ai-avatar">
+
+                <div class="mini-robot">
+
+                    <div class="mini-eye"></div>
+
+                    <div class="mini-eye"></div>
+
+                    <div class="mini-smile"></div>
+
+                </div>
+
+            </div>
+
+
+            <div class="message-bubble">
+
+                <div class="tool-action-card">
+
+                    <div class="tool-action-heading">
+
+                        <span class="tool-action-icon">⚡</span>
+
+                        <span>Proposed action</span>
+
+                    </div>
+
+                    <h4 class="tool-action-title">
+                        ${escapeHTML(toolLabel(action.action))}
+                    </h4>
+
+                    <p class="tool-action-summary">
+                        ${escapeHTML(summary)}
+                    </p>
+
+                    ${details ? `<ul class="tool-action-list">${details}</ul>` : ""}
+
+                    <p class="tool-action-note tool-note">
+                        Would you like me to go ahead?
+                    </p>
+
+                    <div class="tool-actions">
+
+                        <button
+                            type="button"
+                            class="tool-action-btn confirm"
+                            data-confirm="true"
+                        >
+                            ${confirmBtnLabel}
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="tool-action-btn cancel"
+                            data-confirm="false"
+                        >
+                            ${cancelBtnLabel}
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <small>
+                    ${getCurrentTime()}
+                </small>
+
+            </div>
+
+        `;
+
+
+        const confirmBtn =
+            wrapper.querySelector(".tool-action-btn[data-confirm='true']");
+
+        const cancelBtn =
+            wrapper.querySelector(".tool-action-btn[data-confirm='false']");
+
+
+        if (confirmBtn) {
+
+            confirmBtn.addEventListener("click", () => {
+                runToolConfirm(wrapper, action, true);
+            });
+
+        }
+
+
+        if (cancelBtn) {
+
+            cancelBtn.addEventListener("click", () => {
+                runToolConfirm(wrapper, action, false);
+            });
+
+        }
+
+
+        chatMessages.appendChild(wrapper);
+
+        scrollToBottom();
+
+    }
+
+
+    /* =====================================================
        TYPING INDICATOR
        MINI ROBOT
     ===================================================== */
@@ -620,6 +915,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 reply ||
                 "I couldn't get a proper response from PetGPT. Please try again."
             );
+
+            if (data && data.action && data.action.requiresConfirmation) {
+
+                addToolActionCard(data.action);
+
+            }
 
             saveChat();
 

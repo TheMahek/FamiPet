@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 9 completed).
+> Single project-status document for the enhancement work (Phase 10 completed).
 >
-> Last update: Phase 9 Diet & Nutrition completed (see §17).
+> Last update: Phase 10 AI Tool Layer completed (see §18).
 
 ---
 
@@ -11,7 +11,7 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second), `phase9-diet-nutrition` (Phase 9) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6), `phase7-reminder-scheduler` (Phase 7), `phase8-pet-care-reminders` (Phase 8 first), `phase8-notification-events` (Phase 8 second), `phase9-diet-nutrition` (Phase 9), `phase10-ai-tool-layer` (Phase 10) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
@@ -416,3 +416,29 @@ Pet-specific diet/nutrition profile system (one `PetDiet` per pet) replacing the
 
 ### Phase 9 checkpoint
 - Commit → tag `phase9-diet-nutrition`. Rollback: `git reset --hard phase9-diet-nutrition`.
+
+## 18. Phase 10 status — ✅ COMPLETED (AI Tool Layer)
+
+Controlled, tool-based AI boundary: PetGPT reaches application data only through an allowlisted server-side tool layer — validated, owner-authorized, service-routed (never models directly), audited, and (for mutations) executed only after single-use token confirmation. Exactly the required 9 tools, no extras. Full details in `ROADMAP.md` §10 (Phase 10 status).
+
+### What changed
+- **Backend**: new `services/toolLayer.js` — `TOOL_SCHEMAS` registry (9 tools), allowlist arg validation (unknown keys / operators / meal injection rejected), ownership gate via `ownedPetResult`, reads auto-execute, mutations mint HMAC-hashed single-use confirmation tokens (`pending→consumed` exactly-once, supersede-dedupe, never passed to the model), per-request budget (8 calls / 5 rounds) + per-user 60/15-min quota, 15 s per-call timeout, `logAudit` → `models/ToolAuditLog` (TTL 30 d). New `models/ToolConfirmation.js` (`CONFIRM_TTL_MS` 10 min), `controllers/aiTool.controller.js`, 3 protected routes (`POST /api/ai/tool`, `/ai/tools/confirm`, `/ai/tools/cancel`). Shared services extracted verbatim from controllers: `services/pet.service.js` (list/create/update/get-owned), `services/reminder.service.js` (owner-scoped CRUD + `isValidTimeZone`), `services/diet.service.js`, `services/appointment.service.js` (read-only), `services/health.service.js` (kept, unused by tools). `ai.controller.js` rewritten: bounded Gemini function-calling loop, pet context via `petService.listUserPets`, `getPetAdvice` via `petService.getOwnedPet`, `/ai/ask` returns optional `action` proposal for the UI.
+- **Frontend**: `js/petgpt.js` renders an inline `⚡ Proposed action` confirmation card (preview summary + fields, Confirm/Cancel → `/ai/tools/confirm`|`cancel`) with busy/final states; errors surfaced as chat messages; `annPetgptChat` persistence untouched. Styling in `css/petgpt.css` (`.tool-action-card`, `.tool-actions`, `.tool-action-btn`, `.tool-note`).
+
+### Verified (2026-09-20, live stack — `ROADMAP.md` §10 for the full matrix)
+- Core in-process suite (`compose/scripts/phase10-tool-core.cjs`): **75 checks, 0 failed** — registry exactness (9 tools, defs well-formed, optional props not required), validation matrix (operators/meal injection/`owner` key/enum), budget gate, reads owned-only + cross-user 404, proposals never execute, HMAC-only token storage, `resultForModel` token-stripping, exactly-once + re-confirm 400, supersede dedupe, cross-user proposal/confirm 403, cancel idempotent + cancelled-token reject, `update_diet` E2E, audit enum + rows.
+- HTTP API suite (`compose/scripts/phase10-ai-tools-api.cjs`): **29 checks, 0 failed** — anonymous 401 on all 3 endpoints + `/ai/ask` wiring, status mapping (409/400/403/404/400), normalized read payloads, proposal→confirm→persist (reminder, pet, update_pet optional fields), exactly-once, cancel→no-apply, cross-user confirm 403, single-use raw token returned (not a hash).
+- Regression green: `phase8-reminders-api` 59/0, `phase8-scheduler-check` 6/0, `phase8-notification-events` 63/0, `phase9-diet-api` 58/0, `phase9-diet-scheduler` 19/0.
+- `node --check` clean on all touched backend + suite files.
+- No direct DB from AI (grep audit): `toolLayer.js` requires only control-plane models + services; `aiTool.controller.js` only `crypto`+`toolLayer`; `ai.controller.js` only SDK/validation/services.
+- E2E: `backend` + `frontend` rebuilt + healthy; nginx proxies `/api/ai/tool`, `/ai/tools/confirm`, `/ai/tools/cancel` (401 unauth); `petgpt.js` serves `addToolActionCard`, `petgpt.css` serves `.tool-action-card` (200).
+- DB hygiene restored: 0 `p10c-*`/`p10a-*` `@famipet.test` fixtures; real data untouched.
+
+### Decisions / deferrals recorded
+- Tool set trimmed to the required 9 (no `delete_pet`, no appointment/`delete_reminder` tools) per task §2 + ROADMAP §8 "no scope creep".
+- Per-user tool quota is in-process (resets on service restart) — sufficient first cap; Phase 11 may back it with Mongo.
+- Gemini-dependent `/ai/ask` tool-loop is structural-only here (no key in CI); function responses always go through token-stripping `resultForModel`, so the loop is safe by construction and verified via the HTTP suite's `/ai/tool` path.
+- `health.service.js` stays as an unused-but-valid extraction. Confirmation frontend card is the Phase 11 `POST /api/ai/action` flow's natural UI surface.
+
+### Phase 10 checkpoint
+- Commit → tag `phase10-ai-tool-layer`. Rollback: `git reset --hard phase10-ai-tool-layer`.
