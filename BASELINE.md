@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 3 checkpoint).
-> Companion docs: `ROADMAP.md` (work plan — single source of truth), `bakwas.md` (current-state analysis), `Step10-Report.md` (historical QA report), `DOCKER_DEPLOYMENT.md` (deployment guide).
-> Last update: Phase 3 completed (see §11).
+> Single project-status document for the enhancement work (Phase 4 checkpoint).
+>
+> Last update: Phase 4 completed (see §12).
 
 ---
 
@@ -11,12 +11,12 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
 | Docker | 29.8.0; compose stack **running and healthy** (see §3) |
-| Backend env (`backend/.env`, gitignored) | `NODE_ENV=development`, `PORT=5000`, `MONGODB_URI=mongodb://localhost:27017/petDB`, `CLIENT_URL=https://172.30.240.1`, `FRONTEND_URL=https://192.168.0.103`, `BACKEND_URL=http://localhost:5000` |
+| Backend env (`backend/.env`, gitignored) | `NODE_ENV=development`, `PORT=5000`, `MONGODB_URI=mongodb://localhost:27017/petDB` (compose overrides to `mongodb://mongodb:27017/petDB`; `SERVE_FRONTEND_FALLBACK=false`), `CLIENT_URL=https://famipet.catlium.in`, `FRONTEND_URL=https://famipet.catlium.in`, `BACKEND_URL=http://localhost:5000` |
 | Backend npm scripts | `start` (node server.js), `dev` (nodemon), `seed` |
 
 **No test, lint, or type-check scripts exist** for the backend. The frontend has **no `package.json`** (pure static HTML/CSS/JS, no build step) — there is nothing to build/lint/test in the frontend by tooling.
@@ -76,7 +76,7 @@ The Docker stack is up and **healthy** with the Phase 2 topology **plus the live
 - Host-side dev processes are down at this checkpoint (Docker is the active stack).
 
 ## 6. Rollback point
-- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`.
+- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`.
 - `git reset --hard phase2-nginx-routing` returns to the pre-tunnel stack; `phase1-docker-env` to the Caddy era; `v0-baseline` is the pre-Docker state. `.env` files (root + `backend/`), `certs/`, `uploads/` are local and preserved.
 
 ## 7. Bootstrap (for a fresh checkout / next developer)
@@ -234,3 +234,27 @@ Dashboard-managed tunnel (`TUNNEL_TOKEN` in gitignored root `.env`); remote conf
 
 ### Phase 3 checkpoint
 - Commit → tag `phase3-cloudflare-tunnel`. Rollback: `git reset --hard phase3-cloudflare-tunnel` (disable tunnel: `docker compose --profile tunnel stop cloudflared`).
+
+## 12. Phase 4 status — ✅ COMPLETED (End-to-End validation of the live deployment)
+
+Full feature smoke-test over **public HTTPS** (`https://famipet.catlium.in`). No code changes; only environment/config usage verified. See `ROADMAP.md` §10 (Phase 4 status) for the complete matrix.
+
+### Verified live (all green)
+- **Static:** homepage 200, no mixed content; 62/62 static assets 200.
+- **Auth E2E:** register → verification-link (built with public hostname, `EMAIL_TRANSPORT=json` for inspection) → verify-email → login → JWT → `/api/auth/me`; unverified-login block; no-token 401; change-password; resend-verification gate; forgot-password.
+- **CORS:** public origin allowed; evil origin blocked. **Rate limits:** per-real-client headers (`20;w=900`) through CF-Connecting-IP.
+- **Features:** pets CRUD + QR/Pet-ID; favorites; appointments (auto-notification); reminders; health; vaccinations (`/upcoming`); notifications (read/unread/read-all); community post/like/comment/delete with real image upload served over `/uploads`; lost & found (create/list/detail/update/resolve); adoption (owner create, admin approve → pet auto-`adopted`, owner 403 on status); admin (dashboard/users/pets, owner 403); PetGPT (`/api/ai/ask`, live Gemini key).
+- **Infra:** backend/Mongo private; all 5 containers healthy; public + LAN fallback OK.
+
+### Documented (environment-dependent / deferred, not failures)
+- Breeds **5 (Docker) vs 16 (host DB)** — leaner container seed; migration deferred (Phase 13).
+- Email SMTP delivery itself not exercised (transport restored to `smtp` after tests; verification used `json`).
+- Orphaned upload files remain on disk when records are deleted (no fs cleanup in delete handlers) — defer to maintenance/Phase-12 cleanup.
+- `GET /appointments/my` route does not exist (list is `GET /appointments`) — documented.
+- Logout is client-side (JWT bearer, no cookies, no CSRF module) — documented as the app's authentication model.
+
+### State restored after tests
+Test user `e2e.owner1@test.famipet.in` + all test records deleted (users 3, pets 4, adoptions 1, lost-found 2 — seed parity); `uploads/` emptied of test artifacts; `backend/.env` `EMAIL_TRANSPORT=json` removed (default `smtp` restored after backend recreation); seed users `admin@animalplanet.com` and `user@example.com` untouched; real user `siddiquiummehabiba41@gmail.com` untouched.
+
+### Phase 4 checkpoint
+- Commit → tag `phase4-e2e-validation`. Rollback: `git reset --hard phase4-e2e-validation`.

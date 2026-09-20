@@ -392,6 +392,42 @@ Use `bakwas.md` §3/§6 as the feature/endpoint inventory to test. Known weak sp
 - ✅ Full feature smoke-test matrix green (or explicitly documented as environment-dependent).
 - ✅ Config issues fixed; deferred items triaged to phases.
 
+## 10. Phase 4 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase4-e2e-validation`)
+
+Ran as a full **End-to-End validation of the live public deployment** (`https://famipet.catlium.in`) — no feature changes were made. All traffic over public HTTPS through the Phase 3 topology.
+
+**Validation matrix (all over public HTTPS):**
+- **Static/HTTPS:** homepage 200 (no `http://` mixed-content refs); **62/62** static assets (js/css/pages) 200; only 404 = `/cdn-cgi/l/email-protection` (Cloudflare, expected).
+- **Unauthenticated API:** `/api/status`, `/api/breeds` (count 5), `/api/pets`, `/api/lost-found`, `/api/community`, `/api/veterinarians` all 200. Protected routes correctly 401 (`adoptions`, `adoptions/my`, `health`, `vaccinations`, `notifications`, `reminders`, `favorites`, `admin/dashboard`, `users/profile`, `POST /api/ai/ask`). Unknown route 404.
+- **Auth E2E (real flow, `EMAIL_TRANSPORT=json`):** register → verification email link built with **public hostname** → `GET /api/auth/verify-email/<token>` → login → JWT → `/api/auth/me`. Unverified login blocked; `/me` without token 401. Change-password, resend-verification (refuses when verified), forgot-password all pass. Logout is client-side only (JWT bearer; no cookies → no CSRF surface — documented, not a defect).
+- **CORS:** preflight allows `https://famipet.catlium.in`; `https://evil.example.com` gets **no** `Access-Control-Allow-Origin` (blocked).
+- **Rate limits:** `ratelimit`/`ratelimit-policy` headers present (`20;w=900`), decrementing per real client IP through CF-Connecting-IP.
+- **Pets:** create ×2 (dog+cat), list `/my`, get, update, delete, **QR/Pet-ID** (`data:image/png;base64`).
+- **Favorites:** add/list/remove.
+- **Appointments:** create (auto-notification), list (owner-scoped at `GET /`), delete. Note: `GET /appointments/my` → 404 — the route does not exist (`my` swallowed by `/:id`); list endpoint is `/`.
+- **Reminders/Health/Vaccinations:** create/list/delete; vaccinations also `?/upcoming` endpoint 200.
+- **Notifications:** list/unread → mark-read → unread=0 → read-all.
+- **Community:** post with real **image upload** (served at `https://famipet.catlium.in/uploads/<id>.png`, 200), like, comment, detail, delete.
+- **Lost & Found:** create (multi-image field payload verified), public list, detail, owner update, admin resolve (`PUT /api/admin/lost-found/:id/status` → `resolved`).
+- **Adoption:** create (owner, with notification), `GET /adoptions/my`, admin status update (`PUT /api/adoptions/:id`, status enum `Pending/Approved/Rejected`) → **pet auto-marked `adopted`** (cross-feature wiring verified). Owner → 403 on status update.
+- **Admin:** seeded admin `admin@animalplanet.com` login; dashboard/users/pets/lost-found read models verified; **owner token → 403** on all admin endpoints.
+- **PetGPT (`/api/ai/ask`):** live with real `GEMINI_API_KEY` — returns structured diet advice (200).
+- **Uploads:** all three routes exercised (community image, lost-found image, avatar) over HTTPS.
+- **Infra:** backend/Mongo stay private (expose-only); tunnel+nginx healthy; public HTTPS remains GO.
+
+**Environment-dependent results (documented, not failures):**
+- `/api/breeds` count **5 in Docker vs 16 on the host DB** — the container dataset is a leaner seed (current `seedData.js` inserts 4 breeds; the extra existing record is from the original bootstrap). Expected; data-migration to a richer dataset is deferred, not part of Phase 4.
+- Email SMTP delivery not exercised end-to-end (real Gmail app-password transport left in place; structural verification done via `json` transport then transport restored). `GEMINI_API_KEY` present → PetGPT live.
+- Upload files are left on disk when records are deleted (no fs cleanup wired in delete handlers) — pre-existing app behavior; orphaned test artifacts were removed manually. Defer to a maintenance/Phase-12 cleanup entry.
+
+**Findings → triaged:**
+- `GET /api/adoptions` (all) 401 for non-admin — expected (admin route); adoption list surfaced only via `/adoptions/my` (owner) — documented.
+- Filed for later phases (not fixed here): orphaned upload files on delete; no `/appointments/my` route; adoption status enum capitalization backend/frontend consistency check in UI phase.
+
+**State restore after tests:** test user(s)/records deleted (users back to 3, pets 4, adoptions 1 pending, lost-found 2 — seed parity), avatar/community/lost-found test files removed from `uploads/`, `EMAIL_TRANSPORT=json` removed from `backend/.env`, backend recreated (`up -d`) → default `smtp` transport restored; all 5 containers healthy.
+
+**Go/no-go: GO** — full matrix green as documented; no config/integration defects found that require code changes.
+
 ---
 
 # Phase 5 — Notification Core
