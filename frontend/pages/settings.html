@@ -357,6 +357,11 @@
                     <div id="notificationPreferences"></div>
 
 
+                    <!-- Phase 6: device-level push control. Rendered/toggled by
+                         frontend/js/push.js (separate from the in-app bell above). -->
+                    <div id="pushControlMount"></div>
+
+
                     <p
                         id="notificationPrefsStatus"
                         style="margin:10px 0 0;font-size:11px;min-height:14px;color:#38C976;"
@@ -1219,14 +1224,23 @@
 <script src="../js/api.js"></script>
     <script src="../js/sidebar.js"></script>
     <script src="../js/notifications.js"></script>
+    <script src="../js/push.js"></script>
 
 
 <!-- =====================================================
      SETTINGS JAVASCRIPT
-====================================================== -->
+===================================================== -->
 
 <script src="../js/settings.js"></script>
 <script src="../js/theme.js"></script>
+
+<script>
+    // Phase 6: mount the device-level push control inside the Notification
+    // Preferences card. Renders its own status/buttons; no auto-prompt.
+    document.addEventListener('DOMContentLoaded', function () {
+        FamiPetPush.init(document.getElementById('pushControlMount'));
+    });
+</script>
 
 
 </body>

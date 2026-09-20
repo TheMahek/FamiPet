@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 5 checkpoint).
+> Single project-status document for the enhancement work (Phase 6 checkpoint).
 >
-> Last update: Phase 5 completed (see §13).
+> Last update: Phase 6 completed (see §14).
 
 ---
 
@@ -11,7 +11,7 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3), `phase4-e2e-validation` (Phase 4), `phase5-notification-core` (Phase 5), `phase6-push-notifications` (Phase 6) |
 | Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
@@ -76,7 +76,7 @@ The Docker stack is up and **healthy** with the Phase 2 topology **plus the live
 - Host-side dev processes are down at this checkpoint (Docker is the active stack).
 
 ## 6. Rollback point
-- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`.
+- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`, `phase4-e2e-validation`, `phase5-notification-core`, `phase6-push-notifications`.
 - `git reset --hard phase2-nginx-routing` returns to the pre-tunnel stack; `phase1-docker-env` to the Caddy era; `v0-baseline` is the pre-Docker state. `.env` files (root + `backend/`), `certs/`, `uploads/` are local and preserved.
 
 ## 7. Bootstrap (for a fresh checkout / next developer)
@@ -282,3 +282,30 @@ Test users `phase5.ownerA/B/C@test.famipet.in` deleted (3 users, 2 pets, 2 appoi
 
 ### Phase 5 checkpoint
 - Commit → tag `phase5-notification-core`. Rollback: `git reset --hard phase5-notification-core`.
+
+## 14. Phase 6 status — ✅ COMPLETED (Push Notifications)
+
+Browser Web Push on top of the Phase 5 core: root-scoped service worker, subscription storage/CRUD, VAPID-encrypted delivery through the Notification Service (respecting preferences), a push settings panel on Settings, and SW hygiene in nginx. Full details in `ROADMAP.md` §10 (Phase 6 status).
+
+### What changed
+- **Backend**: new `models/PushSubscription.js` (unique `endpoint`, `user` ref, `keys {p256dh, auth}`, `userAgent`, `lastUsedAt`; unique endpoint index + `{user,lastUsedAt:-1}`), new `services/push.service.js` (VAPID config from env, subscription CRUD with per-user cap 10, dedupe/reassign-on-account-switch, 10s send timeout; 404/410 → row deleted, transient errors logged + row kept; never blocks callers), new `controllers/push.controller.js` + `routes/push.routes.js` (`GET /api/push/vapid-public-key` public; `POST /subscribe`, `GET /subscriptions`, `DELETE /subscriptions/:id`, `DELETE /unsubscribe`, `POST /test` authed), mounted in `server.js`. `services/notification.service.js` `createNotification` now fire-and-forget `deliverPush` (payload `{title, body, tag, data:{url, notificationId, type, category}}`; **push is strict opt-in** — no prefs row or `channels.push` unset → skipped, `types[type] === false` → skipped). `admin.controller.js` `deleteUser` also cleans that user's push subscriptions. Dep: `web-push@^3.6.7`; `backend/.env.example` documents VAPID vars.
+- **Frontend**: new `service-worker.js` (install `skipWaiting`, `clients.claim`, `push` → `showNotification` with logo icon, `notificationclick` → focus/open target URL, `pushsubscriptionchange` → best-effort unsubscribe), new `js/push.js` (`window.FamiPetPush` — capability detection, subscribe/unsubscribe/test flows, state UI), `pages/settings.html` `#pushControlMount` in the Notification Preferences card, `css/settings.css` push-control styles, `frontend/nginx.conf` `location = /service-worker.js` (no-cache/no-store), `frontend/Dockerfile` `COPY service-worker.js`.
+- **Env/config**: VAPID keys live only in gitignored `backend/.env` (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); compose `env_file` provides them to the backend container.
+
+### Verified (see ROADMAP §10 for the full matrix)
+- API suite: **45 checks, 0 failed** — including a controller bug found+fixed en route (the by-endpoint unsubscribe response omitted the `removed` flag).
+- In-container delivery probe (mock HTTPS push service, self-signed): **52 checks, 0 failed** — VAPID ES256 signature verified, aes128gcm record structure validated, 201/404/410/500 handling, reassignment, cap 10, preferences gating incl. strict opt-in default, admin-delete cleanup.
+- One real behavior gap caught by the probe: pre-opt-in users (no prefs row) were receiving pushes; `deliverPush` now treats missing prefs as push-off.
+- Indexes confirmed in `petDB`; stack rebuilt + healthy; `/service-worker.js`, `/js/push.js`, `/pages/settings.html`, `/api/push/vapid-public-key` 200 over nginx `:8080` AND public tunnel (SW served with no-cache headers; Dockerfile omission of the SW file caught by this E2E and fixed).
+
+### Decisions / deferrals recorded
+- Push = opt-in per user (prefs row + `channels.push` on), unlike in-app (green by default); the device subscription alone doesn't enable pushes.
+- Cross-account same-device re-subscribe reassigns ownership (intentional account-switch behavior).
+- Real-browser delivery NOT exercised headless: pipeline verified via mock push service; a manual desktop Chrome/Edge/Android pass (subscribe → kill tab → receive, click-through routing, `pushsubscriptionchange`) is deferred to a future phase/E2E.
+- `pushsubscriptionchange` self-cleanup is best-effort (no auth token in SW scope); the subscribe/re-subscribe path re-asserts ownership.
+
+### State restored after tests
+Test users `phase6.a/b@test.famipet.in` + all subscriptions/notifications/preferences purged; `backend/.env` `EMAIL_TRANSPORT=json` removed (normal transport restored) and backend recreated healthy; seed users (`admin@animalplanet.com`, `user@example.com`) and real user `siddiquiummehabiba41@gmail.com` untouched; push subscription count back to 0.
+
+### Phase 6 checkpoint
+- Commit → tag `phase6-push-notifications`. Rollback: `git reset --hard phase6-push-notifications`.

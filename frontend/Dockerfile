@@ -16,6 +16,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 #    keeping the exact same relative structure so all page
 #    links, CSS, JS and asset paths continue to work.
 COPY index.html        /usr/share/nginx/html/index.html
+COPY service-worker.js /usr/share/nginx/html/service-worker.js
 COPY admin             /usr/share/nginx/html/admin
 COPY assets            /usr/share/nginx/html/assets
 COPY css               /usr/share/nginx/html/css

@@ -17,6 +17,7 @@
 //   - User preferences can suppress a type or the whole in-app channel.
 const Notification = require("../models/Notification");
 const NotificationPreference = require("../models/NotificationPreference");
+const pushService = require("./push.service");
 const { isValidObjectId, isPlainObject } = require("../utils/validation");
 
 const NOTIFICATION_TYPES = Notification.NOTIFICATION_TYPES;
@@ -228,10 +229,96 @@ const createNotification = async (input = {}) => {
     if (referenceId) doc.referenceId = referenceId;
 
     const notification = await Notification.create(doc);
+
+    // --- PUSH DELIVERY (Phase 6) ---
+    // Fire-and-forget. Unlike the in-app record (always stored), browser push
+    // only fires when the user enabled the `push` channel AND type-level
+    // preferences allow it. Never waits, never throws, never breaks the
+    // caller. Producers (Phase 5-8) are unchanged — this is the single
+    // Notification-Core → Push-Delivery → Browser path.
+    if (!opts.skipPreferences) {
+      deliverPush({
+        userId,
+        notificationId: notification._id,
+        title,
+        message,
+        type,
+        category,
+        referenceType,
+        referenceId,
+      }).catch(logPush);
+    }
+
     return { success: true, notification };
   } catch (error) {
     log(error);
     return { success: false, skipped: true, reason: "create-failed" };
+  }
+};
+
+const logPush = (err) =>
+  console.error("[Notification] push delivery failed:", err && err.message);
+
+// Maps a notification reference to a frontend route for the notificationclick
+// handler. Conservative: unknown references fall back to the dashboard.
+const pushTargetUrl = (referenceType, referenceId) => {
+  const id = referenceId ? String(referenceId) : "";
+  switch (referenceType) {
+    case "adoption":
+      return "/pages/adoption.html" + (id ? `?id=${encodeURIComponent(id)}` : "");
+    case "pet":
+      if (id) return `/pages/pet-details.html?id=${encodeURIComponent(id)}`;
+      return "/pages/dashboard.html";
+    default:
+      return "/pages/dashboard.html";
+  }
+};
+
+/**
+ * Deliver a created notification to the user's push-enabled devices.
+ * Re-checks the push channel + per-type gate (independent of the in-app gate)
+ * so turning off push alone never silences the on-screen bell and vice versa.
+ * Resolves { skipped } when push is off or not configured; never throws.
+ */
+const deliverPush = async ({
+  userId,
+  notificationId,
+  title,
+  message,
+  type,
+  category,
+  referenceType,
+  referenceId,
+}) => {
+  if (!pushService.isConfigured()) return { skipped: "not-configured" };
+
+  try {
+    const prefs = await NotificationPreference.findOne({ user: userId });
+    // Push is OPT-IN: no preferences row yet means the user never enabled it,
+    // so no push (unlike in-app, which is green by default).
+    if (!prefs) return { skipped: "channel-push-disabled" };
+    if (prefs.channels && prefs.channels.push === false) {
+      return { skipped: "channel-push-disabled" };
+    }
+    if (prefs.types && prefs.types.get(type) === false) {
+      return { skipped: "type-disabled" };
+    }
+
+    const result = await pushService.sendPushToUser(userId, {
+      title,
+      body: message,
+      tag: String(notificationId),
+      data: {
+        url: pushTargetUrl(referenceType, referenceId),
+        notificationId: String(notificationId),
+        type,
+        category,
+      },
+    });
+    return result;
+  } catch (error) {
+    logPush(error);
+    return { skipped: "delivery-failed" };
   }
 };
 

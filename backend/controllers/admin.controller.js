@@ -3,6 +3,7 @@ const Pet = require("../models/Pet");
 const Adoption = require("../models/Adoption");
 const LostFound = require("../models/LostFound");
 const CommunityPost = require("../models/CommunityPost");
+const PushSubscription = require("../models/PushSubscription");
 const {
   isValidObjectId,
   LOST_FOUND_TYPES,
@@ -138,6 +139,17 @@ exports.deleteUser = async (req, res) => {
         success: false,
         message: "User not found.",
       });
+    }
+
+    // Phase 6: never keep dead push subscriptions (device rows) for a removed
+    // account — otherwise the user's old devices could spuriously be pushed.
+    try {
+      await PushSubscription.deleteMany({ user: user._id });
+    } catch (pushCleanupErr) {
+      console.error(
+        "Push subscription cleanup failed (user deletion):",
+        pushCleanupErr.message
+      );
     }
 
     res.status(200).json({

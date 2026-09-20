@@ -558,6 +558,34 @@ Add browser push notifications on top of the Phase 5 core: service worker, subsc
 - ✅ Cleanup + failure handling verified (simulate gone endpoint).
 - ✅ Preferences honored; no regression in in-app notifications.
 
+## 10. Phase 6 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase6-push-notifications`)
+
+**What shipped**
+- `backend/models/PushSubscription.js` (new): `user` (ref Users), `endpoint` (unique index), `keys { p256dh, auth }`, `expirationTime`, `userAgent` (≤500), `lastUsedAt`, timestamps; compound `{user:1, lastUsedAt:-1}`. Unique `endpoint` index verified in `petDB`.
+- `backend/services/push.service.js` (new): VAPID config from env (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`), `isConfigured`, `getPublicKey`, http(s) subscription URL validation, `registerSubscription` (same-endpoint dedupe + reassign to current user on account switch, per-user cap `MAX_SUBSCRIPTIONS_PER_USER=10`, unique-index E11000 race retry), `listSubscriptions`/`countSubscriptions`, `removeSubscriptionById`, `removeSubscriptionByEndpoint` (idempotent, returns `removed:boolean`), `withTimeout` (10s) + TTL 86400, `sendPushToUser` (404/410 → delete rows; transient errors logged, row kept; optional `sendOptions` third arg used only by test agents).
+- `backend/controllers/push.controller.js` + `backend/routes/push.routes.js`: `GET /api/push/vapid-public-key` (public, never exposes the private key; 200 `{vapidConfigured, vapidPublicKey}`), `POST /api/push/subscribe` (201, 400 invalid/device-cap), `GET /api/push/subscriptions`, `DELETE /api/push/subscriptions/:id` (owner-scoped 404), `DELETE /api/push/unsubscribe` (by endpoint, idempotent `{removed}`), `POST /api/push/test` (503 unconfigured, 404 no subscriptions). All but `vapid-public-key` behind `protect`. Mounted at `/api/push` in `server.js`.
+- `backend/services/notification.service.js`: `createNotification` (non-skip, `!opts.skipPreferences`) fire-and-forget `deliverPush` — payload `{title, body, tag: notificationId, data: {url, notificationId, type, category}}`; `url` from `pushTargetUrl` (adoption → `/pages/adoption.html?id=`, pet → `/pages/pet-details.html?id=`, default → `/pages/dashboard.html`). Re-gates per user: **missing prefs row OR `channels.push !== true` → skipped `channel-push-disabled`; `types[type] === false` → skipped `type-disabled`** (push is strict opt-in). Never throws/never blocks the producing op.
+- `backend/controllers/admin.controller.js` `deleteUser`: deletes the user's `PushSubscription` docs too.
+- Deps/config: `web-push@^3.6.7` in `backend/package.json`+lockfile; `backend/.env.example` documents the three VAPID vars; real keys in gitignored `backend/.env` (compose `env_file`). 
+- Frontend: `frontend/service-worker.js` (root scope; `skipWaiting`, `clients.claim`, `push` → `showNotification` icon `/assets/logos/Logo.png`, `notificationclick` focus/open target URL, `notificationclose`, `pushsubscriptionchange` → best-effort `DELETE /api/push/unsubscribe`); `frontend/js/push.js` (`window.FamiPetPush`: secure-context/SW/PushManager detection, url-b64↔u8 conversion, subscribe/unsubscribe/test, backend sync, UI state machine unsupported/unconfigured/denied/prompt/busy/subscribed/default); `pages/settings.html` `#pushControlMount` in the Notification Preferences card; `css/settings.css` push-control styles; `frontend/nginx.conf` `location = /service-worker.js` (Cache-Control no-cache,no-store,must-revalidate; expires 0); `frontend/Dockerfile` `COPY service-worker.js` into the image.
+
+**Decisions / deferrals (recorded)**
+- Push is **strict opt-in**: a device subscription alone never enables pushes; the user's preferences must exist with the push channel on (in-app stays green-by-default — intentional asymmetry matching Phase 5 prefs defaults).
+- Same endpoint re-subscribed by a different account = same-device account switch → ownership reassigns, old account's row removed.
+- Delivery limits: cap 10 devices/user, TTL 86400, 10s send timeout; 404/410 removed immediately and reported, transient errors logged + row kept (consistent with "never block the producing op").
+- Real-browser delivery is **not exercised headless** — the delivery pipeline (VAPID ES256, aes128gcm payload, 404/410/500 handling) is verified via an in-container mock HTTPS push service. Manual desktop Chrome/Edge/Android confirmation (kill tab → receive, click-through routing, `pushsubscriptionchange` self-cleanup) is deferred to a future phase.
+- `pushsubscriptionchange` cleanup is best-effort (SW scope has no auth token); the subscribe/re-subscribe flow re-asserts the endpoint with the correct owner.
+
+**Validation run (2026-09-20, live stack)**
+- `node --check` on all touched backend files + `frontend/service-worker.js` + `frontend/js/push.js`.
+- API suite (45 checks, 0 failed): vapid-public-key shape + no private-key leak + protected-route 401s; subscribe validation 400s; happy path 201; same-endpoint dedupe (`created:false`); 2-device registration; list; cross-user isolation (B deleting A's → 404); delete-by-id owner-scoped; delete-by-endpoint idempotent (`removed` — original controller bug found+fixed en route); test-with-no-subs 404; device cap (400 at 11); Phase 5 regression (`/api/notifications`, `/unread`, preferences CRUD, push-channel toggle persistence).
+- In-container probe vs mock HTTPS push service on `127.0.0.1:18943` (self-signed cert, TLS reject off probe-only): 52 checks, 0 failed — VAPID ES256 signature verified (`crypto.verify` ES256 + SPKI prefix + raw 65-byte point), aes128gcm record structure (salt/`rs=4096`/idlen 65/`0x04` key), happy 201 sent, 410/404 → row removed, transient 500 → row kept + failed reported, no-subscriptions skip, dedupe, reassignment on account switch, cap 10, preferences gating (**missing-prefs → no push** — a real gap the probe caught and the fix is in this phase), type-disabled, in-app-off creates nothing + no push, Phase 5 dedup collapse, admin deleteUser cleans subscriptions.
+- Indexes verified in `petDB` (`pushsubscriptions`: unique `endpoint`, `{user:1,lastUsedAt:-1}`).
+- E2E: stack rebuilt + healthy; nginx `:8080` and public tunnel both serve `/service-worker.js` (200, no-cache headers), `/js/push.js`, `/pages/settings.html`, `/api/push/vapid-public-key` (200) and `/api/status` (200); unprotected-confirmed via 401s. The E2E caught the Dockerfile omitting `service-worker.js` (404) → fixed, rebuilt, 200.
+- Test users, subscriptions, notifications, preferences purged; `EMAIL_TRANSPORT=json` removed from `backend/.env` (normal transport) and backend recreated healthy; petDB back to seed/real users only, 0 test subscriptions.
+
+**Commits/tags**: checkpoint commit `Phase 6: push notifications (service worker, VAPID, subscription API, delivery, settings UI)`, tag `phase6-push-notifications`.
+
 ---
 
 # Phase 7 — Reminder Scheduler
