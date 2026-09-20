@@ -672,69 +672,80 @@ Implement the scheduled-reminder engine: reminders for feeding, walking, medicat
 
 ---
 
-# Phase 8 — Notification Event Integration
+# Phase 8 — Pet Care Reminder System
+
+> **Scope change recorded:** the original plan for this phase was *Notification Event Integration* (wiring every existing domain through the Phase 5 service). Executing phases sequentially, the work that actually shipped here is the **Pet Care Reminder System** — a rich, pet-attached reminder UX layered on the Phase 7 scheduler (categories, repeat rules, priorities, per-reminder notification toggles, and a full reminders page). The original event-integration plan is preserved as a **Deferred backlog** in §10 below so nothing is lost.
 
 ## 1. Objective
-Connect the Phase 5 notification system to existing and new feature events across the whole app. Notifications must be meaningful, deduped, and preference-driven — no notification spam.
+Turn the Phase 7 scheduler's raw reminders into a real user-facing feature: pet-attached reminders with meaningful categories, flexible repeat rules, priorities, and per-reminder notification control — surfaced on a dedicated Reminders page (sections, filter tabs, calendar, search) and wired to the scheduler/notifications.
 
 ## 2. Current-state considerations
-- Today only adoption-status and appointment-creation notify. This phase routes all listed domains through the shared service with `dedupKey`s.
-- Events below are triggered inside existing controllers (appointments, lost&found, adoption, pets). Diet/Walking/Health events come from Phase 7 reminders and Phase 9 feeding schedules.
+- Phase 7 delivered the engine: `Reminder` model, tz-aware `reminder.service.js`, poller `reminder-scheduler.service.js`, appointment linkage. Reminders were inert, plain records with no UI.
+- `Reminder.type` supported `feeding, medicine, vaccination, grooming, appointment, exercise, custom`; frequencies `once, daily, weekly, monthly`; no priorities, no per-reminder notification toggle, no every-N-days / selected-weekday recurrence.
+- `GET /reminders` returned only active reminders (dashboard contract — must stay).
 
-## 3. Implementation tasks (per domain)
-
-**Appointments** (`backend/controllers/appointment.controller.js`)
-- Created → notify user; upcoming appointment (schedule N hours/days before via reminder integration) → notify; changed → notify; cancelled → notify; relevant reminders continue via Phase 7.
-- Dedup: `appointment:<id>:created|cancelled|changed`; upcoming: `appointment:<id>:upcoming:<window>`.
-
-**Diet & Feeding** (Phase 9 data + Phase 7 reminders)
-- Feeding reminders (phase 7) → notify at feeding time; diet updates (phase 9) → notify "diet updated"; missed feeding where supported (flag-based, only if explicitly configured).
-
-**Walking** (Phase 7 `exercise` reminders)
-- Scheduled walking reminder → notify at scheduled time; no invented extras.
-
-**Health** (`health.controller.js`, `vaccination.controller.js`, phase 7)
-- Veterinarian checkup reminders → notify; vaccination reminders (`Vaccination.nextDueDate` + reminders) → notify before due; medication reminders → notify.
-
-**Lost & Found** (`lostFound.controller.js`)
-- Matching new listing: on new report, notify users who favourited/subscribed to similar pets? — **not implemented in the app today; do NOT invent a subscription mechanism.** Instead notify the **reporter** on status changes (`active→resolved`) and, where a report references a user's pet (matches via species/breed?) **only if cheap and explicit** — otherwise mark as out-of-scope. Conservative default: reporter status-change notifications only.
-- Status changes (`updateLostFoundStatus`) → notify reporter.
-
-**Adoption** (`adoption.controller.js`)
-- Application/status updates: applicant notified on `Pending→Approved/Rejected` (exists) — route through service; **add** pet-owner notification on status change (documented gap; owner = `Adoption.pet.owner`).
-
-**Pet Management** (`pet.controller.js`)
-- Important pet/profile events: only meaningful ones — pet created/deleted (notify owner), adoption status flip (already adoption flow). Avoid noise on simple edits; a `pet:<id>:created|deleted` with dedup.
-
-**Other** (community/system)
-- Community: only on direct user impact (comment on your post/pet? — not modeled explicitly today; keep to **admin moderation results**: your post soft-deleted/reactivated → notify). System notifications where appropriate (e.g., account blocked/unblocked).
-
-**Cross-cutting**: register every new type/category in the Phase 5 enum (additive), wire all into preferences (each type toggleable), allow "all off".
+## 3. Implementation tasks
+1. **Model/validation** (`backend/models/Reminder.js`, `backend/utils/validation.js`): add types `droplet` (water) and `bath` (additive only); frequency `interval` (every N days) plus selected-day weekly via `repeatInterval` (int 1–365) and `daysOfWeek` (ints 0=Sun..6=Sat, ≤7 distinct); `priority` enum `low|normal|high`; `notificationEnabled` bool (default true).
+2. **Controller/list** (`backend/controllers/reminder.controller.js`): `validateScheduleConfig` (interval bounds + weekday array rules) and owned-pet checks; create/update rebuild `repeatInterval`/`daysOfWeek` per chosen non-default frequency; `GET /reminders?filter=active|completed|inactive|all` (default **active** — dashboard unchanged), list payloads add `effectiveNext` for recurring display.
+3. **Scheduler** (`backend/services/reminder-scheduler.service.js`): honor `notificationEnabled:false` → consume each occurrence as `skipped` without creating a notification (silent tracking — no scheduler spin); weekly recurrence uses `daysOfWeek` when non-empty.
+4. **Frontend page** (`frontend/pages/reminders.html`): rework the static demo page into a live one — stats (`upcoming/completed/overdue/total`), search, filter tabs (pending/completed/inactive), sectioned list, mini calendar with per-type color events, and an add/edit modal (pet select, type select, date, time, repeat rule, priority, notification toggle, notes).
+5. **Frontend JS+CSS** (`frontend/js/reminders.js`, `frontend/css/reminders.css`): full state + render pipeline, `TYPE_META` (9 type labels/icons/colors), sections with 4-item cap + View All, calendar month navigation, 3-dot action menu (complete/restore/activate/deactivate/edit/delete), modal validation, matching styles.
 
 ## 4. Dependencies
-- Phase 5 (core service + preferences + dedup), Phase 7 (reminder-driven events), Phase 9 (feeding/diet events — order Phase 9 before or together for feeding; otherwise feeding event wiring lands here and Phase 9 data-dependent wiring is finalized in Phase 9).
+- Phase 7 (scheduler + tz service), Phase 5/6 (notification delivery when `notificationEnabled`).
 
 ## 5. Files/modules likely affected
-- `backend/controllers/{appointment,lostFound,adoption,pet,community,notification}.controller.js`, `backend/controllers/health.controller.js`, `vaccination.controller.js`.
-- Phase 5 service + enum; preferences defaults.
+- Backend: `backend/models/Reminder.js`, `backend/utils/validation.js`, `backend/controllers/reminder.controller.js`, `backend/services/reminder-scheduler.service.js` (+ Phase 5 notification re-use).
+- Frontend: `frontend/pages/reminders.html`, `frontend/js/reminders.js`, `frontend/css/reminders.css`.
+- Docs: `ROADMAP.md`, `BASELINE.md`.
+- Tooling: `compose/scripts/phase8-reminders-api.cjs`, `compose/scripts/phase8-scheduler-check.cjs` (reusable in-container suites).
 
 ## 6. Validation/testing
-- Trigger each event and assert exactly one notification (dedup), correct recipient, correct type/category, respected by preferences, in-app + optional push.
-- Test "all notifications off" state.
-- Regression: existing UI still renders new types.
+- Create reminders for each frequency and rule variant; assert `repeatInterval`/`daysOfWeek` validations (non-integer, <1, >365, >7 weekdays, duplicates).
+- `GET /reminders?filter=` matrix — active default, completed, inactive, all; ownership isolation; `effectiveNext` present for recurring.
+- `notificationEnabled:false` → occurrence consumed silently (no notification).
+- Weekly with `daysOfWeek` fires only on selected weekdays.
+- Frontend: every action wired to the API and the page re-renders.
 
 ## 7. Completion criteria
-- All listed events notify through the shared service with dedup and preferences.
-- No unnecessary notifications (conservative defaults; lost&found matching explicitly not invented).
-- Recipients correct (applicant, pet owner, reporter, user).
+- Reminders page is fully functional against the API (create/edit/complete/activate/deactivate/delete, search, tabs, calendar, stats).
+- Backend + frontend suites green; page served correctly through nginx.
+- No regression to dashboard (`GET /reminders` default active unchanged).
 
 ## 8. Risks and compatibility concerns
-- Recipient resolution for pet-owner adoption notification requires populating `Adoption.pet.owner` — verify guard for missing owner.
-- Notification volume: dedup windows and preferences must prevent spam; if a feature (e.g., lost&found matching) would require new stored state, defer (don't invent).
+- `GET /reminders` default must stay **active** (dashboard + existing callers). `filter=all` is opt-in.
+- Enum values are additive only — `droplet`/`bath`/`interval` must never reorder or rename existing values.
+- `notificationEnabled:false` semantics documented: silent tracking, no notification, occurrence still consumed (no scheduler spin).
 
 ## 9. Checkpoint requirements
-- ✅ Each domain verified end-to-end (one event → one correct notification, preference-aware).
-- ✅ No spam/invented notifications.
+- ✅ API suite (59 checks) + scheduler probe (6 checks) green against the live stack.
+- ✅ Frontend page served via nginx `:8080` with all Phase 8 markers and no JS errors (`node --check` clean).
+- ✅ Backend left green; Phase 5/6/7 regression suites still pass.
+
+## 10. Phase 8 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase8-pet-care-reminders`)
+
+**What shipped**
+- Backend: `Reminder` model + `utils/validation.js` add types `droplet`/`bath`, frequency `interval` + `repeatInterval` (1–365), `daysOfWeek` (0..6, ≤7 distinct), `priority` (`low|normal|high`), `notificationEnabled` (default true). Controller: `validateScheduleConfig` + owned-pet guard on create/edit, `filter` query (`active` default | `completed` | `inactive` | `all`), `effectiveNext` in list payloads. Scheduler: `notificationEnabled:false` → silent consume; weekly honors `daysOfWeek`.
+- Frontend: `pages/reminders.html` live (stats `upcoming/completed/overdue/total`, search, filter tabs, sections with 4-cap + View All, calendar w/ per-type colors + today ring + month nav); `js/reminders.js` rewritten (state, `TYPE_META`, modal validation + Esc/outside-click handling, 3-dot menu actions); `css/reminders.css` Phase 8 styles. Dashboard backward-compat verified (`GET /reminders` default active; `fmtDate`/`fmtTime` handle `HH:mm`).
+- Type map: feeding/Food(green), exercise/Walk(blue), droplet/Water(blue), medicine/Medicine(pink), grooming/Grooming(blue), bath/Bath(purple), appointment/Vet Checkup(purple), vaccination/Vaccination(green), custom/Custom(orange).
+
+**Decisions / deferrals (recorded)**
+- **Scope change**: the original "Notification Event Integration" plan is deferred to the backlog below (becomes a later-phase candidate). Nothing was lost.
+- `GET /reminders` default stays **active** for dashboard compatibility; the page requests `?filter=all` and sections client-side.
+- Repeat payload rules: `repeatInterval` sent only when `frequency:interval`; `daysOfWeek` sent only when `frequency:weekly`; other frequencies normalize server-side.
+- Frontend deliberately omits `timezone` → server default `UTC` (consistent app convention, matches Phase 7 tests).
+- `notificationEnabled:false` still consumes occurrences as `skipped` (silent) — no delivery, no scheduler spin, by design.
+
+**Validation run (2026-09-20, live stack)**
+- `node --check` on all touched backend files + rewritten `frontend/js/reminders.js`.
+- API suite `compose/scripts/phase8-reminders-api.cjs`: **59 checks, 0 failed** — filter matrix incl. default-active, `effectiveNext`, repeat/interval/weekday validation 400s, priority/notificationEnabled validation, owned-pet guards, ownership isolation, update recompute, complete/activate/deactivate lifecycle, cross-user 404s.
+- Scheduler probe `compose/scripts/phase8-scheduler-check.cjs`: **6 checks, 0 failed** — silent-consume for `notificationEnabled:false`, weekly weekday recurrence, interval recurrence.
+- Phase 5/6/7 regression suites still green (in-app delivery + push pipeline untouched by Phase 8 deltas).
+- E2E: stack rebuilt + healthy; `pages/reminders.html`, `js/reminders.js`, `css/reminders.css` served 200 via nginx `:8080` with the Phase 8 DOM/JS markers present; `docker compose ps` all healthy; dashboard loads (backward-compat call shape intact).
+- Schema changes all additive — no migrations required; indexes verified in `petDB`.
+
+**Deferred backlog — Notification Event Integration (original Phase 8 plan, superseded)**
+- Wire the remaining domain events through the Phase 5 service with `dedupKey`s and preference respect (today only adoption-status and appointment-creation notify): appointments (created/upcoming/changed/cancelled), diet & feeding updates (Phase 9 consumer), walking (via Phase 7 `exercise` reminders), health/vaccination "due"-window notifications, lost&found reporter status changes + adoption pet-owner notification, pet created/deleted, community moderation results, system notices. Cross-cutting: register new types additively in the notification enum/preferences; conservative defaults; nothing invented (lost&found matching stays out-of-scope).
 
 ---
 
@@ -758,12 +769,12 @@ Implement **pet-specific** diet and nutrition functionality (data per pet; not g
 3. **Feeding schedule**: derive Feeding reminders from `mealTimes` + recurrence via the Phase 7 reminder service (`feeding` type). Schedule created/updated when meal times change; cancellations when diet removed.
 4. **UI**: add a diet section in the pet management/health UI (`pages/mypet.html` or `health.html`; new `js/diet.js` or extension of `mypet.js`); display selected food info, portion, meal times, edit form; keep visual style consistent.
 5. **Content safety**: any recommendation copy must be informational; add a disclaimer; never present vet advice as diagnosis/prescription. No automated medical claims in UI copy.
-6. **Notifications**: wire diet updates → Phase 8 feeding/diet events (meal-time reminders already; "diet updated" event optional and conservative).
+6. **Notifications**: meal-time feeding reminders come from Phase 7/8 (`feeding` reminders already fire); a "diet updated" notification is optional/conservative and belongs to the deferred Notification Event Integration backlog.
 7. **Authorization/validation** done in service/controller consistent with existing patterns.
 
 ## 4. Dependencies
-- Phase 5 (notifications), Phase 7 (reminders for feeding schedule), Phase 8 (feeding events).
-- Order note: Phase 8 lists feeding events — finalize meal-time wiring here; Phase 8 covers the general event plumbing.
+- Phase 5 (notifications), Phase 7 (feeding reminders from meal times), Phase 8 (pet care reminder engine / deferred event integration).
+- Order note: feeding reminders ship via Phase 7/8; the general Notification Event Integration backlog is deferred (recorded in Phase 8 §10).
 
 ## 5. Files/modules likely affected
 - Backend: new `backend/models/PetDiet.js` (or `NutritionPlan.js`), new `backend/controllers/diet.controller.js`, new `backend/routes/diet.routes.js`, `backend/models/Pet.js` (activityLevel etc. if added), `backend/server.js` mount, validation additions in `utils/validation.js`.
@@ -782,7 +793,7 @@ Implement **pet-specific** diet and nutrition functionality (data per pet; not g
 - Informational-only copy with disclaimer; no medical claims.
 
 ## 8. Risks and compatibility concerns
-- Feeding "missed feeding" (Phase 8) must be explicitly opt-in; avoid nagging by default.
+- Feeding "missed feeding" (deferred Notification Event Integration backlog) must be explicitly opt-in; avoid nagging by default.
 - Don't hardcode breed-specific nutritional tables unless sourced — recommend user-entered + informational text only (Phase 11 may propose, user confirms).
 - Adding fields to `Pet` is additive; ensure no breakage of existing pet create/update allowlists.
 
@@ -1043,7 +1054,7 @@ Phase 0 (baseline)
                            ├─► Phase 5 (notification core)
                            │     ├─► Phase 6 (push notifications)
                            │     └─► Phase 7 (reminder scheduler)
-                           │           └─► Phase 8 (event integration)
+                           │           └─► Phase 8 (pet care reminders)
                            │                 └─► Phase 9 (diet & nutrition)
                            │                       └─► Phase 10 (AI tool layer)
                            │                             └─► Phase 11 (AI recs & CRUD)
@@ -1053,7 +1064,7 @@ Phase 0 (baseline)
 
 Notes:
 - **Phase 12** depends only on Phase 4; it is listed at phase 12 by specification but can be executed as an interlude before feature work if the bug fixes unblock validation. Where files overlap with Phases 5–9 (settings/preferences, dashboard/reminders), sequence to avoid double-editing the same file concurrently.
-- **Phase 9** finalizes the feeding/meal-time wiring listed under Phase 8 (Event Integration); treat Phase 8 as the general plumbing and Phase 9 as the diet-specific consumers.
+- **Phase 9** relies on Phase 7 feeding reminders (meal-time = `feeding` reminders) and the Phase 8 reminder engine; the deferred Notification Event Integration backlog (incl. "diet updated" events) is a later-phase candidate — feeding reminders themselves already fire in-app/push.
 - Single-scheduler assumption (Phase 7) propagates to Phase 13 — one backend replica runs the scheduler.
 
 ## Cross-Cutting Rules

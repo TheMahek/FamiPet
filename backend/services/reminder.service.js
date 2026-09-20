@@ -152,22 +152,21 @@ const zonedToUtc = (year, month, day, hour, minute, timeZone) => {
 const daysInMonth = (year, month) =>
   new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
+const addDaysToParts = (year, month, day, days) => {
+  const t = new Date(Date.UTC(year, month, day + days));
+  return {
+    year: t.getUTCFullYear(),
+    month: t.getUTCMonth(),
+    day: t.getUTCDate(),
+  };
+};
+
 const addIntervalToParts = (year, month, day, frequency) => {
   if (frequency === "daily") {
-    const t = new Date(Date.UTC(year, month, day + 1));
-    return {
-      year: t.getUTCFullYear(),
-      month: t.getUTCMonth(),
-      day: t.getUTCDate(),
-    };
+    return addDaysToParts(year, month, day, 1);
   }
   if (frequency === "weekly") {
-    const t = new Date(Date.UTC(year, month, day + 7));
-    return {
-      year: t.getUTCFullYear(),
-      month: t.getUTCMonth(),
-      day: t.getUTCDate(),
-    };
+    return addDaysToParts(year, month, day, 7);
   }
   if (frequency === "monthly") {
     let m = month + 1;
@@ -209,14 +208,33 @@ const isValidTimeZone = (value) => {
 
 /**
  * Computes the next UTC occurrence instant for a (date, time, timezone,
- * frequency) combination.
+ * frequency, repeatInterval, daysOfWeek) combination.
  *
  * once:       the exact date/time instant (past allowed -> overdue, fires once).
  * recurring:  the first occurrence strictly after `now` (never fires the past).
  *
+ * Phase 8 repeat rules:
+ *   - daily:       every day.
+ *   - interval:    every `repeatInterval` days (1..365), counted from the base
+ *                  calendar date (so an edit to date only shifts phase, it
+ *                  never rescales spacing).
+ *   - weekly:      without `daysOfWeek` exactly every 7 days; with non-empty
+ *                  `daysOfWeek` the reminder runs on those weekdays (0=Sun..
+ *                  6=Sat) — the FIRST qualifying day strictly after `now`.
+ *   - monthly:     same calendar day each month, clamped to short months
+ *                  (Jan 31 -> Feb 28 -> Mar 28), keeping the clamped day.
+ *
  * @returns {Date} canonical UTC instant.
  */
-const computeNextRunAt = ({ date, time, timezone, frequency, now = Date.now() }) => {
+const computeNextRunAt = ({
+  date,
+  time,
+  timezone,
+  frequency,
+  repeatInterval = 1,
+  daysOfWeek = [],
+  now = Date.now(),
+}) => {
   const parts = calendarPartsFromDate(date);
   const tp = timeToParts(time);
   const tz = timezone || "UTC";
@@ -235,25 +253,61 @@ const computeNextRunAt = ({ date, time, timezone, frequency, now = Date.now() })
     return scheduled;
   }
 
-  // Recurring: find the first occurrence > now. Advance from the BASE
-  // date/time by whole intervals (skipping any historical occurrences) so a
-  // long-down backend never replays/bursts past cycles.
+  const selectedDays = Array.isArray(daysOfWeek) && daysOfWeek.length
+    ? [...new Set(daysOfWeek.map((n) => Number(n)))]
+        .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+        .sort((a, b) => a - b)
+    : [];
+  const intervalDays =
+    frequencySafe === "interval" ? Math.max(1, Number(repeatInterval) || 1) : 1;
+
+  const stepParts = (y, m, d) => {
+    if (frequencySafe === "daily") return addDaysToParts(y, m, d, 1);
+    if (frequencySafe === "interval") return addDaysToParts(y, m, d, intervalDays);
+    if (frequencySafe === "weekly") return addDaysToParts(y, m, d, selectedDays.length ? 1 : 7);
+    // monthly
+    let nm = m + 1;
+    let ny = y;
+    if (nm > 11) {
+      nm = 0;
+      ny += 1;
+    }
+    return { year: ny, month: nm, day: Math.min(d, daysInMonth(ny, nm)) };
+  };
+
+  // Weekday filter for weekly-with-days schedules. The weekday is derived from
+  // the calendar date (UTC parts), never from the instant — a wall-clock time
+  // can cross days in UTC while staying the same calendar day in `tz`.
+  const dayAllowed = (instantMs) => {
+    if (!selectedDays.length) return true;
+    const wall = wallPartsOf(instantMs, tz);
+    const weekday = new Date(
+      Date.UTC(Number(wall.year), Number(wall.month) - 1, Number(wall.day))
+    ).getUTCDay();
+    return selectedDays.includes(weekday);
+  };
+
+  // Recurring: find the first occurrence > now that respects the weekly-day
+  // filter. Advance from the BASE calendar date (skipping any historical
+  // occurrences) so a long-down backend never replays/bursts past cycles.
   let guard = 0;
   const MAX_ITER = 4000; // far beyond any sane gap (4000 days ~ 11 years)
-  let baseY = parts.year;
-  let baseM = parts.month;
-  let baseD = parts.day;
-  while (scheduled.getTime() <= now && guard < MAX_ITER) {
-    const next = addIntervalToParts(baseY, baseM, baseD, frequencySafe);
-    baseY = next.year;
-    baseM = next.month;
-    baseD = next.day;
-    scheduled = zonedToUtc(baseY, baseM, baseD, tp.hour, tp.minute, tz);
+  let y = parts.year;
+  let m = parts.month;
+  let d = parts.day;
+  while (guard < MAX_ITER) {
+    scheduled = zonedToUtc(y, m, d, tp.hour, tp.minute, tz);
+    if (scheduled.getTime() > now && dayAllowed(scheduled.getTime())) break;
+    const next = stepParts(y, m, d);
+    y = next.year;
+    m = next.month;
+    d = next.day;
     guard += 1;
   }
   if (guard >= MAX_ITER) {
     // Extreme ages (tens of years overdue): bail deterministically to the base
-    // date/time rather than looping forever.
+    // date/time rather than looping forever (weekly-with-days steps daily, so
+    // its worst case is 7 iterations per week — 4000 covers ~571 weeks).
     scheduled = zonedToUtc(parts.year, parts.month, parts.day, tp.hour, tp.minute, tz);
   }
   return scheduled;
@@ -269,8 +323,21 @@ const advanceOccurrence = (reminder, fromMs, now = Date.now()) =>
     time: reminder.time,
     timezone: reminder.timezone,
     frequency: reminder.frequency,
-    now,
+    repeatInterval: reminder.repeatInterval,
+    daysOfWeek: reminder.daysOfWeek,
+    now: fromMs !== undefined && fromMs !== null ? fromMs : now,
   });
+
+/**
+ * YYYY-MM-DD calendar-day key for a wall-clock timezone (used by the
+ * "upcoming"/"today" endpoints, whose sections are calendar-day based).
+ */
+const zonedDateKey = (utcMs, timeZone) => {
+  const wall = wallPartsOf(utcMs, timeZone);
+  return `${Number(wall.year)}-${String(wall.month).padStart(2, "0")}-${String(wall.day).padStart(2, "0")}`;
+};
+
+const todayKey = (timeZone, now = Date.now()) => zonedDateKey(now, timeZone);
 
 /**
  * Combines date + time + timezone into a short human string for notification
@@ -279,6 +346,20 @@ const advanceOccurrence = (reminder, fromMs, now = Date.now()) =>
 const scheduledLabel = (date, time) => {
   const iso = msToIsoString(date) || new Date().toISOString();
   return `${iso.slice(0, 10)} at ${String(time)}`;
+};
+
+// Human-friendly display label per reminder type (Phase 8). Used by the
+// scheduler's notification messages and the frontend type badges.
+const REMINDER_TYPE_LABELS = {
+  feeding: "Food",
+  medicine: "Medicine",
+  vaccination: "Vaccination",
+  grooming: "Grooming",
+  appointment: "Appointment",
+  exercise: "Walk",
+  droplet: "Water",
+  bath: "Bath",
+  custom: "Custom",
 };
 
 /* =====================================================
@@ -425,6 +506,9 @@ module.exports = {
   computeNextRunAt,
   advanceOccurrence,
   scheduledLabel,
+  zonedDateKey,
+  todayKey,
+  REMINDER_TYPE_LABELS,
   upsertAppointmentReminder,
   rescheduleAppointmentReminder,
   cancelAppointmentReminder,

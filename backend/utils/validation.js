@@ -100,9 +100,12 @@ const REMINDER_TYPES = [
   "grooming",
   "appointment",
   "exercise",
+  "droplet",
+  "bath",
   "custom",
 ];
-const REMINDER_FREQUENCIES = ["once", "daily", "weekly", "monthly"];
+const REMINDER_FREQUENCIES = ["once", "daily", "interval", "weekly", "monthly"];
+const REMINDER_PRIORITIES = ["low", "normal", "high"];
 const VACCINATION_STATUSES = ["Pending", "Completed"];
 const ADOPTION_STATUSES = ["Pending", "Approved", "Rejected"];
 // Notification enums (Phase 5). Additive only — values must match
@@ -147,6 +150,7 @@ module.exports = {
   APPOINTMENT_TYPES,
   REMINDER_TYPES,
   REMINDER_FREQUENCIES,
+  REMINDER_PRIORITIES,
   VACCINATION_STATUSES,
   ADOPTION_STATUSES,
   NOTIFICATION_TYPES,

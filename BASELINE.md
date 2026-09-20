@@ -338,3 +338,32 @@ Backend healthy; DB back to seed/real users only (`admin@animalplanet.com`, `use
 
 ### Phase 7 checkpoint
 - Commit → tag `phase7-reminder-scheduler`. Rollback: `git reset --hard phase7-reminder-scheduler`.
+
+## 16. Phase 8 status — ✅ COMPLETED (Pet Care Reminder System)
+
+Pet-attached reminders with categories, repeat rules, priorities, and per-reminder notification toggles, surfaced on a remade Reminders page (sections, filter tabs, calendar, search) and wired to the Phase 7 scheduler + Phase 5/6 notifications. Full details in `ROADMAP.md` §10 (Phase 8 status).
+
+### What changed
+- **Backend**: `models/Reminder.js` + `utils/validation.js` add types `droplet` (water) and `bath`, frequency `interval` + `repeatInterval` (int 1–365), `daysOfWeek` (ints 0=Sun..6=Sat, ≤7 distinct), `priority` (`low|normal|high`), `notificationEnabled` (bool, default true). `controllers/reminder.controller.js` adds `validateScheduleConfig` + owned-pet guard, a `filter` query on `GET /reminders` (`active` default | `completed` | `inactive` | `all`) and `effectiveNext` in list payloads. `services/reminder-scheduler.service.js` consumes `notificationEnabled:false` occurrences silently (no notification) and honors `daysOfWeek` for weekly recurrence.
+- **Frontend**: `pages/reminders.html` reworked into a live page (stats `upcoming/completed/overdue/total`, search, filter tabs `pending/completed/inactive`, sectioned list with 4-item cap + View All, calendar with per-type colors + today ring + month nav, add/edit modal with pet select/type/date/time/repeat/priority/notification toggle/notes). `js/reminders.js` fully rewritten (state + render pipeline, `TYPE_META` for 9 types, 3-dot menu actions, modal validation, Esc/outside-click handling). `css/reminders.css` gets the Phase 8 styles. Dashboard backward-compat verified (`GET /reminders` default active; `fmtDate`/`fmtTime` handle `HH:mm`).
+- Type map: feeding/Food(green), exercise/Walk(blue), droplet/Water(blue), medicine/Medicine(pink), grooming/Grooming(blue), bath/Bath(purple), appointment/Vet Checkup(purple), vaccination/Vaccination(green), custom/Custom(orange).
+
+### Verified (see ROADMAP §10 for the full matrix)
+- API suite (`compose/scripts/phase8-reminders-api.cjs`): **59 checks, 0 failed** — filter matrix incl. default-active, `effectiveNext`, repeat/interval/weekday validation 400s, priority/notificationEnabled validation, owned-pet guards, ownership isolation, lifecycle (complete/activate/deactivate), cross-user 404s.
+- Scheduler probe (`compose/scripts/phase8-scheduler-check.cjs`): **6 checks, 0 failed** — silent-consume, weekly weekday recurrence, interval recurrence.
+- Phase 5/6/7 regression suites still green; `node --check` clean on all touched backend files + rewritten reminders.js.
+- E2E: stack rebuilt + healthy; `pages/reminders.html`, `js/reminders.js`, `css/reminders.css` served 200 via nginx `:8080` with the Phase 8 DOM/JS markers; `docker compose ps` all healthy; dashboard loads.
+- Schema changes all additive — no migrations; indexes verified in `petDB`.
+
+### Decisions / deferrals recorded
+- **Scope change**: the original Phase 8 plan (Notification Event Integration) is deferred to a backlog recorded in `ROADMAP.md` §10 — nothing lost; it becomes a later-phase candidate.
+- `GET /reminders` default stays **active** for dashboard compatibility; the page requests `?filter=all` and sections client-side.
+- Repeat payload rules: `repeatInterval` sent only when `frequency:interval`; `daysOfWeek` sent only when `frequency:weekly`; other frequencies normalize server-side.
+- Frontend omits `timezone` → server default `UTC` (consistent app convention).
+- `notificationEnabled:false` consumes occurrences as `skipped` silently — no delivery, no scheduler spin, by design.
+
+### State restored after tests
+Backend healthy; DB back to seed/real users only; Phase 8 suites create + purge throwaway users/pets/reminders (see `compose/scripts/*.cjs` cleanup sections).
+
+### Phase 8 checkpoint
+- Commit → tag `phase8-pet-care-reminders`. Rollback: `git reset --hard phase8-pet-care-reminders`.

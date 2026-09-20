@@ -680,6 +680,15 @@ body {
 
 }
 
+.reminder-type-line {
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+
+}
+
 .vaccination-text {
     color: #43a98a;
 }
@@ -1783,4 +1792,345 @@ body {
     height: 16px;
 
     stroke-width: 1.8;
+}
+
+
+/* =========================================================
+   PHASE 8 - FILTER TABS
+========================================================= */
+
+.reminder-filter-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: #f2f5f9;
+    border-radius: 12px;
+}
+
+.filter-tab {
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+
+.filter-tab:hover {
+    color: var(--text-dark);
+}
+
+.filter-tab.active {
+    background: #ffffff;
+    color: #ef6f9a;
+    box-shadow: 0 2px 8px rgba(35, 55, 85, 0.08);
+}
+
+
+/* =========================================================
+   PHASE 8 - REMINDER SECTIONS
+========================================================= */
+
+.reminder-section {
+    border-bottom: 1px solid #edf1f5;
+}
+
+.reminder-section:last-child {
+    border-bottom: none;
+}
+
+.reminder-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.9rem 0.1rem 0.5rem;
+}
+
+.reminder-section:first-child .reminder-section-header {
+    padding-top: 1.1rem;
+}
+
+.reminder-section-header h3 {
+    margin: 0;
+    color: var(--text-dark);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.reminder-section-header span {
+    color: var(--text-light);
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+
+
+/* Item state (completed / inactive) */
+
+.reminder-item.is-completed,
+.reminder-item.is-inactive {
+    opacity: 0.62;
+}
+
+
+/* =========================================================
+   PHASE 8 - NEW TYPE COLORS
+========================================================= */
+
+.reminder-type.feeding {
+    background: #e8f7f2;
+    color: #42aa8b;
+}
+
+.reminder-type.exercise {
+    background: #e7f2fc;
+    color: #518fc5;
+}
+
+.reminder-type.droplet {
+    background: #e1f5f9;
+    color: #2b9cb3;
+}
+
+.reminder-type.medicine {
+    background: #fdebf2;
+    color: #e66e9a;
+}
+
+.reminder-type.bath {
+    background: #e2f7f4;
+    color: #23a394;
+}
+
+.reminder-type.appointment {
+    background: #eee9fc;
+    color: #9176d8;
+}
+
+.reminder-type.custom {
+    background: #fff4df;
+    color: #ef9b27;
+}
+
+.feeding-text {
+    color: #43a98a;
+}
+
+.exercise-text {
+    color: #4f8fc8;
+}
+
+.droplet-text {
+    color: #2690a6;
+}
+
+.medicine-text {
+    color: #e66e9a;
+}
+
+.bath-text {
+    color: #20988a;
+}
+
+.appointment-text {
+    color: #8e75d4;
+}
+
+.custom-text {
+    color: #e99524;
+}
+
+
+/* =========================================================
+   PHASE 8 - PRIORITY PILL
+========================================================= */
+
+.reminder-actions {
+    align-items: flex-end;
+}
+
+.priority-pill {
+    padding: 0.25rem 0.6rem;
+    border-radius: 50px;
+    font-size: 0.52rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.priority-pill.low {
+    background: #e9f6f1;
+    color: #37977e;
+}
+
+.priority-pill.normal {
+    background: #e6f1fb;
+    color: #4b87bd;
+}
+
+.priority-pill.high {
+    background: #fff0e2;
+    color: #d97a1e;
+}
+
+
+/* =========================================================
+   PHASE 8 - REPEAT META TEXT
+========================================================= */
+
+.reminder-meta .repeat-text {
+    color: #7b92a7;
+}
+
+.reminder-meta .repeat-text i {
+    color: #9bb2c4;
+}
+
+
+/* =========================================================
+   PHASE 8 - MODAL EXTRAS
+========================================================= */
+
+.form-group textarea {
+    width: 100%;
+    min-height: 72px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    border: 1px solid #dfe7ee;
+    border-radius: 11px;
+    outline: none;
+    background: #ffffff;
+    color: #243a55;
+    font-family: inherit;
+    font-size: 12px;
+    resize: vertical;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group textarea:focus {
+    border-color: #b9d3e9;
+    box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.08);
+}
+
+.form-help {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-light);
+    font-size: 10px;
+}
+
+.repeat-options[hidden] {
+    display: none !important;
+}
+
+.repeat-inline[hidden],
+.weekday-chips[hidden] {
+    display: none !important;
+}
+
+.repeat-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.repeat-inline input[type="number"] {
+    width: 84px;
+}
+
+.weekday-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.day-chip {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dfe7ee;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #536980;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+
+.day-chip:hover {
+    border-color: #ef78a2;
+    color: #ef78a2;
+}
+
+.day-chip.active {
+    background: #ef78a2;
+    border-color: #ef78a2;
+    color: #ffffff;
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.toggle-row > div:first-child {
+    min-width: 0;
+}
+
+.toggle-row label {
+    margin-bottom: 0;
+}
+
+.switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    inset: 0;
+    background: #d5dde6;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.switch-slider::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: 0.2s ease;
+}
+
+.switch input:checked + .switch-slider {
+    background: #4db394;
+}
+
+.switch input:checked + .switch-slider::before {
+    transform: translateX(18px);
 }

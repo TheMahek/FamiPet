@@ -42,6 +42,16 @@
 //     ones advance to the next occurrence (skipped-no-pet).
 //   - TIMEZONES: occurrence instants are computed per-reminder from
 //     date+time+timezone by reminder.service (canonical UTC). See that file.
+//   - REPEAT RULES (Phase 8): "interval" repeats every `repeatInterval` days;
+//     "weekly" with a non-empty `daysOfWeek` repeats on those weekdays. Both
+//     are honored at materialization, pet-skip advance and normal advance.
+//   - NOTIFICATION-OFF (Phase 8): a reminder with `notificationEnabled:false`
+//     still runs on schedule, but each occurrence is CONSUMED silently
+//     (lastStatus "skipped", never creates a Notification). Routine hygiene
+//     chores can be tracked without inbox noise.
+//   - NOTIFICATION MESSAGE: built from the pet name + `REMINDER_TYPE_LABELS`
+//     (e.g. "Bruno's Vaccination reminder is due.") and carries the reminder's
+//     `priority` into the Notification record.
 //
 // Failure/restart semantics are verified deterministically in the Phase 7
 // in-container suite (controlled `now` + monkeypatched delivery).
@@ -53,6 +63,7 @@ const notificationService = require("./notification.service");
 const {
   computeNextRunAt,
   scheduledLabel,
+  REMINDER_TYPE_LABELS,
 } = require("./reminder.service");
 
 // Runtime knobs (env-overridable, all bounded).
@@ -64,6 +75,28 @@ const MAX_ATTEMPTS = Number(process.env.REMINDER_MAX_ATTEMPTS) || 3;
 const dayChangedLog = { date: "" };
 let timer = null;
 let running = false;
+
+/**
+ * Advance a recurring reminder to its next occurrence (strictly after the
+ * fired one), or mark a once-reminder complete. Honors Phase 8 repeat rules.
+ */
+const advanceOrComplete = (reminder, occurrenceMs) => {
+  if (reminder.frequency === "once") {
+    return { completed: true, nextRunAt: null };
+  }
+  return {
+    completed: false,
+    nextRunAt: computeNextRunAt({
+      date: reminder.date,
+      time: reminder.time,
+      timezone: reminder.timezone,
+      frequency: reminder.frequency,
+      repeatInterval: reminder.repeatInterval,
+      daysOfWeek: reminder.daysOfWeek,
+      now: occurrenceMs + 1,
+    }),
+  };
+};
 
 const log = (msg) => console.log(`[Scheduler] ${msg}`);
 
@@ -104,7 +137,7 @@ const processDueReminders = async ({
       isCompleted: false,
       nextRunAt: { $exists: false },
     })
-      .select("_id user pet date time timezone frequency")
+      .select("_id user pet date time timezone frequency repeatInterval daysOfWeek")
       .limit(batchLimit)
       .lean();
 
@@ -114,6 +147,8 @@ const processDueReminders = async ({
         time: row.time,
         timezone: row.timezone,
         frequency: row.frequency,
+        repeatInterval: row.repeatInterval,
+        daysOfWeek: row.daysOfWeek,
         now: startedAt,
       });
       await Reminder.updateOne(
@@ -225,6 +260,8 @@ const processClaim = async (reminder, { now, maxAttempts, summary }) => {
             time: reminder.time,
             timezone: reminder.timezone,
             frequency: reminder.frequency,
+            repeatInterval: reminder.repeatInterval,
+            daysOfWeek: reminder.daysOfWeek,
             now: reminder.nextRunAt ? reminder.nextRunAt.getTime() + 1 : now,
           });
           await Reminder.updateOne(
@@ -245,12 +282,38 @@ const processClaim = async (reminder, { now, maxAttempts, summary }) => {
       ? await Pet.findById(reminder.pet).select("name").lean()
       : null;
     const petName = petDoc && petDoc.name ? petDoc.name : "";
+    const typeLabel = REMINDER_TYPE_LABELS[reminder.type] || reminder.type;
     const label = scheduledLabel(reminder.date, reminder.time);
 
     const occurrenceMs = reminder.nextRunAt
       ? reminder.nextRunAt.getTime()
       : now;
     const dedupKey = `reminder-fire:${String(reminder._id)}:${occurrenceMs}`;
+
+    // --- Notification-off policy (Phase 8): consume silently, never notify ---
+    // The reminder still runs on schedule so routines are trackable, but no
+    // Notification record is created. The occurrence advances/completes as if
+    // delivered, with lastStatus "skipped".
+    if (reminder.notificationEnabled === false) {
+      const nextGap = advanceOrComplete(reminder, occurrenceMs);
+      await Reminder.updateOne(
+        { _id: reminder._id },
+        {
+          $set: {
+            lastFiredAt: new Date(now),
+            lastStatus: "skipped",
+            lastError: "Notifications disabled.",
+            failedAttempts: 0,
+            ...(nextGap.completed
+              ? { isCompleted: true, nextRunAt: null }
+              : { nextRunAt: nextGap.nextRunAt }),
+          },
+          $unset: { claimedUntil: "" },
+        }
+      );
+      summary.skipped += 1;
+      return;
+    }
 
     // --- Deliver via the shared Phase 5 service (no push code here) ---
     //
@@ -267,17 +330,23 @@ const processClaim = async (reminder, { now, maxAttempts, summary }) => {
       category: "reminder",
       title: reminder.title.slice(0, 200),
       message:
-        `Reminder due ${label}` +
-        (petName ? ` for ${petName}.` : ".") +
+        `${petName ? `${petName}'s ` : ""}${typeLabel} reminder is due` +
+        ` (${label}).` +
         (reminder.description
           ? ` ${String(reminder.description).slice(0, 200)}`
           : ""),
-      priority: "normal",
+      priority: ["low", "normal", "high"].includes(reminder.priority)
+        ? reminder.priority
+        : "normal",
       referenceType: "reminder",
       referenceId: reminder._id,
       metadata: {
         reminderId: String(reminder._id),
         reminderType: reminder.type,
+        reminderTypeLabel: typeLabel,
+        priority: ["low", "normal", "high"].includes(reminder.priority)
+          ? reminder.priority
+          : "normal",
         frequency: reminder.frequency,
         scheduledAt: msToSlots(occurrenceMs),
         pet: petName,
@@ -294,19 +363,9 @@ const processClaim = async (reminder, { now, maxAttempts, summary }) => {
       // by exactly one interval (missed cycles drain one per pass, never a
       // burst); complete once-reminders. Delivered → "fired"; preference-off
       // /de-duplicated → "skipped" (still consumes the occurrence).
-      let nextRunAt = null;
-      let completed = false;
-      if (reminder.frequency !== "once") {
-        nextRunAt = computeNextRunAt({
-          date: reminder.date,
-          time: reminder.time,
-          timezone: reminder.timezone,
-          frequency: reminder.frequency,
-          now: occurrenceMs + 1,
-        });
-      } else {
-        completed = true;
-      }
+      const nextGap = advanceOrComplete(reminder, occurrenceMs);
+      const completed = nextGap.completed;
+      const nextRunAt = nextGap.nextRunAt;
 
       await Reminder.updateOne(
         { _id: reminder._id },

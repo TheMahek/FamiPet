@@ -25,6 +25,8 @@ const reminderSchema = new mongoose.Schema(
         "grooming",
         "appointment",
         "exercise",
+        "droplet",
+        "bath",
         "custom",
       ],
       required: true,
@@ -40,9 +42,32 @@ const reminderSchema = new mongoose.Schema(
 
     frequency: {
       type: String,
-      enum: ["once", "daily", "weekly", "monthly"],
+      enum: ["once", "daily", "interval", "weekly", "monthly"],
       default: "once",
     },
+
+    // Repeat schedule (Phase 8 Pet Care Reminders):
+    //   - frequency "interval": repeat every `repeatInterval` days (1..365).
+    //   - frequency "weekly": when `daysOfWeek` is non-empty the reminder runs
+    //     on those weekdays (0=Sun..6=Sat) instead of every 7 days.
+    repeatInterval: { type: Number, default: 1, min: 1, max: 365 },
+    daysOfWeek: {
+      type: [Number],
+      default: [],
+      validate: {
+        validator: (v) =>
+          Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 0 && n <= 6),
+        message: "daysOfWeek values must be integers 0 (Sunday) to 6 (Saturday).",
+      },
+    },
+
+    // Display + delivery preferences (Phase 8).
+    priority: { type: String, enum: ["low", "normal", "high"], default: "normal" },
+
+    // When false the scheduler CONSUMES each occurrence without creating a
+    // notification (silent tracking, e.g. routine hygiene chores).
+    notificationEnabled: { type: Boolean, default: true },
+
     isActive: { type: Boolean, default: true },
     isCompleted: { type: Boolean, default: false },
 
