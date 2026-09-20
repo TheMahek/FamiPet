@@ -131,13 +131,14 @@
 
         try {
             const rm = await FamiPetAPI.get("/reminders");
+            const rmArr = rm.reminders || [];
             const rmNum = document.querySelector(".reminder-card .stat-number");
-            if (rmNum) rmNum.textContent = (rm.reminders || rm.count || 0);
+            if (rmNum) rmNum.textContent = Array.isArray(rmArr) ? rmArr.length : (rm.count || 0);
         } catch (e) { /* keep default */ }
     }
 
     /* =====================================================
-       UPCOMING APPOINTMENT
+       UPCOMING APPOINTMENT COUNT
     ===================================================== */
     async function loadAppointment() {
         try {
@@ -147,38 +148,6 @@
             const up = apps.filter(a => a.status === "pending" || a.status === "confirmed");
             const statNum = document.querySelector(".appointment-card .stat-number");
             if (statNum) statNum.textContent = up.length;
-
-            const box = document.querySelector(".appointment-box");
-            if (!box) return;
-
-            if (!up.length) {
-                box.innerHTML = `
-                    <div class="appointment-details" style="width:100%;">
-                        <span class="appointment-label" style="color:#8f8f9a;">NO UPCOMING APPOINTMENT</span>
-                        <h3>You're all caught up!</h3>
-                        <div class="appointment-meta"><span>Book a visit for your pet anytime.</span></div>
-                    </div>
-                `;
-            } else {
-                const a = up[0];
-                const petName = (a.pet && a.pet.name) || "Your Pet";
-                const ptype = String(a.type || "checkup").toUpperCase();
-                const petImg = (a.pet && a.pet.images && a.pet.images[0]) || "../assets/images/my-pet/dog1.png";
-                box.innerHTML = `
-                    <div class="appointment-icon"><i data-lucide="stethoscope"></i></div>
-                    <div class="appointment-details">
-                        <span class="appointment-label">${esc(ptype)}</span>
-                        <h3>${esc(petName)}</h3>
-                        <div class="appointment-meta">
-                            <span><i data-lucide="calendar"></i> ${esc(fmtDate(a.date))}</span>
-                            <span><i data-lucide="clock"></i> ${esc(fmtTime(a.time))}</span>
-                        </div>
-                    </div>
-                    <div class="appointment-pet"><img src="${esc(petImg)}" alt="${esc(petName)}"></div>
-                `;
-            }
-
-            if (window.lucide) lucide.createIcons();
         } catch (err) {
             console.warn("Dashboard appointments:", err && err.message);
         }

@@ -8,6 +8,26 @@ const {
   APPOINTMENT_TYPES,
 } = require("../utils/validation");
 
+// Phase 12: booking/rescheduling a past slot is rejected. A short grace
+// absorbs clock-skew / rounding at the minute boundary so a slot starting
+// moments-from-now does not produce a flaky 400.
+const PAST_SLOT_GRACE_MS = 5 * 60 * 1000;
+
+// Builds the wall-clock slot (epoch ms) from the SAME date value the model
+// stores plus the HH:mm clock time the UI sends, keeping the past-check
+// consistent with how the appointment's date/time are persisted.
+function appointmentSlotMs(dateValue, timeValue) {
+  const dateMs = new Date(dateValue).getTime();
+  if (Number.isNaN(dateMs)) return NaN;
+  const parts = String(timeValue || "").split(":");
+  const hours = parts.length > 0 ? Number(parts[0]) : NaN;
+  const minutes = parts.length > 1 ? Number(parts[1]) : NaN;
+  const clockMs =
+    (Number.isFinite(hours) ? hours * 60 * 60 * 1000 : 0) +
+    (Number.isFinite(minutes) ? minutes * 60 * 1000 : 0);
+  return dateMs + clockMs;
+}
+
 exports.getAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ user: req.user._id })
@@ -79,6 +99,14 @@ exports.createAppointment = async (req, res) => {
     const appointmentDate = new Date(date);
     if (Number.isNaN(appointmentDate.getTime())) {
       return res.status(400).json({ success: false, message: "Invalid appointment date." });
+    }
+
+    const slotMs = appointmentSlotMs(date, time);
+    if (Number.isFinite(slotMs) && slotMs < Date.now() - PAST_SLOT_GRACE_MS) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment date and time must be in the future.",
+      });
     }
 
     const existing = await Appointment.findOne({
@@ -188,6 +216,18 @@ exports.updateAppointment = async (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid time." });
       }
       updates.time = updates.time.trim();
+    }
+
+    if (updates.date !== undefined || updates.time !== undefined) {
+      const effectiveDate = updates.date !== undefined ? updates.date : appointment.date;
+      const effectiveTime = updates.time !== undefined ? updates.time : appointment.time;
+      const slotMs = appointmentSlotMs(effectiveDate, effectiveTime);
+      if (Number.isFinite(slotMs) && slotMs < Date.now() - PAST_SLOT_GRACE_MS) {
+        return res.status(400).json({
+          success: false,
+          message: "Appointment date and time must be in the future.",
+        });
+      }
     }
 
     if (updates.type !== undefined) {

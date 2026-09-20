@@ -1257,6 +1257,11 @@ speciesSelect.addEventListener(
         const selectedSpecies =
             speciesSelect.value;
 
+        /* Phase 12 — keep the weight datalist in step with the chosen
+           species so the suggestions always stay in a plausible range. */
+        updateWeightOptions(
+            selectedSpecies
+        );
 
         /* =========================================
            OTHER SPECIES
@@ -1781,6 +1786,13 @@ if (breed === "Other") {
 
                             renderPets();
 
+                            // Phase 12 — after a successful new-pet create,
+                            // move the owner to the adoption page so the new
+                            // addition is immediately in context for finding a
+                            // home (matches the Phase 12 roadmap intent).
+                            window.location.href =
+                                "adoption.html";
+
                         }).catch((err) => {
 
                             console.error(err);
@@ -1811,6 +1823,11 @@ else {
             );
 
             renderPets();
+
+            // Phase 12 — after a successful new-pet create (no-image path),
+            // move the owner to the adoption page (same as the image path).
+            window.location.href =
+                "adoption.html";
 
         })
         .catch((err) => {
@@ -1844,6 +1861,24 @@ else {
 /* =====================================================
    BREED OPTIONS
 ===================================================== */
+
+
+function updateWeightOptions(species) {
+  const presets = SPECIES_WEIGHT_PRESETS_KG[species] || SPECIES_WEIGHT_PRESETS_KG.other;
+  const datalist = document.querySelector('#weightOptions');
+  if (!datalist) return;
+  datalist.innerHTML = presets.map((w) => '<option value="' + w + ' kg">').join('');
+}
+
+const SPECIES_WEIGHT_PRESETS_KG = {
+  dog: [2, 4, 6, 8, 10, 12, 15, 20, 25, 30, 35, 40],
+  cat: [1, 2, 3, 4, 5, 6, 8, 10, 12],
+  bird: [0.5, 1, 1.5, 2, 3],
+  rabbit: [0.5, 1, 1.5, 2, 3],
+  fish: [0.1, 0.5, 1],
+  other: [1, 2, 3, 4, 5],
+};
+
 
 function updateBreedOptions(
     species,

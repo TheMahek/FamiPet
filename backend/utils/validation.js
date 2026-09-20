@@ -108,6 +108,39 @@ const REMINDER_FREQUENCIES = ["once", "daily", "interval", "weekly", "monthly"];
 const REMINDER_PRIORITIES = ["low", "normal", "high"];
 const VACCINATION_STATUSES = ["Pending", "Completed"];
 const ADOPTION_STATUSES = ["Pending", "Approved", "Rejected"];
+
+// Phase 12 — plausible weight bands per species (kg). These mirror real-world
+// breed/trait ranges so an implausible weight (e.g. a 500 kg "dog") is
+// rejected instead of silently accepted. `other` stays deliberately generous
+// (custom species), and weight remains optional on the API.
+const SPECIES_WEIGHT_KG = {
+  dog: { min: 0.5, max: 90 },
+  cat: { min: 0.5, max: 25 },
+  bird: { min: 0.03, max: 15 },
+  rabbit: { min: 0.3, max: 10 },
+  fish: { min: 0.001, max: 25 },
+  other: { min: 0.01, max: 400 },
+};
+
+// Validates a pet weight against its species band. `ageYears` is only used to
+// relax the floor for juveniles (a 6-month puppy can legitimately weigh less
+// than an adult's species minimum). Returns { ok: true } | { ok: false, message }.
+const validateSpeciesWeight = (species, ageYears, weightKg) => {
+  const band = SPECIES_WEIGHT_KG[species] || SPECIES_WEIGHT_KG.other;
+  if (ageYears >= 1 && weightKg < band.min) {
+    return {
+      ok: false,
+      message: `Weight is too low for a ${species} (expected at least ${band.min} kg).`,
+    };
+  }
+  if (weightKg > band.max) {
+    return {
+      ok: false,
+      message: `Weight is too high for a ${species} (expected at most ${band.max} kg).`,
+    };
+  }
+  return { ok: true };
+};
 // Notification enums (Phase 5). Additive only — values must match
 // backend/models/Notification.js; new values appended, never reordered.
 const NOTIFICATION_TYPES = [
@@ -170,4 +203,6 @@ module.exports = {
   DIET_ACTIVITY_LEVELS,
   MAX_MEALS,
   MAX_PORTION_GRAMS,
+  SPECIES_WEIGHT_KG,
+  validateSpeciesWeight,
 };

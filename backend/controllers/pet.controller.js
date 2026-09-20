@@ -250,6 +250,20 @@ exports.createPet = async (req, res) => {
       }
     }
 
+    // Phase 12 — reject an implausible weight for the species (and, for
+    // pets aged 1+, below the species floor too). Only applies while the
+    // client actually supplies a weight; weight stays optional on the API.
+    if (weightNum !== undefined && weightNum !== null) {
+      const weightCheck = validateSpeciesWeight(
+        String(species).toLowerCase(),
+        ageNum,
+        weightNum
+      );
+      if (!weightCheck.ok) {
+        return res.status(400).json({ success: false, message: weightCheck.message });
+      }
+    }
+
     if (color !== undefined && typeof color !== "string") {
       return res.status(400).json({ success: false, message: "Invalid color." });
     }
@@ -452,6 +466,44 @@ exports.updatePet = async (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid weight." });
       }
       updates.weight = weightNum;
+    }
+
+    // Phase 12 — same species/age weight-band check as create. Uses the
+    // *effective* species/age (a new value supplied in this update, or the
+    // pet's current stored value) so the band stays correct even when only
+    // the weight is being changed, or when species/age move together.
+    if (
+      updates.weight !== undefined &&
+      updates.weight !== null &&
+      typeof updates.weight === "number"
+    ) {
+      const effectiveSpecies = String(
+        updates.species !== undefined ? updates.species : pet.species
+      ).toLowerCase();
+
+      let effectiveAge =
+        updates.age !== undefined
+          ? typeof updates.age === "string"
+            ? Number(updates.age)
+            : updates.age
+          : pet.age;
+
+      if (typeof effectiveAge !== "number" || Number.isNaN(effectiveAge)) {
+        effectiveAge = 0;
+      }
+
+      const weightCheck = validateSpeciesWeight(
+        effectiveSpecies,
+        effectiveAge,
+        updates.weight
+      );
+
+      if (!weightCheck.ok) {
+        return res.status(400).json({
+          success: false,
+          message: weightCheck.message,
+        });
+      }
     }
 
     for (const strField of ["color", "health", "description"]) {

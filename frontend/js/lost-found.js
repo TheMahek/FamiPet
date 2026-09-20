@@ -643,8 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <input
                                 id="reportPetLocation"
                                 type="text"
-                                placeholder="e.g. Andheri"
-                                required
+                                placeholder="e.g. Andheri (optional)"
                             >
 
                         </div>

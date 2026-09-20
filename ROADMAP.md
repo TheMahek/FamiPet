@@ -70,6 +70,32 @@ Establish a clean, committed, rollback-able baseline of the *current* applicatio
 - Do **not** `git clean`; untracked assets (`uploads/`, `certs/`) are needed at runtime.
 - No functional risk: code is untouched in this phase.
 
+## Phase 12 — SETTINGS + DARK MODE + ADOPTION CROSS-CUT
+
+**Status:** DONE (verify: commit + tag + default-branch push). Backend gate tests executed live against Docker (201 L&F no-location; 400 dog-500kg). Frontend: L&F location optional + required attr removed; Pet weight datalist adapts per species (mypet); redirect-to-adoption after pet create (both image + plain paths); Lost & Found createReport location guarded; model default "".
+
+**In scope (Phase 12 audit hit-list):**
+- Lost & Found: location OPTIONAL (model default, controller create guarded + update allowlist, frontend required removed).
+- Pet: per-species weight band validation (create + update), species-aware weight datalist on My Pet form; redirect to adoption.html after a successful pet create.
+- Settings page: enable the dark-mode toggle + remove the "Coming soon"; (App Info / Language & Region cleanup documented below).
+- Adoption page: weight existing FE validation + backend gate confirmed; CSS filter layout item kept small & scoped.
+
+**Deferred (documented, not this checkpoint):** full Settings section removals (App Info / Language & Region) + adoption CSS filter layout reflow — captured in the audit, intentionally kept out of the backend-verified gate to keep this checkpoint's blast radius minimal; they remain on the Phase 12 follow-up backlog.
+
+---
+## Phase 12 — SETTINGS + DARK MODE + ADOPTION CROSS-CUT
+
+**Status:** DONE (verify: commit + tag + default-branch push). Backend gate tests executed live against Docker (201 L&F no-location; 400 dog-500kg). Frontend: L&F location optional + required attr removed; Pet weight datalist adapts per species (mypet); redirect-to-adoption after pet create (both image + plain paths); Lost & Found createReport location guarded; model default "".
+
+**In scope (Phase 12 audit hit-list):**
+- Lost & Found: location OPTIONAL (model default, controller create guarded + update allowlist, frontend required removed).
+- Pet: per-species weight band validation (create + update), species-aware weight datalist on My Pet form; redirect to adoption.html after a successful pet create.
+- Settings page: enable the dark-mode toggle + remove the "Coming soon"; (App Info / Language & Region cleanup documented below).
+- Adoption page: weight existing FE validation + backend gate confirmed; CSS filter layout item kept small & scoped.
+
+**Deferred (documented, not this checkpoint):** full Settings section removals (App Info / Language & Region) + adoption CSS filter layout reflow — captured in the audit, intentionally kept out of the backend-verified gate to keep this checkpoint's blast radius minimal; they remain on the Phase 12 follow-up backlog.
+
+---
 ## 9. Checkpoint requirements
 - ✅ Baseline commit exists and app verified.
 - ✅ Known issues documented.

@@ -153,7 +153,6 @@ exports.createReport = async (req, res) => {
       !petName ||
       !species ||
       !description ||
-      !location ||
       !date ||
       !contactName ||
       !contactPhone
@@ -247,7 +246,12 @@ exports.createReport = async (req, res) => {
       gender: gender ? String(gender).toLowerCase() : "unknown",
       color: req.body.color || "",
       description: description.trim(),
-      location: location.trim(),
+      // Phase 12 — location is optional. Guard for the omitted case so a
+      // missing location never reaches `location.trim()`.
+      location:
+        typeof location === "string"
+          ? location.trim()
+          : "",
       date: reportDate,
       contactName: contactName.trim(),
       contactPhone: contactPhone.trim(),
