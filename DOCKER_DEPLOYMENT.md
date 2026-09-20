@@ -41,6 +41,11 @@ Names only — values are never stored in Dockerfiles, images, or Compose:
 `EMAIL_SERVICE`, `EMAIL_USER`, `EMAIL_PASS`, `GEMINI_API_KEY`, `NODE_ENV`,
 `SERVE_FRONTEND_FALLBACK` (set `false` by Compose — see §13).
 
+Plus one **root-level** (not backend) value for the tunnel daemon:
+`TUNNEL_TOKEN` — read from a gitignored root `.env` by Compose and injected into the
+`cloudflared` container (`TUNNEL_TOKEN` env). Leave it empty/absent to keep the tunnel
+disabled (the rest of the stack keeps working internally over HTTP).
+
 Copy the template and fill real (never-committed) values:
 
 ```
@@ -89,6 +94,7 @@ Images (built locally; never pushed):
 - `famipet-frontend:production` — nginx static site on port 5502 (internal)
 - `famipet-backend:production` — Node 26 alpine API on port 5000 (internal)
 - `mongo:8` — official database image (internal)
+- `cloudflare/cloudflared:latest` — outbound-only Cloudflare Tunnel daemon (no published port)
 
 ## 7. Stopping Containers
 
@@ -105,6 +111,7 @@ docker compose down       # stop AND remove containers/networks
 docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs -f nginx
+docker compose logs -f cloudflared
 docker compose logs -f mongodb
 ```
 
@@ -152,7 +159,9 @@ never hardcoded):
 - `CLIENT_URL=https://<production-domain>`
 - `FRONTEND_URL=https://<production-domain>`
 - `BACKEND_URL=https://api.<production-domain>`
-- Frontend `frontend/js/config.js`: `API_BASE = "https://api.<production-domain>/api"`
+- Public access: Cloudflare Tunnel with `TUNNEL_TOKEN` (root `.env`, gitignored)
+  and a public hostname → `http://nginx:80` (see §14)
+- Frontend `frontend/js/config.js`: `API_BASE` resolves same-origin `/api` on HTTPS automatically
 - `MONGODB_URI` → managed/hardened MongoDB (Atlas recommended)
 - `NODE_ENV=production`
 - Strong random `JWT_SECRET` (proper secret management, e.g. a secrets manager)
@@ -167,15 +176,46 @@ never hardcoded):
   (5502), backend API (5000) and MongoDB (27017) stay on the internal Docker
   networks and are **never** published. The backend additionally runs with its
   built-in frontend-fallback listener disabled (`SERVE_FRONTEND_FALLBACK=false`).
+  `cloudflared` publishes **no** host port — it makes outbound TLS connections
+  only (nothing inbound to the host needs to be opened).
 
-## 14. HTTPS Requirement
+## 14. HTTPS Requirement (Cloudflare Tunnel — Phase 3)
 
-Production **must** use HTTPS (TLS). The Phase-2 Compose stack is HTTP-only:
-the dedicated nginx proxy publishes plain HTTP on `:80`/`:8080` and terminates
-no TLS itself. Public HTTPS is delivered by the Cloudflare edge and Tunnel
-(next deployment phase) which routes straight into the nginx proxy container;
-until then, use plain HTTP on localhost/LAN only. This phase introduced **no**
-certificates or private keys.
+Production **must** use HTTPS (TLS). The `nginx` proxy terminates no TLS itself;
+public HTTPS arrives through the **Cloudflare edge → Cloudflare Tunnel**, which
+routes into the nginx proxy container (internal ingress `http://nginx:80`).
+
+> STATUS: **live as of Phase 3** — `https://famipet.catlium.in` → `http://nginx:80`
+> (dashboard-managed tunnel, token in gitignored root `.env`). Steps below still
+> apply for a fresh environment/zone.
+
+### Cloudflare Tunnel setup (one-time, on your Cloudflare account)
+1. Create a **named tunnel** in Cloudflare Zero Trust (Networks → Tunnels).
+2. Add a **public hostname** (e.g. `famipet.example.com`) with service type
+   **HTTP** and URL **`http://nginx:80`**. Because the `cloudflared` container
+   joins the Compose frontend network, `nginx` resolves to the proxy container.
+   (Do **not** point the hostname at `frontend:5502` or `backend:5000` — traffic
+   must enter through the proxy so `/api` + `/uploads` route correctly.)
+3. Put the tunnel's **token** in the gitignored root `.env`:
+   `TUNNEL_TOKEN=eyJhI...`
+4. The tunnel is behind Compose profile **`tunnel`** so the default stack stays
+   clean (and an empty token can't cause a restart loop). Enable it with:
+   ```
+   docker compose --profile tunnel up -d cloudflared
+   ```
+5. To disable again: `docker compose --profile tunnel down` (or stop the container).
+
+### HTTPS behavior without the tunnel token
+Until `TUNNEL_TOKEN` is set (or the `tunnel` profile is started) the stack is
+**HTTP-only** on `:80`/`:8080` (localhost/LAN). Public HTTPS + emailed
+`FRONTEND_URL` links only work once the tunnel is live.
+
+### Port 80 with a domain
+If the tunnel hostname serves via Cloudflare Proxy (orange cloud), traffic reaches
+the tunnel on Cloudflare's edge — no `CNAME`/`A` record to this host is needed at
+all. If you later connect a domain directly (grey cloud / origin serving), only
+`8080` is currently published as an alternative; add a `80`-published host port
+then if required.
 
 ## 15. Domain Configuration
 
@@ -184,6 +224,7 @@ The deployment domain must be decided and a CNAME/A record pointed at the hostin
 Configuration values that will eventually need the production domain (not yet set):
 
 - `CLIENT_URL` / `FRONTEND_URL` / `BACKEND_URL`
+- Cloudflare Tunnel token + public hostname (see §14)
 - Frontend `API_BASE` (in `frontend/js/config.js`)
 - Email verification + password reset links (built from `CLIENT_URL`)
 - Pet ID QR links (point at the frontend domain pages)
@@ -225,6 +266,13 @@ Configuration values that will eventually need the production domain (not yet se
   `backend_uploads` volume.
 - **Email verification links broken** → `CLIENT_URL` mismatch between backend config and
   the public frontend URL.
+- **Tunnel not running** → `docker compose logs cloudflared`: "no tunnel token provided"
+  means `TUNNEL_TOKEN` is empty in the gitignored root `.env`, or the profile wasn't
+  used (`docker compose --profile tunnel up -d cloudflared`). Connection errors mean
+  the token is stale or the host can't reach Cloudflare's edge outbound (check firewall).
+- **Public HTTPS loads but `/api` 404s** → the tunnel hostname was pointed at
+  `frontend:5502` instead of the proxy; set the public-hostname service URL to
+  `http://nginx:80` in the Cloudflare dashboard (see §14).
 
 ---
 

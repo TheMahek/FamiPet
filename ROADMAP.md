@@ -310,9 +310,35 @@ Add a Cloudflare Tunnel (`cloudflared` container) that publishes the app publicl
 - ✅ Internal fallback verified.
 - ✅ Email-link flow verified against the public hostname.
 
----
+## 10. Phase 3 status — ✅ COMPLETED (branch `enhancement/famipet`, tag `phase3-cloudflare-tunnel`)
 
-# Phase 4 — Environment & End-to-End Validation
+**Live endpoint:** `https://famipet.catlium.in` → Cloudflare edge → Tunnel → `nginx` proxy → frontend / backend / Mongo. TLS is Cloudflare Universal SSL (Trust Services cert, chain valid).
+
+**Implemented:**
+- `docker-compose.yml` — new `cloudflared` service (`cloudflare/cloudflared:latest`, container `famipet-cloudflared`, `restart: unless-stopped`, `init`, no-new-privileges, 128m/0.5):
+  - **Profile-gated (`tunnel`)**: a plain `docker compose up` never starts it, so an empty `TUNNEL_TOKEN` can't cause a restart loop. Enable: `docker compose --profile tunnel up -d cloudflared`.
+  - Runs `tunnel run` with `TUNNEL_TOKEN` injected from the **gitignored root `.env`** (never committed, never in an image).
+  - Joins only `famipet-frontend-net` so the dashboard ingress `http://nginx:80` resolves; access to backend/Mongo would require joining another network (deliberately not).
+- Remote (Cloudflare) config for the token's tunnel: `famipet.catlium.in → http://nginx:80` + catch-all 404. Hostname + ingress are dashboard-managed; no local config file.
+- `nginx/nginx.conf` (Phase-3 hardening) — CF-aware maps: `X-Forwarded-For` = real client IP via `CF-Connecting-IP` (else normal chain) and `X-Forwarded-Proto` = Cloudflare's `https` (else `$scheme`). Backend `trust proxy = 1` (Phase 2) therefore rate-limits and `req.protocol/secure` stay correct behind Cloudflare.
+- `backend/.env` (gitignored) — `FRONTEND_URL` + `CLIENT_URL` → `https://famipet.catlium.in` (CORS + email links). `NODE_ENV` left `development` (no runtime-behavior change; production flag is a deployment item).
+- Docs: `DOCKER_DEPLOYMENT.md` (§3 token, §6 images, §8 logs, §12, §14 tunnel setup, §15, §17 troubleshooting), `backend/.env.example` (public-hostname guidance).
+
+**Verified:**
+- Public HTTPS: `/` 200, `/api/status` OK JSON, `/api/breeds` `count:5` (DB-backed), `/js/config.js` 200, unknown `/api` route 404, `/uploads/<file>` proxied (probe created → 200 → removed).
+- TLS chain valid (`ssl_verify_result=0`; issuer Google Trust Services, CN `catlium.in`).
+- Client-IP propagation: nginx access log shows the real public client IP (`$http_x_forwarded_for` from Cloudflare) reaching nginx; CF-aware maps then keep that IP for the backend — rate-limit sanity (25 rapid calls) all `200`.
+- Backend/Mongo private: only `nginx` publishes host ports (80/8080); backend `5000`, frontend `5502`, mongo `27017` are container-`expose` only. Tunnel ingress maps only the one hostname (`Host` mismatch → 530/404 catch-all).
+- Internal fallback: tunnel stopped → LAN `http://localhost/` and `:8080` still 200; tunnel restarted → public 200 again.
+- `docker compose config` valid with and without the profile; `cloudflared` image available locally.
+
+**Findings / notes:**
+- Zone "Always Use HTTPS" is currently **off** (plain `http://` returns 200). Recommended user-side Cloudflare toggle (SSL/TLS → Edge Certificates) for strict HTTP→HTTPS; not blocking (no mixed content: zero `http://` subresources in served HTML).
+- `TUNNEL_TOKEN` lives only in root `.env`; treat `backend/.env` too as a primary asset (it now holds the public `FRONTEND_URL`).
+- Full register→verify→login→dashboard email E2E is Phase 4; link construction now provably targets the live public page.
+- Host dev processes remain down; Docker is the only active stack.
+
+**Go/no-go: GO** — public HTTPS live and verified; Phase 4 (E2E validation) has a stable, reachable target.
 
 ## 1. Objective
 Validate the **complete existing application** in the Phase 2/3 topology **before any major feature work**. Fix only configuration/integration issues discovered here (`trust proxy`, CORS, config.js, uploads, email links). No feature changes.

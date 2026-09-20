@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 2 checkpoint).
+> Single project-status document for the enhancement work (Phase 3 checkpoint).
 > Companion docs: `ROADMAP.md` (work plan — single source of truth), `bakwas.md` (current-state analysis), `Step10-Report.md` (historical QA report), `DOCKER_DEPLOYMENT.md` (deployment guide).
-> Last update: Phase 2 completed (see §10).
+> Last update: Phase 3 completed (see §11).
 
 ---
 
@@ -11,7 +11,8 @@
 | Item | Value |
 |---|---|
 | Git branch | `enhancement/famipet` (created in Phase 0 off `main`; original `main` HEAD `b0e6771` "Initial Commit") |
-| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2) |
+| Checkpoint tags | `v0-baseline` (Phase 0), `phase1-docker-env` (Phase 1), `phase2-nginx-routing` (Phase 2), `phase3-cloudflare-tunnel` (Phase 3) |
+| Public URL (live) | `https://famipet.catlium.in` (Cloudflare Tunnel → nginx proxy; TLS = Cloudflare Universal SSL) |
 | Node (host) | v26.2.0 / npm 12.0.1 |
 | MongoDB (host) | v8.3.2 via `mongod`; **listening on `127.0.0.1:27017`** — `db.runCommand({ping:1})` → `{ok:1}` |
 | Docker | 29.8.0; compose stack **running and healthy** (see §3) |
@@ -27,26 +28,25 @@
 | `main` | Divergence point (HEAD `b0e6771`). Left untouched. |
 | `enhancement/famipet` | Long-lived enhancement branch (recommended by ROADMAP). All phases build here. |
 
-## 3. Running services (verified live at the Phase 2 checkpoint, 2026-09-20)
+## 3. Running services (verified live at the Phase 3 checkpoint, 2026-09-20)
 
-The Docker stack is up and **healthy** with the Phase 2 topology. **Caddy is gone.** Host-side dev processes (`node`/Live Server) are **not running** at this checkpoint — Docker is the only active stack.
+The Docker stack is up and **healthy** with the Phase 2 topology **plus the live tunnel**. Host-side dev processes are **not running** — Docker is the only active stack.
 
 | Service | Where | Port | Status |
 |---|---|---|---|
+| `famipet-cloudflared` | Docker (`cloudflare/cloudflared`, profile `tunnel`) | none published (outbound only) | up; 4 registered tunnel connections |
 | `famipet-nginx` | Docker (`nginx:alpine`, proxy) | **host 80 + 8080 → container 80** (only published entry) | healthy; `/`→frontend, `/api*`, `/uploads*`→backend |
 | `famipet-frontend` | Docker nginx | container 5502 (internal) | healthy (static only) |
 | `famipet-backend` | Docker Node | container 5000 (internal) | healthy |
 | `famipet-mongodb` | Docker (`mongo:8`) | container 27017 (internal) | healthy |
-| host dev stack | — | — | **down** at this checkpoint |
+| host dev stack | — | — | **down** |
 
-### Verified responses (Phase 2, through the nginx proxy)
-- `GET http://localhost/` and `http://localhost:8080/` → 200 frontend; `/js/config.js`, `/pages/...`, `/css/...`, real `/assets/...` → 200
-- `GET http://localhost/api/status` → `{"status":"OK","message":"FamiPet API is running!"}` (proxied)
-- `GET http://localhost/api/breeds` → `{"success":true,"count":5,...}` (DB-backed via proxy; data persisted from earlier stack)
-- `GET http://localhost/api/pets` → 200; `GET http://localhost/api/nonexistent` → 404 JSON (URI preserved, no double-slash)
-- `GET http://localhost/uploads/<file>` → served from backend volume (verified, then removed)
-- `GET https://localhost/` → **fails (000)**: no TLS terminator in Phase 2 — public HTTPS arrives with Cloudflare Tunnel in Phase 3
-- In-container backend→mongo ping by service name → `{ok:1}`
+### Verified responses (Phase 3)
+- **Public:** `https://famipet.catlium.in` `/` → 200; `/api/status` OK; `/api/breeds` `count:5`; `/js/config.js` → 200; unknown route → 404; `/uploads/<probe>` → 200 (removed). TLS chain valid.
+- **Web funnel:** `http` plain → 200 (zone "Always Use HTTPS" off — recommended toggle, not blocking); no `http://` subresources on the HTTPS page (no mixed content).
+- **Client IP:** nginx access log shows real public IP from Cloudflare XFF; CF-aware maps keep it for the backend (rate limits sane: 25/25 → 200).
+- **Fallback:** tunnel stopped → LAN `:80`/`:8080` still 200; tunnel restarted → public 200 again.
+- **Privacy:** only nginx publishes host ports (80/8080); backend 5000, frontend 5502, mongo 27017 are `expose`-only; tunnel maps a single hostname (catch-all 404/530).
 
 ## 4. Pre-existing issues recorded for later phases (no fixes performed in Phase 0)
 
@@ -70,20 +70,21 @@ The Docker stack is up and **healthy** with the Phase 2 topology. **Caddy is gon
 - Express frontend-fallback listener starts unconditionally in `server.js` (host 5502 today). **RESOLVED in Phase 2**: gated by `SERVE_FRONTEND_FALLBACK` (disabled in Docker via compose, default on for host dev).
 
 ## 5. What Phase 0 deliberately did NOT verify / deferrals (status)
-- **Full register → login → email-verify → dashboard E2E** requires live email delivery + verification token; not automated. Historically reported passing in `Step10-Report.md`. Still deferred (Phase 4 E2E campaign).
-- **HTTPS (TLS)**: Caddy's mkcert HTTPS was removed in Phase 2; the stack is intentionally **HTTP-only** until Cloudflare Tunnel (Phase 3) provides the public HTTPS edge.
+- **Full register → login → email-verify → dashboard E2E** requires live email delivery + verification token; not automated. Historically reported passing in `Step10-Report.md`. Still deferred (Phase 4 E2E campaign) — the emailed-link target is now the live public page.
+- **HTTPS (TLS)**: **DONE in Phase 3** — Cloudflare Tunnel serves `https://famipet.catlium.in` (Cloudflare Universal SSL; local metadata terminators removed in Phase 2).
 - **Container restart / volume-persistence test** — DONE in Phase 1 (§9); data persistence re-confirmed in Phase 2 (count 5).
-- Host-side dev processes are down at the Phase 2 checkpoint (Docker is the active stack).
+- Host-side dev processes are down at this checkpoint (Docker is the active stack).
 
 ## 6. Rollback point
-- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`.
-- `git reset --hard phase1-docker-env` returns to the Caddy-era stack; `v0-baseline` is the pre-Docker state. `.env`, `certs/`, `uploads/` are local and preserved.
+- **Branch:** `enhancement/famipet`. Tags: `v0-baseline` (Phase 0), `phase1-docker-env`, `phase2-nginx-routing`, `phase3-cloudflare-tunnel`.
+- `git reset --hard phase2-nginx-routing` returns to the pre-tunnel stack; `phase1-docker-env` to the Caddy era; `v0-baseline` is the pre-Docker state. `.env` files (root + `backend/`), `certs/`, `uploads/` are local and preserved.
 
 ## 7. Bootstrap (for a fresh checkout / next developer)
 1. `docker compose up -d --build` → **frontend + API at `http://localhost` (or `http://localhost:8080`)**; nginx proxy routes `/api*` + `/uploads*` to the backend.
-2. Alternative dev flow (no Docker): start local `mongod`, `cd backend && npm ci && npm run seed && npm start` (serves API on 5000 + optional frontend fallback on 5502), serve `frontend/` with Live Server; `frontend/js/config.js` keeps the `<host>:5000` dev fallback for those ports.
-3. Mongo: pulls from `petDB`; seed script `backend/utils/seedData.js` (`npm run seed`).
-4. HTTPS/email links: need Cloudflare Tunnel (Phase 3) for public HTTPS; until then use plain HTTP.
+2. Public HTTPS (Cloudflare Tunnel): `docker compose --profile tunnel up -d cloudflared` with `TUNNEL_TOKEN` set in the gitignored root `.env` → `https://famipet.catlium.in`.
+3. Alternative dev flow (no Docker): start local `mongod`, `cd backend && npm ci && npm run seed && npm start` (serves API on 5000 + optional frontend fallback on 5502), serve `frontend/` with Live Server; `frontend/js/config.js` keeps the `<host>:5000` dev fallback for those ports.
+4. Mongo: pulls from `petDB`; seed script `backend/utils/seedData.js` (`npm run seed`).
+5. `FRONTEND_URL`/`CLIENT_URL` (backend/.env) = `https://famipet.catlium.in`.
 
 ## 8. Phase 0 completion status — ✅ COMPLETED
 - ✅ Dedicated enhancement branch `enhancement/famipet` created.
@@ -188,3 +189,48 @@ http://<host>:80 / :8080
 
 ### Phase 2 checkpoint
 - Commit → tag `phase2-nginx-routing`. Rollback: `git reset --hard phase2-nginx-routing` (previous stack at `phase1-docker-env`).
+
+## 11. Phase 3 status — ✅ COMPLETED (Cloudflare Tunnel live: `https://famipet.catlium.in`)
+
+### Architecture (current)
+```
+https://famipet.catlium.in  (Cloudflare edge, Universal SSL)
+        ▼ outbound-in (cloudflared container, profile "tunnel")
+famipet-nginx  (nginx:alpine proxy — the ONLY published host ports :80/:8080)
+        ├─ /        → frontend:5502
+        ├─ /api*    → backend:5000
+        └─ /uploads*→ backend:5000
+                        └─ mongodb:27017 (internal)
+```
+Dashboard-managed tunnel (`TUNNEL_TOKEN` in gitignored root `.env`); remote config: `famipet.catlium.in → http://nginx:80` + catch-all 404. `cloudflared` joins only the frontend network (no path to backend/Mongo).
+
+### What changed
+- `docker-compose.yml`: `cloudflared` service (profile `tunnel`; enabled via `docker compose --profile tunnel up -d cloudflared`).
+- `nginx/nginx.conf`: CF-aware `map`s — `X-Forwarded-For` from `CF-Connecting-IP` (real client IP behind Cloudflare; normal chain for LAN), `X-Forwarded-Proto` preserves `https` from edge.
+- `backend/.env` (gitignored): `FRONTEND_URL`/`CLIENT_URL` = `https://famipet.catlium.in` (CORS + emailed links).
+- Docs: `DOCKER_DEPLOYMENT.md`, `backend/.env.example`, `ROADMAP.md` (this phase).
+
+### Tests performed (all passed)
+| Test | Result |
+|---|---|
+| Public HTTPS `/`, `/api/status`, `/api/breeds`, `/js/config.js` | all 200; breeds `count:5` |
+| Unknown `/api` route via tunnel | 404 |
+| TLS chain (`ssl_verify_result`) | 0 (valid Cloudflare Universal SSL) |
+| `/uploads/<probe>` via tunnel | 200 (removed after) |
+| Client-IP propagation (nginx log real public IP; 25 rapid calls) | no 429, all 200 |
+| Backend/Mongo host ports | none (only nginx 80/8080) |
+| Tunnel down → LAN `:80`/`:8080`; tunnel up → public | LAN 200 while down; public 200 when up |
+| `docker compose config` (with/without profile) | valid |
+
+### Findings / notes for later phases
+- Zone **"Always Use HTTPS" is off** (plain `http://` returns 200). Recommended Cloudflare dashboard toggle; not blocking (no mixed content). Docs note added.
+- `backend/.env` now holds the public `FRONTEND_URL` — treat it as a primary asset (already gitignored).
+- Full register→verify→login→dashboard E2E (email delivery) remains Phase 4; link targets are now live/proven.
+- Host dev stack remains down; Docker + tunnel are the only active services.
+- Tunnel service is outbound-only: no host firewall ports needed.
+
+### Files changed in Phase 3
+- `docker-compose.yml` (cloudflared service + profile), `nginx/nginx.conf` (CF-aware headers), `backend/.env` (ignored; URLs), `backend/.env.example`, `DOCKER_DEPLOYMENT.md`, `ROADMAP.md` (this phase), `BASELINE.md` (this update); new gitignored root `.env` (`TUNNEL_TOKEN`).
+
+### Phase 3 checkpoint
+- Commit → tag `phase3-cloudflare-tunnel`. Rollback: `git reset --hard phase3-cloudflare-tunnel` (disable tunnel: `docker compose --profile tunnel stop cloudflared`).
