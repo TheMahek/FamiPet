@@ -4,6 +4,7 @@ const Adoption = require("../models/Adoption");
 const LostFound = require("../models/LostFound");
 const CommunityPost = require("../models/CommunityPost");
 const PushSubscription = require("../models/PushSubscription");
+const Reminder = require("../models/Reminder");
 const {
   isValidObjectId,
   LOST_FOUND_TYPES,
@@ -149,6 +150,17 @@ exports.deleteUser = async (req, res) => {
       console.error(
         "Push subscription cleanup failed (user deletion):",
         pushCleanupErr.message
+      );
+    }
+
+    // Phase 7: remove the user's reminders too (scheduler state is derived
+    // data — a deleted account must not leave orphan schedules behind).
+    try {
+      await Reminder.deleteMany({ user: user._id });
+    } catch (reminderCleanupErr) {
+      console.error(
+        "Reminder cleanup failed (user deletion):",
+        reminderCleanupErr.message
       );
     }
 

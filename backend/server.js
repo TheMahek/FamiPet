@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const User = require('./models/User');
 const errorHandler = require('./middleware/errorHandler');
+const reminderScheduler = require('./services/reminder-scheduler.service');
 
 // Load .env from THIS directory (backend/.env). Loading it relative to
 // process.cwd() would silently use different settings (including a different
@@ -143,6 +144,15 @@ mongoose.connect(process.env.MONGODB_URI)
     } catch (cleanupErr) {
       console.error('⚠️ Could not clean up default avatars:', cleanupErr.message);
     }
+
+    // ---------------------------------------------------------
+    // START REMINDER SCHEDULER (Phase 7)
+    // In-process poller for due reminders. Persistent state lives
+    // in MongoDB (nextRunAt / claims), so restarts never lose a
+    // due reminder. Started only after the DB is confirmed ready;
+    // stopped on graceful shutdown.
+    // ---------------------------------------------------------
+    reminderScheduler.start();
   })
   .catch(err => console.error('❌ MongoDB Error:', err));
 
@@ -239,5 +249,14 @@ function startFrontendFallback() {
 if (process.env.SERVE_FRONTEND_FALLBACK !== 'false') {
   startFrontendFallback();
 }
+
+// Graceful shutdown: stop the reminder poller so no in-flight pass is cut off
+// mid-write (claims are lease-based, so even an abrupt stop self-heals).
+const shutdown = () => {
+  reminderScheduler.stop();
+  process.exit(0);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 module.exports = app;

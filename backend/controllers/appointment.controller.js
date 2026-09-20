@@ -1,8 +1,8 @@
 const Appointment = require("../models/Appointment");
 const Pet = require("../models/Pet");
 const Veterinarian = require("../models/Veterinarian");
-const Reminder = require("../models/Reminder");
 const notificationService = require("../services/notification.service");
+const reminderService = require("../services/reminder.service");
 const {
   isValidObjectId,
   APPOINTMENT_TYPES,
@@ -126,36 +126,15 @@ exports.createAppointment = async (req, res) => {
     });
 
     // -------------------------------------------------
-    // AUTO-CREATE REMINDER
+    // AUTO-CREATE REMINDER (Phase 7: precise source linkage
+    // via the shared reminder service — one reminder per
+    // appointment, never matched fuzzily by title+slot)
     // -------------------------------------------------
 
-    const reminderTitle = type
-      ? `Appointment - ${String(type).charAt(0).toUpperCase()}${String(type).slice(1)}`
-      : "Appointment";
-
-    const existingReminder = await Reminder.findOne({
-      user: req.user._id,
-      pet,
-      title: reminderTitle,
-      date: appointmentDate,
-      time,
-      type: "appointment",
-      isActive: true,
-    });
-
-    if (!existingReminder) {
-      await Reminder.create({
-        user: req.user._id,
-        pet,
-        title: reminderTitle,
-        type: "appointment",
-        description: notes || `Scheduled ${type || "checkup"} appointment.`,
-        date: appointmentDate,
-        time,
-        frequency: "once",
-        isActive: true,
-        isCompleted: false,
-      });
+    try {
+      await reminderService.upsertAppointmentReminder({ user: req.user, appointment });
+    } catch (reminderErr) {
+      console.error("Appointment reminder create failed (non-blocking):", reminderErr.message);
     }
 
     res.status(201).json({
@@ -182,9 +161,6 @@ exports.updateAppointment = async (req, res) => {
     if (!appointment) {
       return res.status(404).json({ success: false, message: "Appointment not found." });
     }
-
-    const originalDate = appointment.date;
-    const originalTime = appointment.time;
 
     const allowed = ["date", "time", "type", "symptoms", "notes"];
 
@@ -234,32 +210,17 @@ exports.updateAppointment = async (req, res) => {
     await appointment.save();
 
     // ------------------------------------------------
-    // SYNC THE AUTO-CREATED REMINDER WHEN RESCHEDULED
-    // (only for THIS appointment's slot, not every
-    // reminder sharing the same title)
+    // RESYNC THE AUTO-CREATED REMINDER WHEN RESCHEDULED
+    // (Phase 7: targeted via source+sourceId — the old
+    // fuzzy title+slot updateMany could touch the wrong
+    // reminder)
     // ------------------------------------------------
 
-    const reminderTitle = appointment.type
-      ? `Appointment - ${String(appointment.type).charAt(0).toUpperCase()}${String(appointment.type).slice(1)}`
-      : "Appointment";
-
-    await Reminder.updateMany(
-      {
-        user: req.user._id,
-        pet: appointment.pet,
-        title: reminderTitle,
-        type: "appointment",
-        date: originalDate,
-        time: originalTime,
-        isActive: true,
-      },
-      {
-        $set: {
-          date: appointment.date,
-          time: appointment.time,
-        },
-      }
-    );
+    try {
+      await reminderService.rescheduleAppointmentReminder({ user: req.user, appointment });
+    } catch (reminderErr) {
+      console.error("Appointment reminder resync failed (non-blocking):", reminderErr.message);
+    }
 
     res.json({
       success: true,
@@ -291,24 +252,14 @@ exports.deleteAppointment = async (req, res) => {
 
     // ------------------------------------------------
     // DEACTIVATE THE AUTO-CREATED REMINDER FOR THIS
-    // APPOINTMENT so cancelled visits do not leave
-    // stale active reminders (GET /reminders only
-    // returns isActive: true).
+    // APPOINTMENT (Phase 7: targeted via source+sourceId)
     // ------------------------------------------------
 
-    await Reminder.updateMany(
-      {
-        user: req.user._id,
-        pet: appointment.pet,
-        date: appointment.date,
-        time: appointment.time,
-        type: "appointment",
-        isActive: true,
-      },
-      {
-        $set: { isActive: false },
-      }
-    );
+    try {
+      await reminderService.cancelAppointmentReminder({ user: req.user, appointment });
+    } catch (reminderErr) {
+      console.error("Appointment reminder cancel failed (non-blocking):", reminderErr.message);
+    }
 
     res.json({
       success: true,

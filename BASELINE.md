@@ -309,3 +309,32 @@ Test users `phase6.a/b@test.famipet.in` + all subscriptions/notifications/prefer
 
 ### Phase 6 checkpoint
 - Commit → tag `phase6-push-notifications`. Rollback: `git reset --hard phase6-push-notifications`.
+
+## 15. Phase 7 status — ✅ COMPLETED (Reminder Scheduler)
+
+Persistent, restart-safe, MongoDB-backed reminder scheduler firing through the Phase 5/6 Notification Service, plus precise appointment↔reminder linkage (the old fuzzy `updateMany` that could retarget the wrong reminder is removed). Full details in `ROADMAP.md` §10 (Phase 7 status).
+
+### What changed
+- **Backend**: `models/Reminder.js` gains `timezone` (IANA, default UTC), `nextRunAt`, `claimedUntil`, `lastFiredAt`, `lastNotificationId`, `lastStatus` enum (`pending|fired|failed|skipped|skipped-no-user|skipped-no-pet`), `lastError`, `failedAttempts`, `source` (`manual|appointment`), `sourceId` (ObjectId); exports `REMINDER_STATUSES`. Indexes: partial `{isActive,isCompleted,nextRunAt}`, unique partial `{user,source,sourceId}` (sourceId objectId), `{user,isActive,date,time}`.
+- New `services/reminder.service.js` (pure tz-aware scheduling core + appointment producer helpers — `upsert/reschedule/cancelAppointmentReminder`), new `services/reminder-scheduler.service.js` (out-of-band **poller**, not node-cron; env knobs `REMINDER_POLL_INTERVAL_MS`=30s, `REMINDER_BATCH_LIMIT`=100, `REMINDER_CLAIM_TTL_MS`=120s, `REMINDER_MAX_ATTEMPTS`=3; boot materializes legacy rows; atomic lease claims with TTL reclaim; `dedupKey reminder-fire:<id>:<occurrenceMs>` 7d; missing-user → `skipped-no-user` deactivate, missing/inactive pet → once deactivates / recurring advances; delivered → advance/complete, suppressed → consumed (advance, no spin), failure → retry then deactivate@3).
+- `controllers/reminder.controller.js` timezone+strict-time validation with `nextRunAt` always recomputed and counters reset on schedule-affecting edits; `controllers/appointment.controller.js` booking/reschedule/cancel wired to the service (precise sourceId linkage); `server.js` starts/stops the scheduler around DB connect/graceful shutdown; `admin.controller.js` deleteUser also deletes the user's reminders. Dockerfile already ships `services/` (no change needed).
+
+### Verified (see ROADMAP §10 for the full matrix)
+- In-container deterministic probe (injected clock): **65 checks, 0 failed** — tz/DST math, legacy materialization (no back-fire), due-gating `$and` regression, advance-by-one-no-burst, suppressed no-spin, retry→deactivate@3, claim leases, concurrent exactly-once, batch cap, missing user/pet, inactive/completed ignored, real delivery + dedup re-fire.
+- Host API suite: **55 checks, 0 failed** (CRUD validation incl. 12h/`24:00`/bad-tz 400s, exact once `nextRunAt`, NY EST/Kolkata mapping, cross-user isolation, appointment x2 linked + shared title+pet + reschedule/cancel move only their own reminder, live poller fired a due-in-60s reminder with notification linkage + completed).
+- Phase 6 regression re-run **45/45** (backend restarted only to clear login/signup rate-limiters consumed by repeated suite batches).
+- Indexes confirmed in `petDB`; stack rebuilt + healthy; `/api/status` + `/` 200 via nginx `:8080` and public tunnel; no backend log errors.
+- Real happy path observed: the live owner's once grooming reminder fired on time and delivered the in-app notification (kept as-is).
+- 13 throwaway test users + all their data purged; seed users and the owner's reminders untouched.
+
+### Decisions / deferrals recorded
+- Poller over node-cron: jobs derive from DB + atomic leases — restart-safe and multi-replica-safe; `node-cron` stays unused.
+- Only in-app + (preference-gated) push; never email. Once reminders are overdue-eligible; recurring skips history (no burst/replay); suppressed occurrences are consumed, not retried.
+- Consequence: `user@example.com` (reminder type disabled) → its two seeded reminders will be consumed as `skipped` at their next due time (intended).
+- Manual desktop/mobile push click-through remains a real-user/browser item (Phase 6 posture).
+
+### State restored after tests
+Backend healthy; DB back to seed/real users only (`admin@animalplanet.com`, `user@example.com`, `siddiquiummehabiba41@gmail.com`); owner's reminders + notifications intact; 0 appointment-source reminders (legacy + test rows cleaned).
+
+### Phase 7 checkpoint
+- Commit → tag `phase7-reminder-scheduler`. Rollback: `git reset --hard phase7-reminder-scheduler`.

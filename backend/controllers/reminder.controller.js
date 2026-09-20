@@ -1,10 +1,14 @@
 const Reminder = require("../models/Reminder");
 const Pet = require("../models/Pet");
+const reminderService = require("../services/reminder.service");
 const {
   isValidObjectId,
   REMINDER_TYPES,
   REMINDER_FREQUENCIES,
 } = require("../utils/validation");
+
+const computeNext = (input) =>
+  reminderService.computeNextRunAt(input);
 
 exports.getReminders = async (req, res) => {
   try {
@@ -68,14 +72,22 @@ exports.createReminder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid date." });
     }
 
-    if (typeof time !== "string" || time.trim().length > 10) {
-      return res.status(400).json({ success: false, message: "Invalid time." });
+    const timeErr = reminderService.timeError(time);
+    if (timeErr) {
+      return res.status(400).json({ success: false, message: timeErr });
+    }
+
+    const timezone = req.body.timezone === undefined ? "UTC" : req.body.timezone;
+    if (!reminderService.isValidTimeZone(timezone)) {
+      return res.status(400).json({ success: false, message: "Invalid timezone." });
     }
 
     if (pet) {
       const ok = await validateOwnedPet(req, res, pet);
       if (!ok) return;
     }
+
+    const frequency = req.body.frequency || "once";
 
     const reminder = await Reminder.create({
       user: req.user._id,
@@ -84,7 +96,15 @@ exports.createReminder = async (req, res) => {
       description: typeof req.body.description === "string" ? req.body.description.slice(0, 1000) : "",
       date: reminderDate,
       time: time.trim(),
-      frequency: req.body.frequency || "once",
+      frequency,
+      timezone,
+      nextRunAt: computeNext({
+        date: reminderDate,
+        time,
+        timezone,
+        frequency,
+      }),
+      source: "manual",
       pet: pet || undefined,
     });
 
@@ -121,6 +141,7 @@ exports.updateReminder = async (req, res) => {
       "description",
       "date",
       "time",
+      "timezone",
       "frequency",
       "isActive",
       "isCompleted",
@@ -156,10 +177,19 @@ exports.updateReminder = async (req, res) => {
     }
     if (updates.description !== undefined) updates.description = updates.description.slice(0, 1000);
 
-    if (updates.time !== undefined && (typeof updates.time !== "string" || updates.time.trim().length > 10)) {
-      return res.status(400).json({ success: false, message: "Invalid time." });
+    if (updates.time !== undefined) {
+      const timeErr = reminderService.timeError(updates.time);
+      if (timeErr) {
+        return res.status(400).json({ success: false, message: timeErr });
+      }
+      updates.time = updates.time.trim();
     }
-    if (updates.time !== undefined) updates.time = updates.time.trim();
+
+    if (updates.timezone !== undefined) {
+      if (!reminderService.isValidTimeZone(updates.timezone)) {
+        return res.status(400).json({ success: false, message: "Invalid timezone." });
+      }
+    }
 
     if (updates.date !== undefined) {
       const d = new Date(updates.date);
@@ -183,6 +213,29 @@ exports.updateReminder = async (req, res) => {
     }
 
     Object.assign(reminder, updates);
+
+    // Recompute the canonical next-run instant whenever the schedule or the
+    // activation state changed. Reschedule from the reminder's Wall-clock
+    // (date/time/timezone), so editing one field keeps the others.
+    const scheduleChanged = ["date", "time", "timezone", "frequency"].some(
+      (f) => updates[f] !== undefined
+    );
+    if (scheduleChanged || updates.isActive === true || updates.isCompleted === true) {
+      reminder.failedAttempts = 0;
+      reminder.lastStatus = "pending";
+      reminder.lastError = "";
+      if (reminder.isCompleted) {
+        reminder.nextRunAt = null;
+      } else {
+        reminder.nextRunAt = computeNext({
+          date: reminder.date,
+          time: reminder.time,
+          timezone: reminder.timezone,
+          frequency: reminder.frequency,
+        });
+      }
+    }
+
     await reminder.save();
 
     res.json({
@@ -203,7 +256,13 @@ exports.completeReminder = async (req, res) => {
 
     const reminder = await Reminder.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      { isCompleted: true },
+      {
+        isCompleted: true,
+        nextRunAt: null,
+        lastStatus: "fired",
+        lastError: "",
+        failedAttempts: 0,
+      },
       { new: true, runValidators: true }
     );
 
