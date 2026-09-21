@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
 const HealthRecord = require("../models/HealthRecord");
 const Pet = require("../models/Pet");
+const notificationService = require("../services/notification.service");
+const { isValidObjectId } = require("../utils/validation");
 
 exports.getHealthRecords = async (req, res) => {
   try {
@@ -10,13 +11,13 @@ exports.getHealthRecords = async (req, res) => {
 
     res.json({ success: true, count: records.length, records });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.getHealthRecordById = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid health record ID." });
     }
 
@@ -31,7 +32,7 @@ exports.getHealthRecordById = async (req, res) => {
 
     res.json({ success: true, record });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -46,6 +47,14 @@ exports.createHealthRecord = async (req, res) => {
       });
     }
 
+    if (!isValidObjectId(pet)) {
+      return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
+    if (typeof diagnosis !== "string" || diagnosis.trim().length > 500) {
+      return res.status(400).json({ success: false, message: "Invalid diagnosis." });
+    }
+
     const petExists = await Pet.findOne({ _id: pet, owner: req.user._id });
     if (!petExists) {
       return res.status(404).json({
@@ -54,9 +63,41 @@ exports.createHealthRecord = async (req, res) => {
       });
     }
 
+    // Build the record from an explicit allowlist only.
     const record = await HealthRecord.create({
-      ...req.body,
       user: req.user._id,
+      pet,
+      diagnosis: diagnosis.trim(),
+      treatment: typeof req.body.treatment === "string" ? req.body.treatment.slice(0, 1000) : "",
+      doctor: typeof req.body.doctor === "string" ? req.body.doctor.slice(0, 200) : "",
+      hospital: typeof req.body.hospital === "string" ? req.body.hospital.slice(0, 200) : "",
+      prescription: typeof req.body.prescription === "string" ? req.body.prescription.slice(0, 1000) : "",
+      visitDate: req.body.visitDate ? new Date(req.body.visitDate) : Date.now(),
+      nextVisit: req.body.nextVisit ? new Date(req.body.nextVisit) : undefined,
+      notes: typeof req.body.notes === "string" ? req.body.notes.slice(0, 1000) : "",
+    });
+
+    // -------------------------------------------------
+    // HEALTH RECORD CREATED NOTIFICATION (Phase 8 events).
+    // Reference is the pet so the notification deep-links
+    // to the pet's page; the record id rides in metadata.
+    // -------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user._id,
+      type: "health",
+      category: "health",
+      title: "Health Record Added",
+      message: `A health record was added for ${petExists.name}.`,
+      priority: "normal",
+      referenceType: "pet",
+      referenceId: pet,
+      metadata: {
+        petId: String(pet),
+        petName: petExists.name,
+        recordId: String(record._id),
+      },
+      dedupKey: `health-record-created-${record._id}`,
     });
 
     res.status(201).json({
@@ -65,12 +106,16 @@ exports.createHealthRecord = async (req, res) => {
       record,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.updateHealthRecord = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid health record ID." });
+    }
+
     const record = await HealthRecord.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -80,9 +125,56 @@ exports.updateHealthRecord = async (req, res) => {
       return res.status(404).json({ success: false, message: "Health record not found." });
     }
 
-    ["user", "pet"].forEach((field) => delete req.body[field]);
+    // Only editable content fields are accepted. user and pet are protected.
+    const allowedFields = [
+      "diagnosis",
+      "treatment",
+      "doctor",
+      "hospital",
+      "prescription",
+      "visitDate",
+      "nextVisit",
+      "notes",
+    ];
 
-    Object.assign(record, req.body);
+    const updates = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "Nothing to update." });
+    }
+
+    for (const [field, max] of [
+      ["diagnosis", 500],
+      ["treatment", 1000],
+      ["doctor", 200],
+      ["hospital", 200],
+      ["prescription", 1000],
+      ["notes", 1000],
+    ]) {
+      if (updates[field] !== undefined) {
+        if (typeof updates[field] !== "string" || updates[field].trim().length > max) {
+          return res.status(400).json({ success: false, message: `Invalid ${field}.` });
+        }
+        updates[field] = updates[field].trim();
+      }
+    }
+
+    for (const dateField of ["visitDate", "nextVisit"]) {
+      if (updates[dateField] !== undefined) {
+        const d = new Date(updates[dateField]);
+        if (Number.isNaN(d.getTime())) {
+          return res.status(400).json({ success: false, message: `Invalid ${dateField}.` });
+        }
+        updates[dateField] = d;
+      }
+    }
+
+    Object.assign(record, updates);
     await record.save();
 
     res.json({
@@ -91,12 +183,16 @@ exports.updateHealthRecord = async (req, res) => {
       record,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.deleteHealthRecord = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid health record ID." });
+    }
+
     const record = await HealthRecord.findOneAndDelete({
       _id: req.params.id,
       user: req.user._id,
@@ -108,6 +204,6 @@ exports.deleteHealthRecord = async (req, res) => {
 
     res.json({ success: true, message: "Health record deleted successfully." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

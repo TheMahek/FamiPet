@@ -2124,3 +2124,419 @@ body:has(#sidebar-container) .main-content {
     opacity: 0.9;
 }
 
+/* =========================================================
+   FILTER + NOTIFICATION DROPDOWN PANELS
+   ========================================================= */
+
+.filter-btn {
+    position: relative;
+}
+
+.filter-panel,
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    z-index: 1200;
+    width: 260px;
+    background: #ffffff;
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+    padding: 0.9rem 1rem;
+    text-align: left;
+    display: none;
+}
+
+.filter-panel.open,
+.notif-panel.open {
+    display: block;
+}
+
+.filter-panel-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0 0 0.55rem;
+}
+
+.filter-opt {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.35rem 0;
+    font-size: 0.82rem;
+    color: var(--text-medium);
+    cursor: pointer;
+}
+
+.filter-opt input {
+    accent-color: var(--primary-pink);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.notif-panel {
+    width: 300px;
+    padding: 0.6rem 0.35rem;
+}
+
+.notif-panel-body {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.notif-item {
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid #f1eff7;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item.unread {
+    border-left: 3px solid var(--primary-pink);
+}
+
+.notif-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.notif-msg {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
+.notif-time {
+    font-size: 0.68rem;
+    color: var(--text-light);
+    margin-top: 0.2rem;
+}
+
+.notif-panel-empty {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 1rem 0.25rem;
+}
+
+/* =========================================================
+   CARD ACTIONS + ADOPT NOW BUTTON
+   ========================================================= */
+
+.card-actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.adopt-now-btn {
+    width: 100%;
+    padding: 0.55rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    background: #f43f5e;
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.adopt-now-btn:hover {
+    background: var(--primary-pink-hover);
+    transform: translateY(-1px);
+}
+
+/* =========================================================
+   LIST VIEW
+   ========================================================= */
+
+.pets-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+.pets-grid.list-view .pet-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.pets-grid.list-view .card-media {
+    width: 130px;
+    height: 130px;
+    flex-shrink: 0;
+}
+
+.pets-grid.list-view .pet-card .card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.pets-grid.list-view .card-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
+    gap: 8px;
+}
+
+.pets-grid.list-view .view-details-btn,
+.pets-grid.list-view .adopt-now-btn,
+.pets-grid.list-view .delete-pet-btn {
+    width: auto;
+    padding: 0.45rem 0.9rem;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .pets-grid.list-view .pet-card {
+        flex-direction: column;
+    }
+
+    .pets-grid.list-view .card-media {
+        width: 100%;
+        height: 180px;
+    }
+}
+
+
+/* =========================================================
+   PHASE 1 FIX (adoption only) — remove blank space under navbar
+   Root cause (verified in rendered DOM at 1440/1024/768/480):
+   .app-layout is a BODY-LEVEL flex cage forced to height:100vh.
+   Its only meaningful child box, .main-content, is also 100vh and
+   holds just the top-bar. The real content (#adoptionPage: hero,
+   filters, grid, empty-state) is a SIBLING that flow-places AFTER
+   that 100vh cage — so the hero starts at exactly y=100vh, leaving
+   ~770px of blank between the navbar and the hero.
+   Fix: on the adoption page only, let the cage collapse around its
+   actual content (keep min-height:100vh) so the section flows
+   immediately under the top-bar.
+========================================================= */
+
+body:has(#adoptionPage) .app-layout {
+    height: auto;
+    min-height: 100vh;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto;
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   PHASE 1 FIX (adoption only) — kill the blank space
+   Root cause (measured at 1440/1024/768/480, DOM-walk verified):
+   .app-layout is a body-level flex cage with height:100vh;
+   min-height:100vh. Its child .main-content is ALSO height:100vh
+   (overflow-y:auto) and holds ONLY the top-bar header. The real
+   page body (#adoptionPage, with the hero) is a SIBLING of that
+   cage, so it starts exactly at y = 100vh — one full viewport of
+   the cage is blank between the navbar and the hero.
+   Fix: on the adoption page only, let the cage collapse around its
+   actual content so the hero flows right under the navbar.
+========================================================= */
+
+body:has(#adoptionPage) .app-layout {
+    height: auto;
+    min-height: 100vh;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+
+/* =========================================================
+   PHASE 1 FIX (adoption only) — collapse the blank cage
+   Root cause (browser-DOM walk, ground truth at 1440/1024/
+   768/480): the .app-layout flex cage is forced height:100vh;
+   min-height:100vh, and its .main-content box is also height:
+   100vh with overflow-y:auto holding only the top-bar header.
+   The adoption content section (#adoptionPage: hero, filters,
+   grid, empty-state) is a BODY-LEVEL sibling that flow-places
+   right after that 100vh cage — so the hero starts exactly at
+   y = 100vh, leaving ~1 viewport of blank under the navbar.
+   Fix (adoption only, minimal): collapse the cage to the real
+   content. min-height:0 (not 100vh) is essential, and overflow
+   on main-content must be visible so the sibling section flows
+   up directly under the navbar. No redesign, no negative margins.
+========================================================= */
+
+body:has(#adoptionPage) .app-layout {
+    height: auto;
+    min-height: 0;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+
+/* =========================================================
+   PHASE 1 FIX (adoption only) — remove blank space under navbar
+   ROOT CAUSE (proven twice via rendered-DOM walks at 1440/1024/
+   768/480, console/network clean, no JS errors, no horizontal
+   overflow at any width):
+   .app-layout is a BODY-LEVEL flex cage forced to height:100vh;
+   min-height:100vh. Inside it, .main-content is ALSO height:100vh
+   and holds ONLY the small top-bar (navbar). The real page body
+   (#adoptionPage: hero, filters, pets grid, empty-state) is NOT
+   inside that cage — it is a body-level SIBLING that flow-places
+   right AFTER the cage. So it starts exactly at y=100vh (~900px),
+   i.e. one full viewport below the navbar — that is the blank.
+   FIX (adoption-only, minimal, no redesign): let the cage and the
+   top-bar box collapse to their real content (min-height 0) so the
+   sibling section flows up directly under the navbar.
+========================================================= */
+body:has(#adoptionPage) .app-layout {
+    height: auto;
+    min-height: 0;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+/* COLLAPSE THE CAGE'S TWO 900px FLEX CHILDREN TOO (adoption only).
+   .app-layout (h:auto/min-h:0 now) is still 900px because its in-flow
+   flex children each carry height:100vh: #sidebar-container (900px) and
+   .main-content (900px). With height:auto the row cannot shrink below
+   the tallest child. Collapsing the children lets the body-level hero
+   (#adoptionPage, a body SIBLING after this cage) flow up directly
+   under the navbar. */
+body:has(#adoptionPage) .app-layout > div {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+body:has(#adoptionPage) .app-layout #sidebar-container {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+/* =========================================================
+   PHASE 1 FIX (adoption only) - remove blank space under navbar
+   (rendered-DOM gap probe: adoption-only, no redesign, late override)
+========================================================= */
+body:has(#adoptionPage) .app-layout {
+    height: auto;
+    min-height: 0;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+body:has(#adoptionPage) .app-layout #sidebar-container {
+    height: auto;
+    min-height: 0;
+}
+
+body:has(#adoptionPage) .app-layout #sidebar-container {
+    height: auto;
+    min-height: 0;
+}
+body:has(#adoptionPage) .app-layout .sidebar-content {
+    height: auto;
+    min-height: 0;
+}
+
+
+/* =========================================================
+   PHASE 1 FIX (adoption only) — remove blank space under navbar
+   (adoption page ONLY; !important so no later stylesheet or media
+   query can re-expand; no redesign, no shared-file changes)
+========================================================= */
+
+body:has(#adoptionPage) .app-layout {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+body:has(#adoptionPage) .app-layout .main-content {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+}
+
+body:has(#adoptionPage) .app-layout #sidebar-container {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+body:has(#adoptionPage) .app-layout #sidebar-container .ann-sidebar {
+    height: 100vh !important;
+    min-height: 0 !important;
+}
+
+/* =========================================================
+   PHASE 3 FIX (adoption only) — filter & notification panels
+   were COVERED by the hero banner.
+   Root cause (proven via elementFromPoint paint-order probe):
+   .filter-panel/.notif-panel (z-index:1200) are CHILDREN of
+   the .filter-btn/.notification-btn buttons. Those buttons get
+   a transform on :hover/:active, and ANY non-none transform
+   creates a stacking context ON THE BUTTON — trapping the
+   panel's z-index inside it. With the buttons still at
+   z-index:auto, they paint in the "positioned, DOM order"
+   layer, and .hero-banner (position:relative, later in the
+   DOM) paints AFTER them, covering the panels' lower half.
+   Fix: give the two buttons an explicit stacking layer so the
+   entire button + its dropdown paints above all page content
+   (50) while staying BELOW the sidebar/modal layer (1000).
+   Functionality, design, and panel geometry are unchanged.
+========================================================= */
+
+.filter-btn,
+.notification-btn {
+    z-index: 50;
+}
+
+/* =========================================================
+   PHASE 2 FIX (adoption only) — filter & notification panels
+   were anchored `right:0` (extending LEFT), so at <=768px the
+   wrapped top-bar pushed the buttons to the viewport's left
+   edge and the panels opened off-screen. Anchor from the LEFT
+   so they open rightward into the viewport. UI/design unchanged.
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .top-bar-actions .filter-panel,
+  .top-bar-actions .notif-panel {
+    right: auto;
+    left: 0;
+  }
+
+}

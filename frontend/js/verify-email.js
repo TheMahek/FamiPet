@@ -34,17 +34,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         statusIcon.className = "status-icon success";
         statusIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
         statusTitle.textContent = "Email Verified!";
-        statusMessage.textContent = data.message || "Your email has been verified successfully. You can now login.";
+        statusMessage.textContent = data.message || "Email verified successfully. You can now login.";
 
         statusAction.style.display = "inline-block";
         statusAction.href = "login.html";
 
     } catch (err) {
 
-        let msg = (err && err.data && err.data.message) || "The verification link is invalid or has expired.";
+        const backendMsg = (err && err.data && err.data.message) || "";
+        const status = err ? err.status : 0;
 
-        if (/expired|valid/i.test(msg)) {
-            msg = "The verification link is invalid or has expired. Please request a new verification email.";
+        let msg;
+
+        if (/expired/i.test(backendMsg)) {
+            msg = "Verification link has expired. Please request a new verification email.";
+        } else if (/invalid/i.test(backendMsg)) {
+            msg = "Verification link is invalid.";
+        } else if (!status || status >= 500) {
+            msg = "Unable to verify your email. Please try again.";
+        } else {
+            msg = backendMsg || "Verification link is invalid.";
         }
 
         statusIcon.className = "status-icon error";

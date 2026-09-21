@@ -1,7 +1,7 @@
-const mongoose = require("mongoose");
 const Favorite = require("../models/Favorite");
 const User = require("../models/User");
 const Pet = require("../models/Pet");
+const { isValidObjectId } = require("../utils/validation");
 
 exports.getFavorites = async (req, res) => {
   try {
@@ -11,7 +11,7 @@ exports.getFavorites = async (req, res) => {
 
     res.json({ success: true, count: favorites.length, favorites });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -19,7 +19,7 @@ exports.addFavorite = async (req, res) => {
   try {
     const pet = req.body.pet;
 
-    if (!pet || !mongoose.Types.ObjectId.isValid(pet)) {
+    if (!pet || !isValidObjectId(pet)) {
       return res.status(400).json({ success: false, message: "Valid pet ID is required." });
     }
 
@@ -44,13 +44,13 @@ exports.addFavorite = async (req, res) => {
       favorite,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.removeFavorite = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid favorite ID." });
     }
 
@@ -69,6 +69,6 @@ exports.removeFavorite = async (req, res) => {
 
     res.json({ success: true, message: "Favorite removed successfully." });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };

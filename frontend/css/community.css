@@ -1813,16 +1813,16 @@ img {
     object-fit: cover;
 }
 
-.modal-user strong,
-.modal-user span {
+.modal-user > div strong,
+.modal-user > div span {
     display: block;
 }
 
-.modal-user strong {
+.modal-user > div strong {
     font-size: 12px;
 }
 
-.modal-user span {
+.modal-user > div span {
     color: var(--muted);
     font-size: 10px;
     margin-top: 2px;
@@ -2067,7 +2067,7 @@ body.dark-theme .modal-user strong {
 }
 
 body.dark-theme .post-modal-header p,
-body.dark-theme .modal-user span,
+body.dark-theme .modal-user > div span,
 body.dark-theme .comment-item small {
     color: #aaa2b1;
 }

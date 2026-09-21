@@ -26,6 +26,7 @@ const communityPostSchema = new mongoose.Schema(
         "general",
         "pet-care",
         "adoption",
+        "question",
         "lost-found",
         "health",
         "training",
@@ -73,4 +74,4 @@ const communityPostSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("CommunityPost", communityPostSchema);
+module.exports = mongoose.model("CommunityPost", communityPostSchema);  

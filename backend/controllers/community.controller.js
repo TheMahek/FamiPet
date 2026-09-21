@@ -1,4 +1,17 @@
 const CommunityPost = require("../models/CommunityPost");
+const notificationService = require("../services/notification.service");
+const {
+  isValidObjectId,
+  escapeRegExp,
+  stringOrUndefined,
+  MAX_SEARCH_LENGTH,
+  COMMUNITY_CATEGORIES,
+} = require("../utils/validation");
+const {
+  storeImageFile,
+  deleteStoredImage,
+  isSafeImageValue,
+} = require("../utils/imageUpload");
 
 // ==========================
 // Get All Community Posts
@@ -11,15 +24,27 @@ exports.getAllPosts = async (req, res) => {
       isActive: true,
     };
 
-    if (category) {
-      query.category = category;
+    if (category !== undefined) {
+      const c = stringOrUndefined(category);
+      if (c === undefined || !COMMUNITY_CATEGORIES.includes(c.toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid category." });
+      }
+      query.category = c.toLowerCase();
     }
 
-    if (search) {
-      query.$or = [
-        { title: new RegExp(search, "i") },
-        { content: new RegExp(search, "i") },
-      ];
+    if (search !== undefined) {
+      const s = stringOrUndefined(search);
+      if (s === undefined) {
+        return res.status(400).json({ success: false, message: "Invalid search." });
+      }
+      const term = s.trim().slice(0, MAX_SEARCH_LENGTH);
+      if (term) {
+        const rx = new RegExp(escapeRegExp(term), "i");
+        query.$or = [
+          { title: rx },
+          { content: rx },
+        ];
+      }
     }
 
     const posts = await CommunityPost.find(query)
@@ -38,7 +63,7 @@ exports.getAllPosts = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -48,6 +73,10 @@ exports.getAllPosts = async (req, res) => {
 // ==========================
 exports.getPostById = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
     const post = await CommunityPost.findById(req.params.id)
       .populate("user", "name email avatar")
       .populate("likes", "name")
@@ -69,7 +98,7 @@ exports.getPostById = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -88,17 +117,44 @@ exports.createPost = async (req, res) => {
       });
     }
 
+    if (typeof title !== "string" || title.trim().length > 200) {
+      return res.status(400).json({ success: false, message: "Invalid title." });
+    }
+
+    if (typeof content !== "string" || content.trim().length > 5000) {
+      return res.status(400).json({ success: false, message: "Invalid content." });
+    }
+
+    if (category !== undefined && category !== null && category !== "") {
+      if (typeof category !== "string" || !COMMUNITY_CATEGORIES.includes(String(category).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid category." });
+      }
+    }
+
     let imageUrl = image;
 
     if (req.file) {
-      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      // Multipart image upload: validate content, store server-side.
+      const stored = await storeImageFile(req.file.buffer, "animal-planet/community");
+      if (stored.invalid) {
+        return res.status(400).json({ success: false, message: "File is not a valid image." });
+      }
+      imageUrl = stored.url
+        ? stored.url
+        : `${req.protocol}://${req.get("host")}/uploads/${stored.filename}`;
+    } else if (image !== undefined && image !== null && image !== "") {
+      // Body-supplied image value: only application-generated image URLs /
+      // base64 image dataURLs are accepted (no arbitrary external payloads).
+      if (!isSafeImageValue(image)) {
+        return res.status(400).json({ success: false, message: "Invalid image." });
+      }
     }
 
     const post = await CommunityPost.create({
       user: req.user.id,
-      title,
-      content,
-      category,
+      title: title.trim(),
+      content: content.trim(),
+      category: category ? String(category).toLowerCase() : "general",
       image: imageUrl,
     });
 
@@ -115,7 +171,7 @@ exports.createPost = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -125,6 +181,10 @@ exports.createPost = async (req, res) => {
 // ==========================
 exports.updatePost = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -144,17 +204,50 @@ exports.updatePost = async (req, res) => {
 
     const { title, content, category, image } = req.body;
 
-    if (title !== undefined) post.title = title;
-    if (content !== undefined) post.content = content;
-    if (category !== undefined) post.category = category;
+    if (title !== undefined) {
+      if (typeof title !== "string" || title.trim().length > 200) {
+        return res.status(400).json({ success: false, message: "Invalid title." });
+      }
+      post.title = title.trim();
+    }
+
+    if (content !== undefined) {
+      if (typeof content !== "string" || content.trim().length > 5000) {
+        return res.status(400).json({ success: false, message: "Invalid content." });
+      }
+      post.content = content.trim();
+    }
+
+    if (category !== undefined) {
+      if (typeof category !== "string" || !COMMUNITY_CATEGORIES.includes(String(category).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid category." });
+      }
+      post.category = String(category).toLowerCase();
+    }
+
+    const previousImage = post.image;
 
     if (req.file) {
-      post.image = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    } else if (image !== undefined) {
+      const stored = await storeImageFile(req.file.buffer, "animal-planet/community");
+      if (stored.invalid) {
+        return res.status(400).json({ success: false, message: "File is not a valid image." });
+      }
+      post.image = stored.url
+        ? stored.url
+        : `${req.protocol}://${req.get("host")}/uploads/${stored.filename}`;
+    } else if (image !== undefined && image !== null && image !== "") {
+      if (!isSafeImageValue(image)) {
+        return res.status(400).json({ success: false, message: "Invalid image." });
+      }
       post.image = image;
     }
 
     await post.save();
+
+    // When replacing an image, remove the previous stored asset (best effort).
+    if (previousImage && previousImage !== post.image) {
+      deleteStoredImage(previousImage);
+    }
 
     res.status(200).json({
       success: true,
@@ -166,7 +259,7 @@ exports.updatePost = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -176,6 +269,10 @@ exports.updatePost = async (req, res) => {
 // ==========================
 exports.deletePost = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -198,6 +295,11 @@ exports.deletePost = async (req, res) => {
 
     await CommunityPost.findByIdAndDelete(req.params.id);
 
+    // Remove the post image after a successful delete (best effort).
+    if (post.image) {
+      deleteStoredImage(post.image);
+    }
+
     res.status(200).json({
       success: true,
       message: "Post deleted successfully.",
@@ -207,7 +309,7 @@ exports.deletePost = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -217,6 +319,10 @@ exports.deletePost = async (req, res) => {
 // ==========================
 exports.toggleLike = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -242,6 +348,29 @@ exports.toggleLike = async (req, res) => {
 
     await post.save();
 
+    // ------------------------------------------------
+    // NEW LIKE NOTIFICATION (Phase 8 events): only a
+    // freshly-added like from someone other than the author
+    // is notified; unlikes and self-likes stay silent.
+    // ------------------------------------------------
+
+    if (!alreadyLiked && String(post.user) !== userId) {
+      await notificationService.createNotification({
+        user: post.user,
+        type: "community",
+        category: "community",
+        title: "Post Liked",
+        message: "Someone liked your community post.",
+        priority: "normal",
+        referenceType: "community",
+        referenceId: post._id,
+        metadata: {
+          postId: String(post._id),
+        },
+        dedupKey: `community-like-${post._id}-${userId}`,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: alreadyLiked ? "Post unliked." : "Post liked.",
@@ -253,7 +382,7 @@ exports.toggleLike = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -272,6 +401,14 @@ exports.addComment = async (req, res) => {
       });
     }
 
+    if (typeof text !== "string" || text.trim().length > 1000) {
+      return res.status(400).json({ success: false, message: "Invalid comment text." });
+    }
+
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid post ID." });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -283,10 +420,35 @@ exports.addComment = async (req, res) => {
 
     post.comments.push({
       user: req.user.id,
-      text,
+      text: text.trim(),
     });
 
     await post.save();
+
+    // ------------------------------------------------
+    // NEW COMMENT NOTIFICATION (Phase 8 events): fires for
+    // the post author when someone else replies; own
+    // comments don't notify.
+    // ------------------------------------------------
+
+    const newComment = post.comments[post.comments.length - 1];
+    if (String(post.user) !== String(req.user.id) && newComment && newComment._id) {
+      await notificationService.createNotification({
+        user: post.user,
+        type: "community",
+        category: "community",
+        title: "New Comment on Your Post",
+        message: "Someone commented on your community post.",
+        priority: "normal",
+        referenceType: "community",
+        referenceId: post._id,
+        metadata: {
+          postId: String(post._id),
+          commentId: String(newComment._id),
+        },
+        dedupKey: `community-comment-${post._id}-${newComment._id}`,
+      });
+    }
 
     const updatedPost = await CommunityPost.findById(post._id)
       .populate("user", "name email avatar")
@@ -302,7 +464,7 @@ exports.addComment = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -312,6 +474,10 @@ exports.addComment = async (req, res) => {
 // ==========================
 exports.deleteComment = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id) || !isValidObjectId(req.params.commentId)) {
+      return res.status(400).json({ success: false, message: "Invalid ID." });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -353,7 +519,7 @@ exports.deleteComment = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };

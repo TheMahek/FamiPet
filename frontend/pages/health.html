@@ -316,9 +316,36 @@
                             <h3>Vaccination Tracker</h3>
                         </div>
 
-                        <button class="icon-button">
-                            <i class="fa-solid fa-ellipsis"></i>
-                        </button>
+                        <div class="card-actions-group">
+
+                            <button class="add-vaccine-btn" id="addVaccinationBtn" type="button">
+                                <i class="fa-solid fa-plus"></i>
+                                Add Vaccination
+                            </button>
+
+                            <div class="vacc-menu-wrap">
+
+                                <button class="icon-button" id="vaccMenuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Vaccination actions">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+
+                                <div class="vacc-menu" id="vaccMenu">
+
+                                    <button type="button" data-action="view-history">
+                                        <i class="fa-solid fa-list-check"></i>
+                                        View Vaccination History
+                                    </button>
+
+                                    <button type="button" data-action="add-vaccination">
+                                        <i class="fa-solid fa-plus"></i>
+                                        Add Vaccination
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
@@ -413,27 +440,31 @@
                     </div>
 
 
-                    <div class="appointment-date">
+                    <div class="appointment-date" id="apptBody">
 
                         <div class="date-box">
-                            <span>AUG</span>
-                            <strong>12</strong>
+                            <span id="apptMonth">AUG</span>
+                            <strong id="apptDay">12</strong>
                         </div>
 
                         <div>
-                            <strong>General Checkup</strong>
+                            <strong id="apptType">General Checkup</strong>
 
                             <p>
                                 <i class="fa-regular fa-clock"></i>
-                                10:30 AM
+                                <span id="apptTime">10:30 AM</span>
                             </p>
 
                             <p>
                                 <i class="fa-solid fa-location-dot"></i>
-                                Happy Paws Veterinary Clinic
+                                <span id="apptClinic">Happy Paws Veterinary Clinic</span>
                             </p>
                         </div>
 
+                    </div>
+
+                    <div class="health-empty-state" id="appointmentEmpty" style="display:none;">
+                        No upcoming appointment for this pet.
                     </div>
 
 
@@ -475,24 +506,38 @@
 
                         <div class="nutrition-progress">
 
-                            <div class="progress-circle">
-                                <span>85%</span>
+                            <div class="progress-circle" id="nutritionCircle">
+                                <span id="nutritionCompletion">&ndash;</span>
                             </div>
 
                         </div>
 
-                        <div class="nutrition-info">
+                        <div class="nutrition-info" id="nutritionBody">
 
-                            <strong>Daily Nutrition</strong>
+                            <strong id="nutritionTitle">Daily Nutrition</strong>
 
-                            <p>
-                                Bruno's current diet is well balanced.
+                            <p id="nutritionSummary">
+                                Loading this pet's diet&hellip;
                             </p>
 
-                            <div class="food-tags">
-                                <span>Protein</span>
-                                <span>Healthy Fats</span>
-                                <span>Vitamins</span>
+                            <div class="food-tags" id="nutritionTags"></div>
+
+                            <ul class="nutrition-notes" id="nutritionNotes"></ul>
+
+                            <p class="nutrition-warning" id="nutritionGaps" style="display:none;"></p>
+
+                            <p class="nutrition-disclaimer" id="nutritionDisclaimer"></p>
+
+                            <div class="nutrition-actions">
+
+                                <button type="button" id="editDietBtn" class="nutrition-edit-btn">
+                                    <i class="fa-solid fa-pen"></i> Edit Diet
+                                </button>
+
+                                <button type="button" id="removeDietBtn" class="nutrition-remove-btn" style="display:none;">
+                                    <i class="fa-solid fa-trash-can"></i> Remove
+                                </button>
+
                             </div>
 
                         </div>
@@ -685,6 +730,39 @@
             </div>
 
 
+            <div class="form-row" id="vaccineFields" style="display:none;">
+
+                <div class="form-group">
+
+                    <label for="recordVaccineName">
+                        Vaccine Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="recordVaccineName"
+                        placeholder="e.g. Rabies"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="recordNextDueDate">
+                        Next Due Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="recordNextDueDate"
+                    >
+
+                </div>
+
+            </div>
+
+
             <div class="form-row">
 
                 <div class="form-group">
@@ -737,6 +815,7 @@
             <button
                 type="submit"
                 class="save-record-btn"
+                id="recordSubmitBtn"
             >
                 Save Health Record
             </button>
@@ -748,9 +827,428 @@
 </div>
 
 
+<!-- ADD VACCINATION MODAL -->
+
+<div class="modal-backdrop" id="vaccinationModal">
+
+    <div class="modal-sheet">
+
+        <button class="modal-close" id="closeVaccinationModal">
+            &times;
+        </button>
+
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa-solid fa-syringe"></i>
+            </div>
+
+            <div>
+                <h2>Add Vaccination</h2>
+                <p>Record a new vaccination for your pet.</p>
+            </div>
+        </div>
+
+
+        <form id="vaccinationForm">
+
+            <div class="form-group">
+
+                <label for="vaccinePet">
+                    Pet
+                </label>
+
+                <select id="vaccinePet" required></select>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="vaccineName">
+                        Vaccine Name <span style="color:#e05d5d;">*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="vaccineName"
+                        placeholder="e.g. Rabies"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="doseNumber">
+                        Dose Number
+                    </label>
+
+                    <input
+                        type="number"
+                        id="doseNumber"
+                        min="1"
+                        step="1"
+                        value="1"
+                        placeholder="e.g. 1"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="vaccinationDate">
+                        Vaccination Date <span style="color:#e05d5d;">*</span>
+                    </label>
+
+                    <input
+                        type="date"
+                        id="vaccinationDate"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="vaccinationNextDue">
+                        Next Due Date <span style="color:#e05d5d;">*</span>
+                    </label>
+
+                    <input
+                        type="date"
+                        id="vaccinationNextDue"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+<div class="form-group">
+
+                            <label for="vaccinationVet">
+                                Veterinarian
+                            </label>
+
+                            <input
+                                type="text"
+                                id="vaccinationVet"
+                                placeholder="Veterinarian name"
+                            >
+
+                        </div>
+
+
+            <div class="form-group">
+
+                <label for="vaccinationNotes">
+                    Notes
+                </label>
+
+                <textarea
+                    id="vaccinationNotes"
+                    rows="3"
+                    placeholder="Add vaccination notes..."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="save-record-btn"
+            >
+                Save Vaccination
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- RESCHEDULE APPOINTMENT MODAL -->
+
+<div class="modal-backdrop" id="rescheduleModal">
+
+    <div class="modal-sheet">
+
+        <button class="modal-close" id="closeRescheduleModal">
+            &times;
+        </button>
+
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+
+            <div>
+                <h2>Reschedule Appointment</h2>
+                <p>Pick a new date and time for this visit.</p>
+            </div>
+        </div>
+
+
+        <form id="rescheduleForm">
+
+            <div class="form-group">
+
+                <label for="rescheduleDate">
+                    Date <span style="color:#e05d5d;">*</span>
+                </label>
+
+                <input
+                    type="date"
+                    id="rescheduleDate"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="rescheduleTime">
+                    Time <span style="color:#e05d5d;">*</span>
+                </label>
+
+                <input
+                    type="time"
+                    id="rescheduleTime"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="save-record-btn"
+            >
+                Save New Schedule
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- DIET & NUTRITION MODAL -->
+
+<div class="modal-backdrop" id="dietModal">
+
+    <div class="modal-sheet">
+
+        <button class="modal-close" id="closeDietModal">
+            &times;
+        </button>
+
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa-solid fa-bowl-food"></i>
+            </div>
+
+            <div>
+                <h2>Edit Diet</h2>
+                <p>Set <span id="dietModalPetName">this pet</span>'s food, portion and meal times. Feeding reminders follow the meal schedule.</p>
+            </div>
+        </div>
+
+
+        <form id="dietForm">
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="dietFoodType">
+                        Food Type
+                    </label>
+
+                    <select id="dietFoodType">
+                        <option value="">Not set</option>
+                        <option value="dry">Dry</option>
+                        <option value="wet">Wet</option>
+                        <option value="raw">Raw</option>
+                        <option value="homemade">Homemade</option>
+                        <option value="mixed">Mixed</option>
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="dietBrand">
+                        Brand
+                    </label>
+
+                    <input
+                        type="text"
+                        id="dietBrand"
+                        placeholder="e.g. Royal Canin"
+                        maxlength="200"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="dietDailyPortion">
+                        Daily Portion (grams)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="dietDailyPortion"
+                        min="1"
+                        max="20000"
+                        step="1"
+                        placeholder="e.g. 300"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="dietActivity">
+                        Activity Level
+                    </label>
+
+                    <select id="dietActivity">
+                        <option value="">Not set</option>
+                        <option value="low">Low</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="high">High</option>
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="dietTimezone">
+                        Timezone
+                    </label>
+
+                    <input
+                        type="text"
+                        id="dietTimezone"
+                        placeholder="e.g. Europe/London (default UTC)"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="dietAllergies">
+                        Allergies / Restrictions
+                    </label>
+
+                    <input
+                        type="text"
+                        id="dietAllergies"
+                        placeholder="Comma separated, e.g. chicken, wheat"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="dietTreatPolicy">
+                    Treat Policy
+                </label>
+
+                <input
+                    type="text"
+                    id="dietTreatPolicy"
+                    placeholder="e.g. One small treat daily"
+                    maxlength="300"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="dietNotes">
+                    Notes
+                </label>
+
+                <textarea
+                    id="dietNotes"
+                    rows="2"
+                    placeholder="Anything else about this pet's diet&hellip;"
+                    maxlength="1000"
+                ></textarea>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Meal Times
+                </label>
+
+                <div id="dietMealRows"></div>
+
+                <button type="button" class="add-meal-btn" id="addMealBtn">
+                    <i class="fa-solid fa-plus"></i> Add Meal Time
+                </button>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button type="button" class="modal-cancel" id="cancelDietBtn">
+                    Cancel
+                </button>
+
+                <button type="submit" class="save-record-btn diet-save-btn">
+                    Save Diet
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
 <script src="../js/api.js"></script>
     <script src="../js/sidebar.js"></script>
-<script src="../js/health.js"></script>
+<script src="../js/health.js?v=1"></script>
 <script src="../js/theme.js"></script>
 
 </body>

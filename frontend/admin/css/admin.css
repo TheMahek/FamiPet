@@ -167,6 +167,19 @@ body {
   object-fit: cover;
 }
 
+.admin-user-chip .admin-chip-initials {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffe5ed;
+  color: #ff5c8a;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .admin-user-chip strong {
   font-size: 0.8rem;
   color: #1e293b;

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Breed = require('../models/Breed');
@@ -12,12 +13,38 @@ const HealthRecord = require('../models/HealthRecord');
 const Vaccination = require('../models/Vaccination');
 const Adoption = require('../models/Adoption');
 const Notification = require('../models/Notification');
-require('dotenv').config();
+// Load backend/.env from this file's location, not process.cwd(), so seeding
+// always targets the same configured database (never a decoy/fallback DB).
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const seedData = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet');
-    console.log('Connected to MongoDB');
+    if (!process.env.MONGODB_URI) {
+      console.error('❌ MONGODB_URI is not set. Expected backend/.env to define it.');
+      process.exit(1);
+    }
+
+    await mongoose.connect(process.env.MONGODB_URI);
+    const dbName = mongoose.connection.db.databaseName;
+    console.log(`Connected to MongoDB (database: ${dbName})`);
+
+    // ----------------------------------------------------------------------
+    // DATA-DESTRUCTION SAFETY GUARD.
+    // Seeding deletes every collection and writes demo users. It must NEVER
+    // silently wipe real accounts during a restart/rebuild. It therefore
+    // refuses to run whenever the database already holds user accounts.
+    // To explicitly wipe ALL data and reseed, pass --force:
+    //     npm run seed -- --force
+    // ----------------------------------------------------------------------
+    const force = process.argv.includes('--force') || process.env.SEED_FORCE === '1';
+    const existingUsers = await User.countDocuments();
+    if (existingUsers > 0 && !force) {
+      console.error(`⛔ Aborting seed: database "${dbName}" already contains ${existingUsers} user account(s).`);
+      console.error('   Seeding would DELETE those users and all their pets, favorites, notifications,');
+      console.error('   adoption requests, health records, vaccination reminders and community posts.');
+      console.error('   Run this only on an empty/scratch database, or use:  npm run seed -- --force');
+      process.exit(1);
+    }
 
     await Promise.all([
       User.deleteMany(),

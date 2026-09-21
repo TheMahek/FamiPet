@@ -1,0 +1,24 @@
+# Never ship host-level dependency folders
+node_modules
+
+# Secrets (runtime config only)
+.env
+.env.*
+
+# Git history must not enter the image
+.git
+.gitignore
+
+# Docker-related files are not needed inside the image
+Dockerfile
+.dockerignore
+# NOTE: nginx.conf is intentionally NOT excluded - the Dockerfile
+# COPYs it into /etc/nginx/conf.d/default.conf, so it must stay in
+# the build context.
+
+# IDE / editor settings
+.vscode
+
+# Logs / debug output
+*.log
+npm-debug.log*

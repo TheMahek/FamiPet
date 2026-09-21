@@ -15,6 +15,7 @@ const {
 
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const { uploadLimiter } = require("../middleware/upload");
 
 // Get all posts
 router.get("/", getAllPosts);
@@ -23,10 +24,10 @@ router.get("/", getAllPosts);
 router.get("/:id", getPostById);
 
 // Create post (supports image upload via multipart/form-data)
-router.post("/", protect, upload.single("image"), createPost);
+router.post("/", protect, uploadLimiter, upload.single("image"), createPost);
 
 // Update post
-router.put("/:id", protect, upload.single("image"), updatePost);
+router.put("/:id", protect, uploadLimiter, upload.single("image"), updatePost);
 
 // Delete post
 router.delete("/:id", protect, deletePost);

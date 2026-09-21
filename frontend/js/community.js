@@ -56,24 +56,288 @@ document.addEventListener("DOMContentLoaded", () => {
         (typeof FamiPetAPI !== "undefined" &&
             FamiPetAPI.getUser()) || {};
 
+    /* -----------------------------------------------------
+       AVATAR HELPERS
+       Only a real uploaded image counts as a profile photo.
+       The old default placeholder (user-profile.svg) and empty
+       values both use the initials empty state.
+    ----------------------------------------------------- */
+
+    function isRealAvatar(value) {
+        if (typeof FamiPetAPI !== "undefined" &&
+            typeof FamiPetAPI.isRealAvatar === "function") {
+            return FamiPetAPI.isRealAvatar(value);
+        }
+        return typeof value === "string" &&
+            value.trim() !== "" &&
+            !value.includes("user-profile.svg");
+    }
+
+    function resolveAvatar(value) {
+        if (typeof FamiPetAPI !== "undefined" &&
+            typeof FamiPetAPI.resolveAvatarUrl === "function") {
+            return FamiPetAPI.resolveAvatarUrl(value);
+        }
+        return isRealAvatar(value)
+            ? String(value).trim()
+            : "";
+    }
+
+    function getInitials(name) {
+        return String(name || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(function (p) {
+                return p[0].toUpperCase();
+            })
+            .join("") || "PP";
+    }
+
+    function escapeAttr(value) {
+        return escapeHTML(value)
+            .replace(/"/g, "&quot;");
+    }
+
+    /* Markup for a post author's avatar: their own resolved photo,
+       otherwise the initials empty state. */
+    function avatarHTML(avatar, name) {
+        const src = resolveAvatar(avatar);
+        const safeName = escapeAttr(name || "");
+        if (!src) {
+            return `<div class="avatar-placeholder">${escapeHTML(getInitials(name))}</div>`;
+        }
+        return `<img src="${escapeAttr(src)}" alt="${safeName}" data-avatar-img data-avatar-name="${safeName}">`;
+    }
+
     const currentUser = {
         id: famipetUser.id || null,
         name: famipetUser.name || "Pet Parent",
-        initials: famipetUser.initials ||
-            (famipetUser.name
-                ? famipetUser.name
-                    .split(" ")
-                    .map(p => p[0] || "")
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)
-                : "PP"),
-        avatar: famipetUser.avatar ||
-            "../assets/images/dashboard/user-profile.svg"
+        initials: getInitials(famipetUser.name),
+        avatar: resolveAvatar(famipetUser.avatar)
     };
 
     const currentUserId =
         currentUser.id;
+
+
+    /* Populate the create post modal with the logged-in
+       user's name and avatar (never a hardcoded name). */
+
+    const modalUser =
+        document.querySelector(
+            ".post-modal .modal-user"
+        );
+
+    const modalUserName =
+        document.getElementById(
+            "modalUserName"
+        );
+
+    const createPostAvatar =
+        document.getElementById(
+            "createPostAvatar"
+        );
+
+    function buildAvatarNode(avatar, name, options) {
+
+        const opts = options || {};
+
+        const src = resolveAvatar(avatar);
+
+        if (!src) {
+
+            const initialsSpan =
+                document.createElement("span");
+
+            initialsSpan.className =
+                opts.placeholderClass
+                    ? "avatar-placeholder " +
+                        opts.placeholderClass
+                    : "avatar-placeholder";
+
+            initialsSpan.textContent =
+                getInitials(name);
+
+            return initialsSpan;
+
+        }
+
+        const img =
+            document.createElement("img");
+
+        if (opts.id) {
+            img.id = opts.id;
+        }
+
+        img.src = src;
+
+        img.alt = name || "Profile";
+
+        img.setAttribute("data-avatar-img", "");
+
+        img.setAttribute("data-avatar-name", name || "");
+
+        return img;
+
+    }
+
+    function renderModalUserAvatar() {
+
+        if (!modalUser) return;
+
+        const existing =
+            modalUser.querySelector(
+                "#modalUserAvatar, .avatar-placeholder"
+            );
+
+        const node = buildAvatarNode(
+            currentUser.avatar,
+            currentUser.name,
+            { id: "modalUserAvatar" }
+        );
+
+        if (existing) {
+
+            existing.replaceWith(node);
+
+        } else {
+
+            modalUser.insertBefore(
+                node,
+                modalUser.firstChild
+            );
+
+        }
+
+    }
+
+    /* Populate the create-post composer avatar with the
+       logged-in user's photo or the initials empty state. */
+
+    function renderComposerAvatar() {
+
+        if (!createPostAvatar) return;
+
+        createPostAvatar.innerHTML = "";
+
+        createPostAvatar.appendChild(
+            buildAvatarNode(
+                currentUser.avatar,
+                currentUser.name
+            )
+        );
+
+    }
+
+    renderModalUserAvatar();
+
+    renderComposerAvatar();
+
+    if (modalUserName) {
+
+        modalUserName.textContent =
+            currentUser.name;
+
+    }
+
+
+    /* If a stored photo URL cannot be loaded (moved file, wrong
+       origin, offline), fall back to the initials empty state so a
+       broken image or another user's photo is never shown. */
+
+    document.addEventListener(
+        "error",
+        function (event) {
+
+            const img = event.target;
+
+            if (!img ||
+                !img.isConnected ||
+                img.tagName !== "IMG" ||
+                !img.hasAttribute("data-avatar-img")) {
+                return;
+            }
+
+            const name =
+                img.getAttribute("data-avatar-name") ||
+                img.getAttribute("alt") ||
+                "";
+
+            const fallback =
+                document.createElement("span");
+
+            fallback.className =
+                "avatar-placeholder";
+
+            fallback.textContent =
+                getInitials(name);
+
+            img.replaceWith(fallback);
+
+        },
+        true
+    );
+
+
+    /* Refresh the cached user from the backend so a photo uploaded
+       elsewhere (or a stale localStorage cache) is reflected here. */
+
+    async function refreshCurrentUser() {
+
+        if (typeof FamiPetAPI === "undefined" ||
+            !FamiPetAPI.isLoggedIn()) {
+            return;
+        }
+
+        try {
+
+            const data =
+                await FamiPetAPI.get("/auth/me");
+
+            const u =
+                data && data.user;
+
+            if (!u) return;
+
+            currentUser.name =
+                u.name || currentUser.name;
+
+            currentUser.initials =
+                getInitials(currentUser.name);
+
+            currentUser.avatar =
+                resolveAvatar(u.avatar);
+
+            FamiPetAPI.setUser(
+                Object.assign(
+                    {},
+                    FamiPetAPI.getUser() || {},
+                    u
+                )
+            );
+
+            renderModalUserAvatar();
+
+            renderComposerAvatar();
+
+            if (modalUserName) {
+
+                modalUserName.textContent =
+                    currentUser.name;
+
+            }
+
+        } catch (e) {
+
+            /* Keep the cached localStorage values. */
+
+        }
+
+    }
+
+    refreshCurrentUser();
 
 
     /* =====================================================
@@ -571,6 +835,7 @@ document.addEventListener("DOMContentLoaded", () => {
         general: "discussion",
         "pet-care": "tip",
         adoption: "story",
+        question: "question",
         "lost-found": "discussion",
         health: "tip",
         training: "tip",
@@ -581,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const TYPE_TO_CATEGORY = {
         discussion: "general",
         story: "adoption",
-        question: "general",
+        question: "question",
         tip: "pet-care"
     };
 
@@ -639,9 +904,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 || "Community Member",
 
             avatar:
-                (post.user &&
-                    post.user.avatar) ||
-                "../assets/images/dashboard/user-profile.svg",
+                resolveAvatar(
+                    post.user &&
+                    post.user.avatar
+                ),
 
             title:
                 post.title ||
@@ -906,26 +1172,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 try {
 
                     const result =
-                        await FamiPetAPI.put(
+                        await FamiPetAPI.post(
                             `/community/${postId}/like`
                         );
 
 
-                    const likes =
-                        (result &&
-                            result.likes) ||
-                        [];
-
-
                     post.likesCount =
-                        likes.length;
+                        (result &&
+                            result.likesCount) ||
+                        0;
 
 
                     post.liked =
-                        likes.some(
-                            u => (u._id || u) ===
-                                currentUserId
-                        );
+                        !!(result &&
+                            result.liked);
 
 
                     countSpan.textContent =
@@ -1767,12 +2027,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 <div class="post-user">
 
-                    <img
-                        src="${post.avatar}"
-                        alt="${escapeHTML(
-                            post.user
-                        )}"
-                    >
+                    ${avatarHTML(
+                        post.avatar,
+                        post.user
+                    )}
 
                     <div>
 
@@ -2954,38 +3212,93 @@ function applyFilters() {
        NO ALERT
     ===================================================== */
 
+    const notifBadge =
+        document.getElementById(
+            "notifBadge"
+        );
+
+
+    async function refreshNotificationBadge() {
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/notifications/unread"
+                );
+
+            const count =
+                Number(data && data.count) || 0;
+
+            if (notifBadge) {
+
+                notifBadge.textContent =
+                    count;
+
+                notifBadge.style.display =
+                    count ? "" : "none";
+
+            }
+
+        }
+        catch (error) {
+
+            if (notifBadge) {
+
+                notifBadge.style.display =
+                    "none";
+
+            }
+
+        }
+
+    }
+
+
+    function closeNotificationPanel() {
+
+        const panel =
+            document.getElementById(
+                "notificationPanel"
+            );
+
+        if (panel) {
+
+            panel.remove();
+
+        }
+
+    }
+
+
     notificationBtn?.addEventListener(
         "click",
         () => {
 
-            let panel =
+            const openPanel =
                 document.getElementById(
                     "notificationPanel"
                 );
 
+            if (openPanel) {
 
-            if (panel) {
-
-                panel.remove();
+                closeNotificationPanel();
 
                 return;
 
             }
 
 
-            panel =
+            const panel =
                 document.createElement(
                     "div"
                 );
 
-
             panel.id =
                 "notificationPanel";
 
-
             panel.className =
                 "notification-panel";
-
 
             panel.innerHTML = `
 
@@ -3007,74 +3320,7 @@ function applyFilters() {
 
                 </div>
 
-
-                <div class="notification-item">
-
-                    <i
-                        class="fa-solid
-                        fa-heart"
-                    ></i>
-
-                    <div>
-
-                        <strong>
-                            Community activity
-                        </strong>
-
-                        <span>
-                            New activity is waiting
-                            for you.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="notification-item">
-
-                    <i
-                        class="fa-solid
-                        fa-users"
-                    ></i>
-
-                    <div>
-
-                        <strong>
-                            Popular groups
-                        </strong>
-
-                        <span>
-                            Check out the latest
-                            discussions.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="notification-item">
-
-                    <i
-                        class="fa-solid
-                        fa-paw"
-                    ></i>
-
-                    <div>
-
-                        <strong>
-                            Famipet Community
-                        </strong>
-
-                        <span>
-                            Keep sharing and helping
-                            fellow pet parents!
-                        </span>
-
-                    </div>
-
-                </div>
+                <div id="notifPanelBody"></div>
 
             `;
 
@@ -3090,12 +3336,253 @@ function applyFilters() {
                 )
                 .addEventListener(
                     "click",
-                    () =>
-                        panel.remove()
+                    closeNotificationPanel
                 );
+
+
+            const body =
+                panel.querySelector(
+                    "#notifPanelBody"
+                );
+
+
+            body.innerHTML = `
+
+                <div class="notification-item">
+
+                    <i
+                        class="fa-solid
+                        fa-circle-notch
+                        fa-spin"
+                    ></i>
+
+                    <div>
+
+                        <strong>
+                            Loading
+                        </strong>
+
+                        <span>
+                            Checking for updates.
+                        </span>
+
+                    </div>
+
+                </div>
+
+            `;
+
+
+            (async () => {
+
+                try {
+
+                    const data =
+                        await FamiPetAPI.get(
+                            "/notifications"
+                        );
+
+                    const notes =
+                        (data && data.notifications) || [];
+
+                    if (notifBadge) {
+
+                        notifBadge.textContent =
+                            notes.filter(
+                                note => !note.isRead
+                            ).length;
+
+                        notifBadge.style.display =
+                            notes.length ? "" : "none";
+
+                    }
+
+
+                    if (!notes.length) {
+
+                        body.innerHTML = `
+
+                            <div class="notification-item">
+
+                                <i
+                                    class="fa-regular
+                                    fa-bell-slash"
+                                ></i>
+
+                                <div>
+
+                                    <strong>
+                                        Nothing yet
+                                    </strong>
+
+                                    <span>
+                                        You're all caught up.
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        `;
+
+                        return;
+
+                    }
+
+
+                    body.innerHTML =
+                        notes
+                            .map(
+                                note => `
+
+                                    <div class="notification-item" data-id="${note._id}" data-read="${note.isRead ? "1" : "0"}">
+
+                                        <i
+                                            class="fa-solid
+                                            fa-bell"
+                                        ></i>
+
+                                        <div>
+
+                                            <strong>
+                                                ${escapeHTML(
+                                                    note.title ||
+                                                    "Notification"
+                                                )}
+                                            </strong>
+
+                                            <span>
+                                                ${escapeHTML(
+                                                    note.message || ""
+                                                )}${
+                                                    note.createdAt
+                                                    ? " · " + formatTime(
+                                                        new Date(
+                                                            note.createdAt
+                                                        ).getTime()
+                                                    )
+                                                    : ""
+                                                }
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                `
+                            )
+                            .join("");
+
+                    body.querySelectorAll(".notification-item[data-id]").forEach((el) => {
+
+                        el.addEventListener("click", async () => {
+
+                            const id =
+                                el.getAttribute("data-id");
+
+                            if (
+                                !id ||
+                                el.getAttribute("data-read") === "1"
+                            ) {
+                                return;
+                            }
+
+                            try {
+
+                                await FamiPetAPI.put(
+                                    "/notifications/" +
+                                    encodeURIComponent(id) +
+                                    "/read",
+                                    {}
+                                );
+
+                                el.setAttribute("data-read", "1");
+
+                                refreshNotificationBadge();
+
+                            }
+                            catch (error) {
+                                /* keep current state on failure */
+                            }
+
+                        });
+
+                    });
+
+                }
+                catch (error) {
+
+                    body.innerHTML = `
+
+                        <div class="notification-item">
+
+                            <i
+                                class="fa-solid
+                                fa-circle-exclamation"
+                            ></i>
+
+                            <div>
+
+                                <strong>
+                                    Offline
+                                </strong>
+
+                                <span>
+                                    Could not load notifications.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+
+            })();
 
         }
     );
+
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            if (
+                !event.target.closest(
+                    "#notificationBtn"
+                ) &&
+                !event.target.closest(
+                    "#notificationPanel"
+                )
+            ) {
+
+                closeNotificationPanel();
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key === "Escape"
+            ) {
+
+                closeNotificationPanel();
+
+            }
+
+        }
+    );
+
+
+    refreshNotificationBadge();
 
 
     /* =====================================================
