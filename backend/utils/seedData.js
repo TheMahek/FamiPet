@@ -61,7 +61,13 @@ const seedData = async () => {
       Notification.deleteMany(),
     ]);
 
-    const admin = await User.create({ name: 'Admin User', email: 'admin@animalplanet.com', password: 'admin123', role: 'admin', isVerified: true });
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!adminPassword) {
+      console.error('⛔ SEED_ADMIN_PASSWORD is not set. Add it to backend/.env (see backend/.env.example) and re-run the seed.');
+      process.exit(1);
+    }
+
+    const admin = await User.create({ name: 'Admin User', email: 'admin@animalplanet.com', password: adminPassword, role: 'admin', isVerified: true });
 
     const user = await User.create({ name: 'Demo User', email: 'user@example.com', password: 'user123', role: 'user', isVerified: true });
 
@@ -141,8 +147,8 @@ const seedData = async () => {
     ]);
 
     console.log('Seed data created successfully!');
-    console.log('Admin: admin@animalplanet.com / admin123');
-    console.log('User: user@example.com / user123');
+    console.log('Admin seeded: admin@animalplanet.com (password from SEED_ADMIN_PASSWORD env var — never printed)');
+    console.log('Demo user seeded: user@example.com (demo password only)');
     process.exit(0);
   } catch (error) {
     console.error('Seed error:', error);

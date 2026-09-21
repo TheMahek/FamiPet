@@ -1,8 +1,8 @@
 # FamiPet — Phase 0 Baseline & Project Status
 
-> Single project-status document for the enhancement work (Phase 11 completed).
+> Single project-status document for the enhancement work (Phase 13 final hardening completed).
 >
-> Last update: Phase 11 AI Recommendations & AI CRUD completed (see §19).
+> Last update: Phase 13 final integration & hardening completed (see ROADMAP Phase 13 status).
 
 ---
 

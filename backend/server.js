@@ -158,7 +158,12 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Health Check (registered before the protected /api/health records router)
 app.get('/api/status', (req, res) => {
-  res.json({ status: 'OK', message: 'FamiPet API is running!' });
+  const dbState = mongoose.connection.readyState; // 0 disconn, 1 conn, 2 connecting, 3 disconnecting
+  res.status(dbState === 1 ? 200 : 503).json({
+    status: dbState === 1 ? 'OK' : 'DEGRADED',
+    db: dbState === 1 ? 'connected' : (dbState === 2 ? 'connecting' : 'not-connected'),
+    message: dbState === 1 ? 'FamiPet API is running!' : 'FamiPet API is up but MongoDB is not connected.',
+  });
 });
 
 // Routes

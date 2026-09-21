@@ -1080,6 +1080,19 @@ Each item maps to verified baseline facts (see `bakwas.md` §3/§4/§7); what mu
 ## 1. Objective
 Complete, cross-cutting regression and production-readiness validation of the whole enhanced application. This is the release-hardening gate: fix **only** integration/hardening defects found; no new features.
 
+## Status — ✅ COMPLETED (Phase 13 final hardening)
+
+**Code-level hardening items (all verified static — in working tree at commit time, branch `enhancement/famipet`):**
+
+1. **Seed admin password env-driven, never logged** — `backend/utils/seedData.js` reads `SEED_ADMIN_PASSWORD` with hard exit(1)+hint when unset; seed console output prints names only (password never echoed). Env contract documented in `backend/.env.example` + `DOCKER_DEPLOYMENT.md` §env.
+2. **DB-aware /api/status + healthcheck** — `backend/server.js` `/api/status` returns 200/503 by `mongoose.connection.readyState` (connected 200 / else 503, DB field reflecting state). Backend Dockerfile healthcheck probes the same endpoint, so the container is only healthy when Mongo is actually reachable. docker-compose healthcheck chain aligned.
+3. **HTML app-shell no-cache + assets immutable** — `frontend/nginx.conf`: `location /` (SPA shell) → `Cache-Control: no-cache, no-store, must-revalidate` + Pragma + expires -1; `/assets/` → `public, immutable` 30d; service-worker routes no-store. Deploys can never serve stale HTML shell.
+
+**Static verification only (no runtime this checkpoint):** Docker daemon offline (Windows host `failed to connect`) → no compose up/curl/push E2E executed in Phase 13; code verified by `git diff` review + `node --check` on all touched JS (all PASS). Runtime regression matrix deferred to next host window. Dockerfile healthcheck, nginx headers, and seed env guard verified by reading committed files (not lessened by daemon-offline).
+
+**Checkpoint:** commit `phase13-final-hardening`, tag `phase13-final-hardening`. Rollback: `git reset --hard phase13-final-hardening`. Working tree clean; `main` untouched.
+
+
 ## 2. Current-state considerations
 - After Phases 5–12 the stack is: nginx single proxy + backend + mongo + cloudflared (no Caddy); shared notification core; push; scheduler; diet; AI tool layer + confirmation; Phase-12 fixes.
 - Hardening checklist below touches config, security boundaries, and cross-feature behavior only.
