@@ -1172,3 +1172,7 @@ Notes:
 ---
 
 *End of roadmap.*
+### Phase 12 finish-up (v12.1.0-phase12-finish)
+- Settings page: removed obsolete Dev Language / Region card and App Information card from settings.html (verified L&R rows 747-838 removed, APP INFO gone, page loads clean).
+- settings.js pruned of references to removed controls (no dead handlers remain; page boot verified).
+- Adoption filter layout verified responsive already (filters-row flex-wrap @adoption.css:521, 992px column collapse @965, pets-grid 4->3->2->1) - no redesign required.

@@ -467,3 +467,5 @@ AI-assisted recommendations + AI-driven CRUD on top of the Phase 10 tool layer (
 
 ### Phase 11 checkpoint
 - Commit → tag `phase11-ai-recommendations-crud`. Rollback: `git reset --hard phase11-ai-recommendations-crud`.
+
+> Phase 12 finish (v12.1.0-phase12-finish): Settings page obsolete sections (Device Lang/Region, App Info) removed from HTML + JS; adoption filter CSS verified responsive (no change needed).
