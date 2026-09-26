@@ -101,7 +101,10 @@
 }
 
 .landing .hero-image img {
-  width: 115%;
+  /* Was 115%: the 15% bleed overhung the hero column and, once the container
+     reached the viewport edge (~1280px), pushed the page 35px wider than the
+     viewport and clipped the image. Capped to its own column instead. */
+  width: 100%;
   max-width: 700px;
   border-radius: 30px;
   filter: drop-shadow(0 20px 40px rgba(255, 170, 190, 0.25));
