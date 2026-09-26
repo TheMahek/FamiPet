@@ -26,12 +26,12 @@
   --blue-text: #2980b9;
 }
 
-body:has(.mypet-page) * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-}
+/* The Vanilla reset (`body * { box-sizing; margin; padding; font-family }`) is
+   deliberately NOT ported. Tailwind preflight (global.css) already applies
+   box-sizing/margin/padding app-wide, and the font-family override used to
+   repaint the whole authenticated shell in Segoe UI while the sidebar stayed
+   on Poppins — it also outranked dashboard.css `.main-content` padding, so the
+   My Pet / Pet ID pages rendered flush against the viewport. */
 
 body:has(.mypet-page) {
   background-color: var(--bg-color);
@@ -50,12 +50,10 @@ body:has(.mypet-page) {
   overflow-y: auto;
 }
 
-/* Header */
+/* Header — only the My Pet specific part. `display`, `align-items`, `min-height`
+   and `margin-bottom` come from the shared dashboard `.top-header`. */
 .mypet-page .top-header {
-  display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
 }
 
 .mypet-page .header-title h1 {
@@ -79,6 +77,14 @@ body:has(.mypet-page) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Match the 38px icon-action-btn / badge-btn height so the header row is a
+   single control height (the mobile blocks already do this at 44px / 42px). */
+.mypet-page .header-right .btn {
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .mypet-page .search-bar {
@@ -344,6 +350,15 @@ transition: all .35s ease;
   margin-bottom: 2rem;
 }
 
+/* Loading / empty / no-match surface spanning the whole pets grid. */
+.mypet-page .pets-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 20px;
+}
+
 .mypet-page .pet-card {
   background: white;
   border-radius: 20px;
@@ -475,6 +490,7 @@ transition: all .35s ease;
 
 .mypet-page .card-actions {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -2027,6 +2043,25 @@ body:has(#sidebar-container) .bottom-grid {
         gap: 16px !important;
     }
 
+    /* Search + filter tabs no longer fit side by side once the grid narrows
+       (they need ~800px), so stack them and let the tabs wrap instead of
+       pushing Birds/Others off-screen. */
+    .mypet-page .filter-section {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+
+    .mypet-page .search-pets-input {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    .mypet-page .filter-tabs {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
     .mypet-page .pet-card {
         flex-direction: column !important;
         padding: 16px !important;
@@ -2085,8 +2120,11 @@ body:has(#sidebar-container) .bottom-grid {
         padding-bottom: 24px !important;
     }
 
+    /* The 16px side padding was a leftover from the Vanilla inline hamburger;
+       the real one is a separate fixed button, so it only shifted the header
+       content in from the rest of the page (28px left vs 20px right). */
     .mypet-page .top-header {
-        padding: 70px 16px 14px !important;
+        padding: 70px 0 14px !important;
         align-items: flex-start !important;
     }
 
@@ -2329,6 +2367,14 @@ body.dark-theme .mypet-page .add-pet-dashed-card:hover {
 
 body.dark-theme .mypet-page .paw-badge {
     background: rgba(255, 92, 138, 0.15) !important;
+}
+
+body.dark-theme .mypet-page .tip-card {
+    background: #2a2640 !important;
+}
+
+body.dark-theme .mypet-page .pets-state {
+    background: #211e30 !important;
 }
 
 /* UI polish pass — Vanilla's global dark pivot left these surfaces white;

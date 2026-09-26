@@ -245,6 +245,14 @@ body.dark-theme .petid-page .petid-preview {
     background: #2a2640 !important;
 }
 
+/* Header icon buttons (theme toggle / notifications) keep the mypet.css light
+   `background: white`, which reads as a white block in the dark header. */
+body.dark-theme .petid-page .icon-action-btn {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+    color: #b7b0c9 !important;
+}
+
 body.dark-theme .petid-page .petid-empty,
 body.dark-theme .petid-page .petid-loading {
     background: #211e30 !important;

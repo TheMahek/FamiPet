@@ -11,7 +11,12 @@ interface SuccessToastProps {
 
 export function SuccessToast({ show, title, message }: SuccessToastProps) {
   return (
-    <div id="successToast" className={`success-toast${show ? ' show' : ''}`} role="status">
+    <div
+      id="successToast"
+      className={`success-toast${show ? ' show' : ''}`}
+      role="status"
+      aria-hidden={!show}
+    >
       <Icon name="circle-check" />
       <div>
         <h4>{title}</h4>
