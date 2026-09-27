@@ -194,6 +194,10 @@ export function apiPut<T>(path: string, data?: unknown, opts?: RequestOptions): 
   return apiRequest<T>(path, Object.assign({ method: 'PUT', body: data }, opts))
 }
 
+export function apiPatch<T>(path: string, data?: unknown, opts?: RequestOptions): Promise<T> {
+  return apiRequest<T>(path, Object.assign({ method: 'PATCH', body: data }, opts))
+}
+
 export function apiDelete<T>(path: string, opts?: RequestOptions): Promise<T> {
   return apiRequest<T>(path, Object.assign({ method: 'DELETE' }, opts))
 }

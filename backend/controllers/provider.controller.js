@@ -15,7 +15,7 @@
 const mongoose = require("mongoose");
 const AiProvider = require("../models/AiProvider");
 const { buildSystemPrompt } = require("../config/ai");
-const { encryptSecret } = require("../utils/cipher");
+const { encryptSecret, ENCRYPTION_KEY_MISSING } = require("../utils/cipher");
 const { buildProviderRequest, getProviderNames } = require("../ai");
 
 // Field caps (Phase 7): provider configuration values are echoed to remote
@@ -81,6 +81,21 @@ function cfgError(message) {
   const error = new Error(message);
   error.validation = true;
   return error;
+}
+
+// A deployment without PETGPT_ENCRYPTION_KEY cannot store ANY provider key.
+// The write fails closed (nothing is persisted, no plaintext is produced), so
+// this is a server configuration fault, not a client mistake: answer 503 with a
+// stable code the UI can surface verbatim instead of the generic 500. Only the
+// variable name is disclosed - never a value, a ciphertext, or a key fragment.
+function encryptionNotConfigured(res) {
+  return res.status(503).json({
+    success: false,
+    code: ENCRYPTION_KEY_MISSING,
+    message:
+      "AI provider storage is not configured on this server (PETGPT_ENCRYPTION_KEY is missing). " +
+      "Nothing was saved. Please contact the administrator.",
+  });
 }
 
 function normalizeBaseUrl(raw) {
@@ -179,6 +194,9 @@ exports.createProvider = async (req, res) => {
     if (error && error.validation) {
       return res.status(400).json({ success: false, message: error.message });
     }
+    if (error && error.code === ENCRYPTION_KEY_MISSING) {
+      return encryptionNotConfigured(res);
+    }
     console.error("PetGPT: create provider failed:", error.message);
     res.status(500).json({ success: false, message: "Something went wrong." });
   }
@@ -238,6 +256,9 @@ exports.updateProvider = async (req, res) => {
   } catch (error) {
     if (error && error.validation) {
       return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error && error.code === ENCRYPTION_KEY_MISSING) {
+      return encryptionNotConfigured(res);
     }
     console.error("PetGPT: update provider failed:", error.message);
     res.status(500).json({ success: false, message: "Something went wrong." });
