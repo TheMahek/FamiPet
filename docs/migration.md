@@ -205,6 +205,7 @@ tree verified.
 | 27    | Functional regression          | [x]    | `93828fa`   |
 | 28    | Docker/Nginx integration       | [x]    | `44f69cc`   |
 | 29    | Removal of old Vanilla frontend | [ ]    | —            |
+| 30    | Push notifications (Web Push)   | [~]    | —            |
 
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
 `[-]` intentionally skipped · `[!]` blocked/problem.
@@ -261,6 +262,65 @@ landing/footer, auth, dashboard, my pet, pet ID).
 * **Verification:** `npm run lint` (only pre-existing set-state-in-effect warnings in
   AuthContext.tsx/VerifyEmailPage.tsx), `tsc -b && vite build` clean, headless
   overflow/whites audit clean at 390/768/1440 in light+dark.
+
+### Phase 30 — Push notifications (Web Push)
+
+`[~]` in progress: implemented and verified locally, **not yet committed or pushed**, so the
+phase table above deliberately does not claim `[x]`.
+
+* **One notification bell, one source of truth.** The bell and its panel were duplicated
+  across 11 pages, each with its own `getNotifications()` fetch, its own open/close state and
+  its own click-outside effect. They are replaced by a single app-level bell in `AppLayout`
+  fed by `NotificationProvider` (60s poll + refresh on tab focus). The Dashboard's
+  recent-activity feed still needs notifications, so it reads the same provider state
+  instead of fetching its own copy. The dead `NotificationPanel` in
+  `DashboardSections.tsx` is deleted rather than left behind unused.
+* **The Settings "Push Notifications" toggle used to do nothing.** It was a localStorage
+  preference with no backend behind it. It now drives a real Web Push subscription: enabling
+  requests permission from that explicit click, subscribes with the server's VAPID public
+  key and `POST`s the subscription; disabling unsubscribes and `DELETE`s it. The toggle
+  shows the real device state and reports every failure honestly — unsupported browser,
+  insecure context (`http://` on a LAN is not a secure context), blocked permission, or a
+  server with no VAPID keys — instead of pretending to be on.
+* **Backend.** `POST`/`DELETE /api/notifications/push-subscription` and
+  `GET /api/notifications/vapid-public-key`, all behind the existing `protect` middleware and
+  the existing rate limiter. `user` is always `req.user._id` — no endpoint reads a user id
+  from the body, so nobody can subscribe or unsubscribe someone else's device. The
+  browser-supplied endpoint must be `https` **and** on a known push-service host (FCM,
+  Mozilla, Windows, Apple), and both subscription keys must be base64url and length-bounded,
+  so this endpoint cannot be used to make the server hold attacker-chosen URLs.
+* **Fail closed, never fail the user.** With no VAPID keys configured the whole app works
+  exactly as before and push is simply off. `sendToUser()` never throws: a push outage, a
+  misconfigured key or a dead endpoint cannot fail the appointment booking or the adoption
+  approval that produced the notification. A 404/410 "gone" endpoint is pruned immediately;
+  any other failure only counts toward a ceiling of 5.
+* **The Notification document stays authoritative.** Push is delivery only, and the payload
+  is deliberately minimal — title, body, tag, in-app deep link, notification id. No pet
+  records, no health data, no owner details, no tokens: a push is rendered on a lock screen.
+  The deep link is forced to an in-app path, because an absolute client-supplied URL would
+  be an open redirect out of the app.
+* **Hand-written service worker, no framework.** `public/sw.js` is native `push`,
+  `notificationclick` and `pushsubscriptionchange` only — no Workbox, no
+  `vite-plugin-pwa`, no precache manifest, and no `fetch` handler, so it never intercepts app
+  traffic. The worker holds no auth token (the app uses a Bearer token in `localStorage`), so
+  it never calls the API: on rotation it re-subscribes with the VAPID key the page posted in,
+  then hands the fresh subscription to one open tab, which stores it with the user's token.
+  The token never crosses into the worker. With no tab open the dead subscription is dropped
+  rather than kept failing on the server.
+* **No dependency added beyond `web-push`.**
+* **Verification:** `node test/push-notifications.test.js` — 25 checks, all passing against a
+  real MongoDB (auth, endpoint/key validation, user scoping, cross-user DELETE isolation,
+  inbox authority, push-outage isolation, booking survival, 410 pruning, failure ceiling,
+  user-scoped delivery, deep-link safety, index existence, fail-closed config). Full backend
+  `npm test` exits 0 (139 checks). Backend `eslint` clean on every touched file. Frontend
+  `npm run lint` (only the two pre-existing `set-state-in-effect` warnings) and
+  `tsc -b && vite build` clean.
+* **Configuration:** `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` are required for push and
+  `VAPID_SUBJECT` should be set to a `mailto:` or `https:` contact; all three are documented
+  in `backend/.env.example` and reach the container through the existing `env_file:` (no
+  `docker-compose.yml` change needed). The private key is never logged, echoed in an error,
+  or returned by any endpoint.
+* **Not yet done:** browser QA of the real push path against a live push service.
 
 ---
 

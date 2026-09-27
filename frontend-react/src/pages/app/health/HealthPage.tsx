@@ -17,11 +17,12 @@
 // - "Book Appointment" routes to /app/appointments (Phase 12 stub).
 // - Record form shows inline errors instead of alert(); Vanilla only created
 //   records — edit is new.
+// - No notification bell here: the single app-level bell lives in AppLayout and
+//   reads the centralized NotificationProvider.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { deleteHealthRecord, getHealthRecords, type HealthRecord } from '../../../api/health'
-import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
 import { getMyPets } from '../../../api/pets'
 import { getUpcomingVaccinations, getVaccinations, type Vaccination } from '../../../api/vaccinations'
 import { Icon } from '../../../components/shared/Icon'
@@ -38,7 +39,6 @@ export function HealthPage() {
   const [pets, setPets] = useState<PetView[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [records, setRecords] = useState<HealthRecord[] | null>(null)
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
   const [vaccinations, setVaccinations] = useState<Vaccination[] | null>(null)
   const [upcoming, setUpcoming] = useState<Vaccination[] | null>(null)
   const [vaccineError, setVaccineError] = useState('')
@@ -47,9 +47,7 @@ export function HealthPage() {
   const [showAll, setShowAll] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<HealthRecord | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
 
-  const bellRef = useRef<HTMLButtonElement>(null)
   const recordsCardRef = useRef<HTMLDivElement>(null)
 
   // Vaccinations load independently so a /vaccinations failure shows an error
@@ -71,19 +69,17 @@ export function HealthPage() {
 
   const loadData = () => {
     setLoadFailed(false)
-    Promise.all([getMyPets(), getHealthRecords(), getNotifications()])
-      .then(([petsRes, recordsRes, notesRes]) => {
+    Promise.all([getMyPets(), getHealthRecords()])
+      .then(([petsRes, recordsRes]) => {
         const list = (petsRes.pets || []).map(toPetView)
         setPets(list)
         setRecords(recordsRes.records || [])
-        setNotifications(notesRes.notifications || [])
         const saved = localStorage.getItem(HEALTH_SELECTED_PET_KEY) || ''
         setSelectedPet(list.some((p) => p.id === saved) ? saved : list.length ? list[0].id : '')
       })
       .catch(() => {
         setPets([])
         setRecords([])
-        setNotifications([])
         setLoadFailed(true)
       })
     loadVaccinations()
@@ -149,8 +145,6 @@ export function HealthPage() {
     return showAll ? filtered : filtered.slice(0, 3)
   }, [petRecords, query, showAll])
 
-  const unread = (notifications || []).filter((n) => !n.isRead).length
-
   const onSelectPet = (id: string) => {
     setSelectedPet(id)
     localStorage.setItem(HEALTH_SELECTED_PET_KEY, id)
@@ -183,28 +177,6 @@ export function HealthPage() {
     setShowAll(true)
   }
 
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
-    try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
-    }
-  }
-
-  // click outside closes the notification panel
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
-
   if (loadFailed) {
     return (
       <div className="health-page">
@@ -235,49 +207,6 @@ export function HealthPage() {
           <div className="search-box">
             <Icon name="magnifying-glass" />
             <input type="text" placeholder="Search health records..." value={query} onChange={(e) => setQuery(e.target.value)} />
-          </div>
-
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : unread + ' unread'}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
 
           <button className="add-record-btn" type="button" onClick={openCreate} disabled={!currentPet}>

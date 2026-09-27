@@ -6,7 +6,8 @@
 // - "Healthy Pets" + "Upcoming Appointments" stat cards replaced with
 //   Vaccinated / Dogs / Cats (backend has no health or appointment field;
 //   Vanilla hardcoded "Good" and 0 appointments).
-// - Header bell shows real /notifications (Vanilla rendered fake items).
+// - No header bell here: the single app-level bell lives in AppLayout and reads
+//   the centralized NotificationProvider (Vanilla rendered fake items).
 // - The header sun button toggles the theme (Vanilla left it unwired here).
 // - Add/Edit form drops Health/Appointment/custom-species fields (not
 //   persistable); save errors render inline instead of alert().
@@ -14,7 +15,6 @@
 //   exactly like Vanilla.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getNotifications, type AppNotification } from '../../../api/notifications'
 import { deletePet, getMyPets } from '../../../api/pets'
 import { useTheme } from '../../../hooks/useTheme'
 import { Icon } from '../../../components/shared/Icon'
@@ -38,31 +38,6 @@ interface MenuState {
   y: number
 }
 
-function PetNotificationPanel({ open, notes, onClose }: { open: boolean; notes: AppNotification[] | null; onClose: () => void }) {
-  return (
-    <div className={`pet-notification-panel${open ? ' show' : ''}`} id="petNotificationPanel">
-      <div className="pet-notification-header">
-        <strong>Notifications</strong>
-        <button type="button" className="pet-notification-close" aria-label="Close notifications" onClick={onClose}>
-          &times;
-        </button>
-      </div>
-      {notes === null ? (
-        <div className="pet-notification-item">Loading notifications…</div>
-      ) : notes.length === 0 ? (
-        <div className="pet-notification-item">No notifications yet.</div>
-      ) : (
-        notes.slice(0, 6).map((n) => (
-          <div className="pet-notification-item" key={n._id}>
-            <span className="notification-dot" />
-            {n.message || n.title}
-          </div>
-        ))
-      )}
-    </div>
-  )
-}
-
 export function MyPetsPage() {
   const { toggle, theme } = useTheme()
   const [pets, setPets] = useState<PetView[] | null>(null)
@@ -74,13 +49,10 @@ export function MyPetsPage() {
   const [details, setDetails] = useState<PetView | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PetView | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
-  const [notes, setNotes] = useState<AppNotification[] | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const topSearchRef = useRef<HTMLInputElement>(null)
   const petSearchRef = useRef<HTMLInputElement>(null)
-  const bellRef = useRef<HTMLButtonElement>(null)
 
   const loadPets = () => {
     setLoadFailed(false)
@@ -94,33 +66,23 @@ export function MyPetsPage() {
       })
   }
 
-  const loadNotes = () => {
-    getNotifications()
-      .then((res) => setNotes(res.notifications || []))
-      .catch(() => setNotes([]))
-  }
-
   useEffect(() => {
     loadPets()
-    loadNotes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // click-outside closes both the action menu and the notification panel
+  // click-outside closes the pet action menu
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      const t = e.target as Node
-      if (bellRef.current?.contains(t)) return
       if ((e.target as HTMLElement).closest?.('.pet-action-menu')) return
       if (menu) setMenu(null)
-      setPanelOpen(false)
     }
-    if (menu || panelOpen) {
+    if (menu) {
       document.addEventListener('click', onDocClick)
       return () => document.removeEventListener('click', onDocClick)
     }
     return undefined
-  }, [menu, panelOpen])
+  }, [menu])
 
   const onSearch = (value: string, from: 'top' | 'pets') => {
     setQuery(value)
@@ -147,8 +109,6 @@ export function MyPetsPage() {
       cats: list.filter((p) => p.species === 'Cat').length,
     }
   }, [pets])
-
-  const unread = (notes || []).filter((n) => !n.isRead).length
 
   const openCreate = () => {
     setEditing(null)
@@ -200,17 +160,11 @@ export function MyPetsPage() {
           <button className="icon-action-btn" type="button" title="Toggle theme" onClick={toggle}>
             <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
           </button>
-          <button ref={bellRef} className="icon-action-btn badge-btn" type="button" title="Notifications" onClick={() => setPanelOpen((o) => !o)}>
-            <Icon name="bell" />
-            <span className="badge">{unread || '0'}</span>
-          </button>
           <button className="btn btn-pink" type="button" onClick={openCreate}>
             <Icon name="plus" /> Add New Pet <Icon name="paw" className="icon-small" />
           </button>
         </div>
       </header>
-
-      <PetNotificationPanel open={panelOpen} notes={notes} onClose={() => setPanelOpen(false)} />
 
       <section className="stats-grid">
         <div className="stat-card pink-card">

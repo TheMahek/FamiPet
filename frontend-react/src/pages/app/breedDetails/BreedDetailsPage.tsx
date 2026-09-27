@@ -1,11 +1,13 @@
 // Phase 19 Breed Details — React port of frontend/pages/breed-details.html +
 // frontend/js/breed-details.js. Fetches GET /breeds/:id and renders the hero,
 // stat tiles and info sections only for fields the real record has (AGENTS §5).
+//
+// The notification bell is NOT here: it is the single app-level bell in
+// AppLayout, fed by the centralized NotificationProvider.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getBreed, type Breed } from '../../../api/breeds'
-import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
 import { Icon } from '../../../components/shared/Icon'
 import { speciesLabel, breedImage } from '../breeds/breedsBase'
 
@@ -16,11 +18,6 @@ export function BreedDetailsPage() {
   const [problem, setProblem] = useState<'error' | 'not-found' | 'invalid' | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
-
-  const bellRef = useRef<HTMLButtonElement>(null)
-
   const load = () => {
     if (!id) {
       setProblem('invalid')
@@ -28,9 +25,8 @@ export function BreedDetailsPage() {
     }
     setBreed(null)
     setProblem(null)
-    Promise.all([getBreed(id), getNotifications()])
-      .then(([res, notesRes]) => {
-        setNotifications(notesRes.notifications || [])
+    getBreed(id)
+      .then((res) => {
         if (!res.breed) {
           setProblem('not-found')
           return
@@ -38,7 +34,6 @@ export function BreedDetailsPage() {
         setBreed(res.breed)
       })
       .catch((err: unknown) => {
-        setNotifications([])
         const status = err instanceof Error && 'status' in err ? (err as { status?: number }).status : undefined
         if (status === 404) {
           setProblem('not-found')
@@ -55,30 +50,6 @@ export function BreedDetailsPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [id])
-
-  // click outside closes the notification panel
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
-
-  const unread = (notifications || []).filter((n) => !n.isRead).length
-
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
-    try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
-    }
-  }
 
   const tag = (text: string, key: string) => (
     <span className="breed-tag" key={key}>
@@ -139,51 +110,6 @@ export function BreedDetailsPage() {
             </span>
           </h1>
           <p>Everything you need to know about this breed.</p>
-        </div>
-
-        <div className="header-actions">
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : unread + ' unread'}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 
