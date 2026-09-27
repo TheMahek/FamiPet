@@ -3,9 +3,8 @@
 // ---------------------------------------------------------
 // Covers the gaps found in the Phase 7 audit (petGPT.md §21):
 //   * cross-user access / no ID enumeration oracle (conversations,
-//     messages, jobs, provider configs, provider test)
+//     messages, jobs)
 //   * oversized /ai request bodies rejected (413) before parsing
-//   * provider-config field bounds (name/model/apiKey)
 //   * prompt-injection resistance: model/user text can never
 //     authorize an operation — unregistered tools and foreign-pet
 //     tool calls fail in backend code, regardless of what the model
@@ -30,15 +29,14 @@
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
 process.env.NODE_ENV = "test";
-process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/animal_planet_petgpt_security_test";
+process.env.MONGODB_URI = testDbUri("animal_planet_petgpt_security_test");
 process.env.JWT_SECRET = "petgpt-security-secret";
-process.env.PETGPT_ENCRYPTION_KEY = "petgpt-security-test-encryption-key";
-process.env.PETGPT_PROVIDER = "openai";
 process.env.PETGPT_OPENAI_BASE_URL = "http://127.0.0.1:4119/v1";
 process.env.PETGPT_OPENAI_API_KEY = "sk-security-test";
 process.env.PETGPT_OPENAI_MODEL = "test-model";
@@ -60,8 +58,9 @@ const Pet = require("../models/Pet");
 const Breed = require("../models/Breed");
 const Reminder = require("../models/Reminder");
 const MutationEffect = require("../models/MutationEffect");
-const AiProvider = require("../models/AiProvider");
+const MutationRequest = require("../models/MutationRequest");
 const { executeTool, listToolNames } = require("../ai/tools");
+const { isExplicitConfirmation } = require("../ai/confirmation");
 
 const logs = [];
 const origLog = console.log;
@@ -70,8 +69,17 @@ console.log = (...a) => { logs.push(a.map(String).join(" ")); origLog(...a); };
 let passed = 0;
 const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
 
-function buildAppRouter(jsonLimit) {
-  const express = require("express");
+// One turn of the real mutation protocol: the tool context is derived from
+// the PERSISTED USER MESSAGE, exactly as the durable worker builds it, so a
+// test cannot assert against a confirmation the backend would not accept.
+const mutationTurn = (conversation, text, extra = {}) =>
+  executeTool(extra.tool || "create_reminder", extra.args, extra.userId, {
+    jobId: extra.jobId,
+    conversation,
+    confirmed: isExplicitConfirmation(text),
+  });
+
+function buildAppRouter(jsonLimit) {  const express = require("express");
   const app = express();
   if (jsonLimit) {
     // Mirror server.js ordering: a tight /api/ai body limit runs BEFORE the
@@ -94,7 +102,6 @@ async function main() {
   await mongoose.connection.dropDatabase();
   await GenerationJob.init();
   await MutationEffect.init();
-  await AiProvider.init();
 
   const mockBase = "http://127.0.0.1:4119/v1";
   let mode = "plain";
@@ -222,14 +229,8 @@ async function main() {
     const convB = await Conversation.create({ owner: bob.user._id, title: "B" });
     const msgA = await Message.create({ conversation: convA._id, role: "user", content: "hello" });
     const job = await GenerationJob.create({ owner: alice.user._id, conversation: convA._id, userMessage: msgA._id });
-    const prov = await AiProvider.create({
-      owner: alice.user._id, provider: "openai", name: "Alice", baseUrl: mockBase,
-      model: "test-model", apiKeyEnc: "not-a-real-cipher:text:or", enabled: true, active: true,
-    });
-
     assert.strictEqual((await fetch(`${base}/conversations`, { method: "GET" })).status, 401, "no token -> 401 on conversations");
     assert.strictEqual((await fetch(`${base}/jobs/${job._id}`, { method: "GET" })).status, 401, "no token -> 401 on jobs");
-    assert.strictEqual((await fetch(`${base}/providers`, { method: "GET" })).status, 401, "no token -> 401 on providers");
 
     const bConv = await api("GET", `/conversations/${convA._id}`, bob.token);
     const bUnknown = await api("GET", `/conversations/000000000000000000000000`, bob.token);
@@ -247,28 +248,24 @@ async function main() {
     assert.strictEqual(bClear.status, 404, "bob cannot delete alice's conversation");
     assert.ok(await Conversation.findById(convA._id), "alice's conversation survives bob's delete attempt");
 
-    const bList = await api("GET", "/providers", bob.token);
-    assert.strictEqual(bList.status, 200, "bob can list his (empty) providers");
-    assert.strictEqual(bList.json.providers.length, 0, "bob's provider list never includes alice's");
-    assert.strictEqual((await api("GET", `/providers/${prov._id}`, bob.token)).status, 404, "bob cannot read alice's provider");
-    assert.strictEqual((await api("POST", `/providers/${prov._id}/test`, bob.token, {})).status, 404, "bob cannot test alice's provider");
-    assert.strictEqual((await api("PATCH", `/providers/${prov._id}`, bob.token, { name: "hijack" })).status, 404, "bob cannot patch alice's provider");
-    assert.strictEqual((await api("DELETE", `/providers/${prov._id}`, bob.token)).status, 404, "bob cannot delete alice's provider");
-    assert.ok(await AiProvider.findById(prov._id), "alice's provider survives bob's attempts");
+    // The user-owned provider API is gone: AI configuration is
+    // application-level, so the routes must not exist for anyone.
+    for (const method of ["GET", "POST", "PATCH", "DELETE"]) {
+      const body = method === "GET" || method === "DELETE" ? undefined : { name: "x" };
+      assert.strictEqual((await api(method, "/providers", bob.token, body)).status, 404,
+        `no user-owned provider route (${method} /providers)`);
+    }
 
     const bobAddOnAliceConv = await api("POST", `/conversations/${convA._id}/messages`, bob.token, { content: "hi from bob" });
     assert.strictEqual(bobAddOnAliceConv.status, 404, "bob cannot post into alice's conversation");
     assert.strictEqual(await Message.countDocuments({ conversation: convA._id }), 1, "no message persisted in alice's conversation by bob");
 
-    assert.ok(!JSON.stringify((await api("GET", "/providers", alice.token)).json).includes("not-a-real-cipher"), "provider responses never expose stored key material");
-    ok("security: cross-user conversation/job/provider access denied identically to unknown ids; responses stay secret-free");
+    ok("security: cross-user conversation/job access denied identically to unknown ids; responses stay secret-free");
 
     // ---- B. invalid API inputs (no worker needed) -----------------------
     assert.strictEqual((await api("GET", "/conversations/not-an-object-id", alice.token)).status, 400, "malformed conversation id -> 400");
     assert.strictEqual((await api("POST", "/conversations/not-an-object-id/messages", alice.token, { content: "x" })).status, 400, "malformed conversation in messages -> 400");
     assert.strictEqual((await api("GET", "/jobs/not-an-object-id", alice.token)).status, 400, "malformed job id -> 400");
-    assert.strictEqual((await api("PATCH", `/providers/not-an-object-id`, alice.token, { name: "x" })).status, 400, "malformed provider id -> 400");
-    assert.strictEqual((await api("POST", `/providers/not-an-object-id/test`, alice.token, {})).status, 400, "malformed provider id on test -> 400");
     assert.strictEqual((await api("GET", "/nope", alice.token)).status, 404, "unknown ai route -> 404");
 
     const emptyContent = await api("POST", `/conversations/${convA._id}/messages`, alice.token, { content: "   " });
@@ -300,41 +297,54 @@ async function main() {
     await new Promise((resolve) => limited.close(resolve));
     ok("security: /api/ai request bodies bounded before parsing (413 on oversize)");
 
-    // ---- D. provider-config field bounds --------------------------------
-    assert.strictEqual((await api("POST", "/providers", alice.token, { provider: "openai", name: "n".repeat(101), baseUrl: mockBase, model: "m", apiKey: "k" })).status, 400, "name over 100 chars -> 400");
-    assert.strictEqual((await api("POST", "/providers", alice.token, { provider: "openai", baseUrl: mockBase, model: "m".repeat(201), apiKey: "k" })).status, 400, "model over 200 chars -> 400");
-    assert.strictEqual((await api("POST", "/providers", alice.token, { provider: "openai", baseUrl: mockBase, model: "m", apiKey: "k".repeat(501) })).status, 400, "apiKey over 500 chars -> 400");
-    assert.strictEqual((await api("POST", "/providers", alice.token, { provider: "openai", baseUrl: "ftp://nope", model: "m", apiKey: "k" })).status, 400, "non-http baseUrl -> 400");
-    assert.strictEqual((await api("POST", "/providers", alice.token, { provider: "claude", model: "m", apiKey: "k" })).status, 400, "unregistered provider type -> 400");
-    ok("security: provider-config fields bounded and validated (400 over-length / bad type / bad URL)");
-
     // ---- E. malformed model-generated tool arguments + mutation safety ----
+    // A mutating tool is only executed on a turn that explicitly confirms,
+    // so each case is driven through a preview turn and a confirming turn.
+    const toolConv = await Conversation.create({ owner: alice.user._id, title: "tool args" });
     const mArgs = { petId: alicePet._id.toString(), title: "Walk", type: "exercise", date: "2026-10-31", time: "08:30" };
     const jid = new mongoose.Types.ObjectId();
-    const weirdDate = await executeTool("create_reminder", { ...mArgs, date: "01/31/2026" }, alice.user._id, { jobId: jid });
+    const rejected = async (args) => {
+      await mutationTurn(toolConv._id, "schedule a walk for rex", { args, userId: alice.user._id, jobId: jid });
+      return mutationTurn(toolConv._id, "yes", { args, userId: alice.user._id, jobId: jid });
+    };
+    const weirdDate = await rejected({ ...mArgs, date: "01/31/2026" });
     assert.strictEqual(weirdDate.ok, false, "ambiguous non-YYYY-MM-DD date rejected");
-    assert.strictEqual((await executeTool("create_reminder", { ...mArgs, date: "2026-02-30" }, alice.user._id, { jobId: jid })).ok, false, "impossible calendar date rejected");
-    assert.strictEqual((await executeTool("create_reminder", { ...mArgs, time: "25:99" }, alice.user._id, { jobId: jid })).ok, false, "malformed HH:MM time rejected");
-    assert.strictEqual((await executeTool("create_reminder", { ...mArgs, title: "t".repeat(101) }, alice.user._id, { jobId: jid })).ok, false, "over-long title rejected");
-    assert.strictEqual((await executeTool("create_reminder", { ...mArgs, description: "d".repeat(501) }, alice.user._id, { jobId: jid })).ok, false, "over-long description rejected");
+    assert.strictEqual((await rejected({ ...mArgs, date: "2026-02-30" })).ok, false, "impossible calendar date rejected");
+    assert.strictEqual((await rejected({ ...mArgs, time: "25:99" })).ok, false, "malformed HH:MM time rejected");
+    assert.strictEqual((await rejected({ ...mArgs, title: "t".repeat(101) })).ok, false, "over-long title rejected");
+    assert.strictEqual((await rejected({ ...mArgs, description: "d".repeat(501) })).ok, false, "over-long description rejected");
 
-    // Retried same-job mutation replays its recorded result instead of
-    // executing twice (registry ledger; multi-worker concurrency race is a
-    // documented limitation in petGPT.md §21, not a fix target here).
+    // An unconfirmed request is refused outright, whatever the model claims.
+    const unconfirmed = await mutationTurn(toolConv._id, "schedule a walk for rex", {
+      args: mArgs, userId: alice.user._id, jobId: jid,
+    });
+    assert.strictEqual(unconfirmed.confirmationRequired, true, "an unconfirmed mutation request is not executed");
+    assert.strictEqual(await Reminder.countDocuments({ user: alice.user._id, title: "Walk" }), 0,
+      "no reminder written for an unconfirmed request");
+
+    // Confirmed: executes, and a retried same-job call replays its recorded
+    // result instead of executing twice (registry ledger; multi-worker
+    // concurrency race is a documented limitation in petGPT.md §21, not a
+    // fix target here).
     const before = await Reminder.countDocuments({ user: alice.user._id });
     const cjid = new mongoose.Types.ObjectId();
-    const firstCall = await executeTool("create_reminder", mArgs, alice.user._id, { jobId: cjid });
+    const firstCall = await mutationTurn(toolConv._id, "yes", { args: mArgs, userId: alice.user._id, jobId: cjid });
     assert.strictEqual(firstCall.ok, true, "first execution succeeds");
-    const replay = await executeTool("create_reminder", mArgs, alice.user._id, { jobId: cjid });
+    const replay = await mutationTurn(toolConv._id, "yes", { args: mArgs, userId: alice.user._id, jobId: cjid });
     assert.strictEqual(replay.ok, true, "retried same-job+args succeeds");
     assert.strictEqual(replay.replayed, true, "retried call replays the recorded result");
     assert.strictEqual(await Reminder.countDocuments({ user: alice.user._id }), before + 1, "retried job created exactly ONE reminder total");
     assert.strictEqual(await MutationEffect.countDocuments({ owner: alice.user._id, job: cjid }), 1, "exactly ONE ledger row");
 
-    const diff = await executeTool("create_reminder", mArgs, alice.user._id, { jobId: new mongoose.Types.ObjectId() });
-    assert.strictEqual(diff.ok, true, "distinct job = legitimate second action");
-    assert.strictEqual(diff.replayed, undefined, "distinct job is not a replay");
-    ok("mutations: strict tool-arg validation; retried same-job replays its recorded result (ledger)");
+    // A separately CONFIRMED request in a new conversation is a legitimate
+    // second action; the same request repeated in one conversation is not.
+    const toolConv2 = await Conversation.create({ owner: alice.user._id, title: "tool args 2" });
+    await mutationTurn(toolConv2._id, "schedule a walk for rex", { args: mArgs, userId: alice.user._id });
+    const diff = await mutationTurn(toolConv2._id, "yes", { args: mArgs, userId: alice.user._id });
+    assert.strictEqual(diff.ok, true, "a separately confirmed request runs");
+    assert.strictEqual(diff.replayed, undefined, "a separately confirmed request is not a replay");
+    assert.strictEqual(await Reminder.countDocuments({ user: alice.user._id }), before + 2, "distinct confirmed request = second reminder");
+    ok("mutations: strict tool-arg validation; unconfirmed refused; retried same-job replays its recorded result (ledger)");
 
     // ---- F. worker + provider failure isolation + injection resistance ---
     const { startWorker, stopWorker, claimNext, reapStale } = require("../jobs/generation.worker");
@@ -464,30 +474,39 @@ async function main() {
     const stMsg = await Message.create({ conversation: stConv._id, role: "user", content: "make a reminder" });
     const stJob = await GenerationJob.create({ owner: st.user._id, conversation: stConv._id, userMessage: stMsg._id });
     const stJobId = new mongoose.Types.ObjectId(String(stJob._id));
-    await executeTool("create_reminder", { petId: stPet._id.toString(), title: "Ghost feed", type: "feeding", date: "2026-12-05", time: "07:00" }, st.user._id, { jobId: stJobId });
+    const stArgs = { petId: stPet._id.toString(), title: "Ghost feed", type: "feeding", date: "2026-12-05", time: "07:00" };
+    // Preview, then confirm, so both the pending confirmation and the ledger
+    // row exist for the conversation that is about to be cleared.
+    const stAsk = await mutationTurn(stConv._id, "make a reminder", { args: stArgs, userId: st.user._id });
+    assert.strictEqual(stAsk.confirmationRequired, true, "the reminder is previewed, not created");
+    const stYes = await mutationTurn(stConv._id, "yes", { args: stArgs, userId: st.user._id, jobId: stJobId });
+    assert.strictEqual(stYes.ok, true, "the confirmed reminder is created");
     assert.strictEqual(await MutationEffect.countDocuments({ owner: st.user._id, job: stJobId }), 1, "ledger row exists before clear");
+    assert.strictEqual(await MutationRequest.countDocuments({ owner: st.user._id, conversation: stConv._id }), 1,
+      "a confirmation receipt exists before clear");
     const cleared = await api("DELETE", `/conversations/${stConv._id}`, st.token);
     assert.strictEqual(cleared.status, 200, "clear succeeds");
     assert.strictEqual(await MutationEffect.countDocuments({ owner: st.user._id, job: stJobId }), 0, "clear purges orphaned ledger row");
+    assert.strictEqual(await MutationRequest.countDocuments({ owner: st.user._id, conversation: stConv._id }), 0,
+      "clear purges the confirmation receipt, so a later 'yes' cannot approve it");
     assert.strictEqual(await Conversation.countDocuments({ _id: stConv._id }), 0, "conversation gone");
     assert.strictEqual(await GenerationJob.countDocuments({ conversation: stConv._id }), 0, "jobs gone");
-    ok("data-integrity: clearConversation removes conversation, messages, jobs and their mutation-ledger rows");
+    ok("data-integrity: clearConversation removes conversation, messages, jobs, their mutation-ledger rows and pending confirmations");
 
     // ---- J. secret-leakage scan -----------------------------------------
     const jobJson = JSON.stringify(await GenerationJob.find().lean());
     const msgJson = JSON.stringify(await Message.find().lean());
-    const provJson = JSON.stringify(await AiProvider.find().lean());
     const remJson = JSON.stringify(await Reminder.find().lean());
     const effJson = JSON.stringify(await MutationEffect.find().lean());
-    const callBundle = [jobJson, msgJson, provJson, remJson, effJson].join("\n");
+    const reqJson = JSON.stringify(await MutationRequest.find().lean());
+    const callBundle = [jobJson, msgJson, remJson, effJson, reqJson].join("\n");
     const responseBundle = JSON.stringify([
       ...seq.map((s) => s.json),
       bConv.json, bJob.json,
-      (await api("GET", "/providers", alice.token)).json,
       FT.json, GT.json, HT.json,
       (await api("GET", "/conversations", alice.token)).json,
     ]);
-    for (const secret of ["sk-security-test", "security-secret", "petgpt-security-test-encryption-key", "Bearer "]) {
+    for (const secret of ["sk-security-test", "security-secret", "Bearer "]) {
       assert.ok(!callBundle.includes(secret), `persisted docs never contain ${secret}`);
       assert.ok(!responseBundle.includes(secret), `API responses never contain ${secret}`);
       assert.ok(!JSON.stringify(requests).includes(secret), `provider requests never contain ${secret}`);

@@ -1,9 +1,10 @@
 // =========================================================
 // Pet direct-ID authorization — assert-based E2E checks.
 // Run: node test/pet-authz.test.js
-// Requires a reachable MongoDB (MONGODB_URI or the default
-// localhost:27017). Uses a dedicated test database, cleaned
-// up afterwards.
+// Requires a reachable MongoDB. MONGODB_URI, if set, supplies
+// only the host:port; the database name is forced to a dedicated
+// `*_test` database by test/db.js, which refuses any other name.
+// That database is dropped before and after the run.
 //
 // Covers GET /api/pets/:id ownership isolation (owner, other
 // user, admin, anonymous), view-count side effects, and the
@@ -11,11 +12,12 @@
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
 const DB_NAME = "animal_planet_pet_authz_test";
-const URI = process.env.MONGODB_URI || `mongodb://localhost:27017/${DB_NAME}`;
+const URI = testDbUri(DB_NAME);
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "pet-authz-test-secret";
 

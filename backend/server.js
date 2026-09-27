@@ -60,7 +60,7 @@ app.use(cors({
   },
   credentials: true
 }));
-// PetGPT /api/ai bodies are small (message/title/idempotencyKey/provider config).
+// PetGPT /api/ai bodies are small (message/title/idempotencyKey).
 // Bound them tightly BEFORE the app-wide parser so an oversized AI body is
 // rejected at 413 and never parsed into memory. body-parser skips the later
 // app-wide parse once req._body is set. (Phase 7 hardening.)

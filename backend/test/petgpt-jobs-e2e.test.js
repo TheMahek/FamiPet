@@ -1,13 +1,14 @@
 // =========================================================
-// Phase 4 — durable generation against the real EduTech
-// OmniRoute container.
-// Run: node test/petgpt-jobs-omniroute.test.js
-// Requires: OmniRoute reachable at PETGPT_OPENAI_BASE_URL
-// (default http://localhost:20128/v1) and PETGPT_OPENAI_API_KEY
-// set. Without the key the check SKIPS (exit 0).
+// Durable generation against the real live endpoint the deployment
+// exposes.
+// Run: PETGPT_RUN_LIVE_E2E=1 node test/petgpt-jobs-e2e.test.js
+// Requires: a live OpenAI-compatible endpoint reachable at
+// PETGPT_OPENAI_BASE_URL (default http://localhost:20128/v1). test/db.js
+// scrubs the real key unless PETGPT_RUN_LIVE_E2E=1; without that opt-in
+// the suite SKIPS (exit 0).
 //
 // Verifies, end to end: POST .../messages returns 202 before the
-// provider finishes, the job is observed in "processing", the
+// endpoint answers, the job is observed in "processing", the
 // real assistant reply is persisted at completion, and a follow-up
 // reuses the persisted history.
 //
@@ -15,18 +16,19 @@
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
-const DB_NAME = "animal_planet_petgpt_jobs_omniroute_test";
-const URI = process.env.MONGODB_URI || `mongodb://localhost:27017/${DB_NAME}`;
+const DB_NAME = "animal_planet_petgpt_jobs_e2e_test";
+const URI = testDbUri(DB_NAME);
 
 const BASE_URL = process.env.PETGPT_OPENAI_BASE_URL || "http://localhost:20128/v1";
 const API_KEY = process.env.PETGPT_OPENAI_API_KEY;
 const MODEL = process.env.PETGPT_OPENAI_MODEL || "auto/best-fast";
 
-if (!API_KEY) {
-  console.log(`SKIPPED: PETGPT_OPENAI_API_KEY not set (allowed to run against OmniRoute container at ${BASE_URL}).`);
+if (process.env.PETGPT_RUN_LIVE_E2E !== "1") {
+  console.log(`SKIPPED: PETGPT_RUN_LIVE_E2E=1 not set (would call the live endpoint at ${BASE_URL}).`);
   process.exit(0);
 }
 
@@ -35,21 +37,20 @@ if (!API_KEY) {
     headers: { Authorization: `Bearer ${API_KEY}` },
   }).then(() => true).catch(() => false);
   if (!probe) {
-    console.log(`SKIPPED: OmniRoute container not reachable at ${BASE_URL}.`);
+    console.log(`SKIPPED: live endpoint not reachable at ${BASE_URL}.`);
     process.exit(0);
   }
 
   // Env MUST be set before config/ai.js is required (AI_CONFIG frozen).
-  process.env.PETGPT_PROVIDER = "openai";
   process.env.PETGPT_OPENAI_BASE_URL = BASE_URL;
   process.env.PETGPT_OPENAI_API_KEY = API_KEY;
   process.env.PETGPT_OPENAI_MODEL = MODEL;
-  process.env.JWT_SECRET = process.env.JWT_SECRET || "petgpt-jobs-omniroute-test-secret";
+  process.env.JWT_SECRET = process.env.JWT_SECRET || "petgpt-jobs-e2e-test-secret";
   process.env.PETGPT_WORKER_POLL_MS = process.env.PETGPT_WORKER_POLL_MS || "300";
 
   const { AI_CONFIG } = require("../config/ai");
-  assert.strictEqual(AI_CONFIG.provider, "openai");
-  assert.strictEqual(AI_CONFIG.openai.baseUrl, BASE_URL.replace(/\/+$/, ""), "OmniRoute base URL in play");
+  assert.ok(!("provider" in AI_CONFIG), "no provider selector: configuration is application-level");
+  assert.strictEqual(AI_CONFIG.openai.baseUrl, BASE_URL.replace(/\/+$/, ""), "live endpoint base URL in play");
 
   const GenerationJob = require("../models/GenerationJob");
   const User = require("../models/User");
@@ -76,7 +77,7 @@ if (!API_KEY) {
   console.log = (...a) => { logLines.push(a.join(" ")); origLog(...a); };
   console.error = (...a) => { logLines.push(a.join(" ")); origErr(...a); };
 
-  const user = await User.create({ name: "Phase4 Omni", email: "phase4-jobs-omniroute@test.dev", password: "testpass123" });
+  const user = await User.create({ name: "Phase4 Live", email: "phase4-jobs-e2e@test.dev", password: "testpass123" });
   const token = jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
   async function api(method, path, body) {
@@ -111,7 +112,7 @@ if (!API_KEY) {
     // 1) POST returns 202 before generation finishes; job queued.
     const q1 = "Give me a short tip about feeding an adult dog.";
     const a = await api("POST", `/conversations/${convId}/messages`, { content: q1 });
-    assert.strictEqual(a.status, 202, "real OmniRoute generation -> 202 Accepted");
+    assert.strictEqual(a.status, 202, "real generation -> 202 Accepted");
     const jobId = a.data.job && a.data.job.id;
     assert.ok(jobId, "202 response carries the job");
     assert.ok(!a.data.assistantMessage, "202 carries no assistant message yet");
@@ -123,7 +124,7 @@ if (!API_KEY) {
     const T = await awaitJobTerminal(jobId);
     assert.ok(T.observed.includes("processing"), `job observed processing (saw ${T.observed})`);
     assert.strictEqual(T.job.status, "completed", "real generation completes");
-    assert.strictEqual(T.job.provider, "env", "job labels the system env provider (no stored config)");
+    assert.strictEqual(T.job.provider, "openai-compatible", "job labels the OpenAI-compatible contract (no stored per-user config)");
 
     // 3) Completion is persisted: assistant reply readable independently.
     assert.ok(T.assistantMessage && typeof T.assistantMessage.content === "string" && T.assistantMessage.content.trim().length > 0,
@@ -150,7 +151,7 @@ if (!API_KEY) {
     assert.strictEqual(await GenerationJob.countDocuments({ status: { $in: ["queued", "processing"] } }), 0,
       "no jobs left dangling after the suite");
 
-    origLog(`\n✅ petgpt-jobs-omniroute.test.js — looked fine (${T.observed.join(" -> ")}; reply ${T.assistantMessage.content.length} chars)`);
+    origLog(`\n✅ petgpt-jobs-e2e.test.js — looked fine (${T.observed.join(" -> ")}; reply ${T.assistantMessage.content.length} chars)`);
   } finally {
     stopWorker();
     console.log = origLog;

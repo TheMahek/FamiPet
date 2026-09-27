@@ -14,6 +14,7 @@
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -21,9 +22,8 @@ const mongoose = require("mongoose");
 const WORKER_POLL_MS = 60;
 
 process.env.NODE_ENV = "test";
-process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/animal_planet_petgpt_quota_reliability_test";
+process.env.MONGODB_URI = testDbUri("animal_planet_petgpt_quota_reliability_test");
 process.env.JWT_SECRET = "petgpt-quota-reliability-secret";
-process.env.PETGPT_PROVIDER = "openai";
 process.env.PETGPT_OPENAI_BASE_URL = "http://127.0.0.1:4116/v1";
 process.env.PETGPT_OPENAI_API_KEY = "sk-quota-reliability";
 process.env.PETGPT_OPENAI_MODEL = "test-model";
@@ -122,6 +122,12 @@ async function main() {
               },
             }],
           });
+        }
+        // The fixture must not claim a write that the backend refused: the
+        // gate returns a confirmation-required result, and the model then
+        // asks the user instead of reporting success.
+        if (String(last.content).includes('"confirmationRequired":true')) {
+          return respond(res, { role: "assistant", content: "Shall I create that reminder for Max?" });
         }
         respond(res, { role: "assistant", content: "Your reminder was created." });
       });
@@ -227,41 +233,62 @@ async function main() {
     ok("quota: legacy /ask bypasses the durable-generation quota (stateless by design)");
 
     // ---- C. mutation idempotency under stale-reenqueue -------------------
-    // A mutation job executes its full provider flow on EVERY re-run, but
-    // the MutationEffect ledger guarantees the Reminder is created once.
-    // (Uses dave: alice already consumed her 3-job quota in section A.)
-    const maxPet = await Pet.create({ owner: dave.user._id, breed: breed._id, name: "Max", species: "dog", gender: "male", age: 5 });
+    // Driven through the REAL two-turn protocol over HTTP: a requesting
+    // turn that must NOT write, then an explicit confirming turn that does,
+    // then crash-retries of that confirming job. A retried job re-runs its
+    // whole provider flow, and the reminder must still be applied exactly
+    // once. (Uses Eve: alice spent her 3-job quota in section A.)
+    const eve = await makeUser("Eve");
+    const convEve = await makeConversation(eve.token, "Eve Chat");
+    const maxPet = await Pet.create({ owner: eve.user._id, breed: breed._id, name: "Max", species: "dog", gender: "male", age: 5 });
     mode = "mutate";
     mutatePetId = maxPet._id.toString();
-    const mPost = await api("POST", `/conversations/${convDave}/messages`, dave.token, {
+    const mPost = await api("POST", `/conversations/${convEve}/messages`, eve.token, {
       content: "Create a reminder for Max please.",
     });
     assert.strictEqual(mPost.status, 202, "mutation request accepted");
     const jobId = mPost.json.job.id;
 
-    const L1 = await awaitJobTerminal(dave.token, jobId);
-    assert.strictEqual(L1.job.status, "completed", "first run completes");
-    assert.strictEqual(await Reminder.countDocuments({ user: dave.user._id }), 1, "mutation applied once on first run");
-    assert.strictEqual(await MutationEffect.countDocuments({ owner: dave.user._id }), 1, "exactly one ledger row after first run");
+    // Turn 1: the request itself. The backend withholds the write.
+    const L1 = await awaitJobTerminal(eve.token, jobId);
+    assert.strictEqual(L1.job.status, "completed", "requesting turn completes");
+    assert.strictEqual(await Reminder.countDocuments({ user: eve.user._id }), 0,
+      "REQUESTING TURN MUST NOT MUTATE: nothing was created");
+    assert.strictEqual(await MutationEffect.countDocuments({ owner: eve.user._id }), 0, "no ledger row for a withheld mutation");
+    const askMeta = L1.assistantMessage.toolCalls;
+    assert.ok(askMeta && askMeta.length === 1 && askMeta[0].name === "create_reminder", "the requesting turn records the tool call");
+    assert.strictEqual(askMeta[0].confirmationRequired, true, "the recorded trace shows the call was withheld pending confirmation");
+    assert.ok(!/created/i.test(L1.assistantMessage.content), `the withheld turn must not claim a write: ${L1.assistantMessage.content}`);
+    ok("reliability: a mutation request over HTTP is withheld server-side and asks for confirmation");
 
-    const metaBefore = L1.assistantMessage.toolCalls;
+    // Turn 2: the user explicitly confirms. The mutation runs.
+    const cPost = await api("POST", `/conversations/${convEve}/messages`, eve.token, { content: "yes" });
+    assert.strictEqual(cPost.status, 202, "confirming turn accepted");
+    const confirmJobId = cPost.json.job.id;
+    const L2 = await awaitJobTerminal(eve.token, confirmJobId);
+    assert.strictEqual(L2.job.status, "completed", "confirming turn completes");
+    assert.strictEqual(await Reminder.countDocuments({ user: eve.user._id }), 1, "confirmation applied the mutation exactly once");
+    assert.strictEqual(await MutationEffect.countDocuments({ owner: eve.user._id }), 1, "exactly one ledger row after first run");
+
+    const metaBefore = L2.assistantMessage.toolCalls;
     assert.ok(metaBefore && metaBefore.length === 1 && metaBefore[0].name === "create_reminder" && metaBefore[0].ok === true, "assistant message records the mutation tool call");
 
-    // Simulate TWO crash-retries of the SAME durable job (the stale-reenqueue
-    // path). Each re-run re-executes the provider flow against the mock.
-    await simulateReenqueue(jobId);
-    await awaitJobTerminal(dave.token, jobId);
-    await simulateReenqueue(jobId);
-    const L3 = await awaitJobTerminal(dave.token, jobId);
+    // Simulate TWO crash-retries of the SAME confirming job (the
+    // stale-reenqueue path). Each re-run re-executes the provider flow
+    // against the mock, so the same mutation is requested again.
+    await simulateReenqueue(confirmJobId);
+    await awaitJobTerminal(eve.token, confirmJobId);
+    await simulateReenqueue(confirmJobId);
+    const L3 = await awaitJobTerminal(eve.token, confirmJobId);
     assert.strictEqual(L3.job.status, "completed", "retried job completes");
 
     const demands = requests.filter((r) => r.tools);
     assert.ok(demands.length >= 6, `job re-ran its provider flow on retries (provider tool requests ${demands.length})`);
-    assert.strictEqual(await Reminder.countDocuments({ user: dave.user._id }), 1, "reminder created EXACTLY once despite re-executions");
-    assert.strictEqual(await MutationEffect.countDocuments({ owner: dave.user._id }), 1, "exactly one ledger row despite re-executions");
-    const mutJob = await GenerationJob.findById(jobId).lean();
+    assert.strictEqual(await Reminder.countDocuments({ user: eve.user._id }), 1, "reminder created EXACTLY once despite re-executions");
+    assert.strictEqual(await MutationEffect.countDocuments({ owner: eve.user._id }), 1, "exactly one ledger row despite re-executions");
+    const mutJob = await GenerationJob.findById(confirmJobId).lean();
     assert.ok(mutJob.attemptCount >= 2, `job was actually retried (attemptCount ${mutJob.attemptCount})`);
-    ok("reliability: stale-reenqueued mutation job re-runs the provider flow but applies the mutation exactly once");
+    ok("reliability: a confirmed mutation survives stale-reenqueued re-executions applied exactly once");
 
     // ---- D. graceful stopWorker awaits the in-flight generation ----------
     mode = "plain";
