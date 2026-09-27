@@ -8,6 +8,56 @@ Everything below is based on the actual code at the time it was written. Nothing
 
 ---
 
+## 0. FINAL ARCHITECTURE (current — supersedes the phase history below)
+
+**Application-level, OpenAI-compatible only.** FamiPet depends on exactly one
+generic contract and nothing else.
+
+**The adapter.** `backend/ai/openai.js` is the single AI adapter: `POST
+{baseUrl}/chat/completions` with `Authorization: Bearer {apiKey}`. No vendor
+SDK, no vendor host, no vendor name anywhere in `backend/ai/`. Whatever sits
+behind the base URL (a hosted provider, a gateway, a proxy, a self-hosted
+server) is the deployment's business. FamiPet works with any of them by
+changing environment variables only.
+
+**Configuration — application-level, no user-owned providers.** Three variables
+in `backend/.env`, snapshotted at boot by `backend/config/ai.js` into
+`AI_CONFIG.openai`:
+
+| Variable | Meaning |
+|---|---|
+| `PETGPT_OPENAI_BASE_URL` | chat-completions ROOT (no trailing slash; the adapter appends `/chat/completions`) |
+| `PETGPT_OPENAI_API_KEY` | bearer credential; never logged, never in an error, never in an API response |
+| `PETGPT_OPENAI_MODEL` | model name sent in the request body |
+
+Unset/incomplete configuration fails closed: `AiProviderError("config")` naming
+the missing variable, no HTTP request sent, and the generation's durable job
+ends `failed` with the generic `provider` code. The key is read in the adapter
+and nowhere else.
+
+**Removed.** Gemini (`backend/ai/gemini.js`, `GEMINI_API_KEY`, `PETGPT_MODEL`,
+the `@google/generative-ai` package, the Gemini tool-dialect translation and its
+`thoughtSignature` side-channel); the multi-provider registry
+(`register`/`getProvider`/`getProviderNames`/`getActiveProvider`), the capability
+API (`AI_CAPABILITIES`/`supportsToolCalling`/`canUseTools`) and the
+`AI_CONFIG.provider` selector; per-user provider CRUD
+(`backend/models/AiProvider.js`, `backend/controllers/provider.controller.js`,
+`backend/routes/provider.routes.js`, `/api/ai/providers`), the Settings → AI
+Provider UI, and `backend/utils/cipher.js` + `PETGPT_ENCRYPTION_KEY` (per-user
+key encryption had no other consumer).
+
+**Kept unchanged.** The generic bounded tool-calling loop
+(`backend/ai/tool-calling.js`), every registered tool and the
+confirm-before-mutation policy, the durable `GenerationJob` worker, the
+per-user quota, ownership enforcement, and all `Conversation`/`Message`/`Pet`
+data. Switching endpoints requires no code change.
+
+Sections §1 onward are the original design record. Where they describe
+multi-provider selection, user-owned provider configuration, or the Gemini
+adapter, that functionality has since been removed — read §0 for the truth.
+
+---
+
 ## Product Rules (non-negotiable)
 
 PetGPT's behavior is governed by these rules. They are encoded in the backend system prompt (`buildSystemPrompt()` in `backend/config/ai.js`) and enforced where possible by backend logic. The provider/model may not override them.
@@ -50,7 +100,7 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 - Entry: `backend/server.js` mounts helmet (with `crossOriginResourcePolicy: cross-origin` for image embedding), compression, CORS (dev-origin allowlist incl. LAN private ranges), `express.json({limit:'50mb'})`, morgan, static `/uploads`, a health route (`GET /api/status`), all route modules under `/api/...` (incl. `/api/ai`), an inline error handler, and a 404 handler.
 - `backend/middleware/errorHandler.js` exists but is **not wired into `server.js`** (dead code; `server.js` has its own inline handler).
 - Data: `mongodb://localhost:27017/animal_planet` by default. No `.env` present locally (only tracked `backend/.env.example`; `backend/.gitignore` ignores `.env`, `node_modules/`, `uploads/`).
-- PetGPT is a controller pair (`ai.controller.js` + `conversation.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), a provider layer (`backend/ai/`) with a Google/Gemini adapter and an OpenAI-compatible adapter, persistent `Conversation`/`Message` models (Phase 2), a durable `GenerationJob` + in-process worker (Phase 4), and (Phase 5) a pet-aware context builder + a registered/schema-validated/ownership-scoped read-tool layer with a bounded calling loop. No SSE/streaming yet.
+- PetGPT is a controller pair (`ai.controller.js` + `conversation.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), a single generic OpenAI-compatible adapter (`backend/ai/openai.js` — see §0), persistent `Conversation`/`Message` models (Phase 2), a durable `GenerationJob` + in-process worker (Phase 4), and (Phase 5) a pet-aware context builder + a registered/schema-validated/ownership-scoped read-tool layer with a bounded calling loop. No SSE/streaming yet.
 
 ## 2. Complete Request/Response Flow
 
@@ -61,10 +111,9 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
    - longer than `AI_CONFIG.maxQuestionLength` (default 2000) → `400 "Question is too long. Maximum length is N characters."`
    - clearly unrelated topic (scope gate in `config/ai.js`) → `200 {success:true, question, answer: <scope response>}` and **no** provider call.
 3. Pet context: `Pet.find({ owner: req.user._id }).select("name species breed").populate("breed","name").limit(5).lean()` inside a try/catch that silently sets `petContext = []` on failure.
-4. `generatePetGPTResponse(question, petContext)` (`backend/ai/index.js`) resolves the active provider (default `google`; `openai` selects an OpenAI-compatible endpoint) and calls `provider.generate({ system, question, petContext })`:
-   - Google adapter (`backend/ai/gemini.js`): raw `fetch` to the v1beta `generateContent` endpoint with the key in the query string; `config` error if `GEMINI_API_KEY` unset.
-   - OpenAI adapter (`backend/ai/openai.js`): `POST {baseUrl}/chat/completions` with `Authorization: Bearer <key>` and `{model, messages:[{system},{user}], stream:false}`; parses `choices[0].message.content`; `config` error if base URL/key/model unset.
-   - Shared layer (`backend/ai/provider.js`): normalized errors `config|timeout|http|malformed|unknown` via `AiProviderError`; fetch wrapped in an AbortController timeout (`AI_CONFIG.timeoutMs`); logs each outcome as `PetGPT: provider "<name>" ok/failed (<code>) after Nms ...`; on failure logs provider+code and returns `null`. Logs never contain keys, auth headers, or request bodies.
+4. `generatePetGPTResponse(question, petContext)` (`backend/ai/index.js`) calls the single adapter's `generate({ system, question, petContext })`:
+   - Adapter (`backend/ai/openai.js`): `POST {baseUrl}/chat/completions` with `Authorization: Bearer <key>` and `{model, messages:[{system},{user}], stream:false}`; parses `choices[0].message.content`; `config` error naming the missing variable if base URL/key/model is unset.
+   - Shared layer (`backend/ai/provider.js`): normalized errors `config|timeout|http|malformed|unknown` via `AiProviderError`; fetch wrapped in an AbortController timeout (`AI_CONFIG.timeoutMs`); logs each outcome as `PetGPT: openai-compatible ok/failed (<code>) after Nms ...`; on failure logs the code and returns `null`. Logs never contain keys, auth headers, or request bodies.
 5. If the provider returned none → `fallbackAnswer(question)` (keyword-matched canned strings — unchanged behavior).
 6. Respond `200 { success: true, question, answer }`. Any upstream throw → `500 { message: error.message }`.
 
@@ -92,40 +141,32 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 
 | File | Role |
 |---|---|
-| `backend/routes/ai.routes.js` | Mounts `/ask`, `/advice` (both behind `protect`), `/conversations` (Phase 2 sub-router) and `/providers` (Phase 3 sub-router) |
+| `backend/routes/ai.routes.js` | Mounts `/ask`, `/advice` (both behind `protect`), `/conversations` and `/jobs` sub-routers. There is no `/providers` sub-router (removed, see §0) |
 | `backend/routes/conversation.routes.js` | **Phase 2** — conversation CRUD + message routes, all behind `protect` |
-| `backend/routes/provider.routes.js` | **Phase 3** — provider-config CRUD + test routes, all behind `protect` |
 | `backend/controllers/ai.controller.js` | `askPetGPT` (legacy single-turn), `getPetAdvice`, `fallbackAnswer`, `loadPetContext` (shared with the conversation controller); provider calls delegated to `backend/ai` |
-| `backend/controllers/conversation.controller.js` | **Phase 2** — create/list/get/clear conversations, add message + Persist→Generate→Persist flow; **Phase 3** — resolves the user's active provider config before generating |
-| `backend/controllers/provider.controller.js` | **Phase 3** — provider-config CRUD + test (owner-scoped, encrypted keys, safe responses) |
+| `backend/controllers/conversation.controller.js` | **Phase 2** — create/list/get/clear conversations, add message + Persist→Generate→Persist flow |
 | `backend/models/Conversation.js` | **Phase 2** — conversation doc (`owner`, `title`, `lastMessageAt`, `lastMessagePreview`, timestamps) |
 | `backend/models/Message.js` | **Phase 2** — message doc (`conversation`, `role: user\|assistant\|system`, `content`, timestamps) |
-| `backend/models/AiProvider.js` | **Phase 3** — user-owned provider configuration doc (`owner`, `provider`, `name`, `baseUrl`, `model`, `apiKeyEnc` [AES-256-GCM ciphertext], `enabled`, `active`, timestamps) |
-| `backend/utils/cipher.js` | **Phase 3** — AES-256-GCM encrypt/decrypt for stored API keys; key derived from `PETGPT_ENCRYPTION_KEY`; fails closed |
-| `backend/ai/index.js` | **Provider layer entry (Phase 1):** registers `google`+`openai` adapters, selects the active one, `generatePetGPTResponse()` with normalized outcome logging (`ok`/`failed (<code>); using fallback`). **Phase 3:** `resolveActiveProviderConfig()`, `buildProviderRequest()` (decrypts stored keys only at request time), optional per-user config passed to adapters |
-| `backend/ai/provider.js` | **Provider contract/interface (Phase 1):** `AiProviderError` + `AI_ERROR_CODES` (`config|timeout|http|malformed|unknown`), adapter registry, `fetchWithTimeout` (AbortController), `parseJson`, `userPetsText` prompt assembly |
-| `backend/ai/gemini.js` | **Google/Gemini adapter (Phase 1)** — name `"google"`; same endpoint/body/config as pre-Phase-0 `callGemini`; `GEMINI_API_KEY` + `PETGPT_MODEL` |
-| `backend/ai/openai.js` | **OpenAI-compatible adapter (Phase 1)** — name `"openai"`; chat-completions dialect, no SDK, no vendor hard-coding (OmniRoute/proxies/local endpoints all work) |
-| `backend/config/ai.js` | **PetGPT foundation (Phase 0) + provider config (Phase 1):** `AI_CONFIG` (provider/model/timeout/length + `gemini`/`openai` blocks), `buildSystemPrompt()` (product rules), `outOfScopeResponse()` scope gate |
+| `backend/ai/index.js` | **AI layer entry:** exposes the single `adapter` plus `generatePetGPTResponse()` with normalized outcome logging (`ok`/`failed (<code>); using fallback`); also requires `./tools` so the tool registry is populated once |
+| `backend/ai/provider.js` | **Shared contract/helpers:** `AiProviderError` + `AI_ERROR_CODES` (`config|timeout|http|malformed|unknown`), `fetchWithTimeout` (AbortController), `parseJson`, `userPetsText`/`currentUserTurnPrefix` prompt assembly. The adapter registry was removed (see §0) |
+| `backend/ai/openai.js` | **The one and only AI adapter** — chat-completions dialect, no SDK, no vendor hard-coding (any gateway, proxy or local endpoint works). `generate()` (single turn) + `generateWithTools()` (tool rounds) over one shared `complete()`; `requireConfig()` fails closed naming the missing env var |
+| `backend/config/ai.js` | **PetGPT foundation + application-level AI config:** `AI_CONFIG` (an `openai` block plus timeout/length/history/worker/tools/quota limits — no provider selector, no vendor block), `buildSystemPrompt()` (product rules), `outOfScopeResponse()` scope gate |
 | `backend/middleware/auth.js` | `protect` (JWT) + `adminOnly` |
 | `backend/models/Pet.js` / `User.js` / `Breed.js` | Pet & ownership data |
 | `backend/models/HealthRecord.js`, `Vaccination.js`, `Reminder.js`, `Appointment.js`, `Veterinarian.js` | Adjacent data (currently **not** exposed to PetGPT) |
 | `backend/server.js` | Route mount `/api/ai`, middleware, error/404 handlers |
-| `backend/test/ai-provider.test.js` (new, npm `test`) | **Phase 1 assert-based checks (no framework, no real keys):** adapter error-code mapping, real local mock OpenAI endpoint, service fallback & logging |
+| `backend/test/ai-provider.test.js` (npm `test`) | **Application-level AI-layer checks (no framework, no live calls):** env config loading, fail-closed on missing config, error-code mapping against a real local mock endpoint, generic tool calling, the API key never appearing in a log line or an error, and a source scan asserting no vendor name survives in `backend/ai/` |
 | `backend/test/conversation-api.test.js` (new, npm `test`) | **Phase 2 assert-based API checks** over real local Mongo: auth gate, create/list/get, ownership isolation, validation, persistence, clear-chat, legacy `/ask` backward compat, no-secrets-in-messages |
-| `backend/test/petgpt-provider-conversation.test.js` (new, npm `test`) | **Phase 2 mock-provider checks:** persist→generate→persist flow, history reuse + cap, provider-failure fallback (no fake success), durability from DB |
-| `backend/test/petgpt-omniroute.test.js` (new, npm `test`) | **Phase 2 real OpenAI-compatible E2E** through the local OmniRoute container; SKIPS when `PETGPT_OPENAI_API_KEY` is unset |
-| `backend/test/provider-config.test.js` (new, npm `test`) | **Phase 3 assert-based checks** over real local Mongo + a mock OpenAI-compatible endpoint: encryption round-trip/wrong-key/missing-key fail-safe, CRUD, validation, ownership isolation, active selection, disabled behavior, test endpoint (no persistence), conversation uses configured provider, disable/delete → env fallback, legacy `/ask` intact, no-secret leakage in messages/docs/logs |
-| `backend/test/petgpt-provider-config-omniroute.test.js` (new, npm `test`) | **Phase 3 real OpenAI-compatible E2E** through the local OmniRoute container using an encrypted user-owned configuration; disable/delete → deterministic system fallback; no-secret checks; SKIPS when unset |
+| `backend/test/petgpt-e2e.test.js` (new, npm `test`) | **Phase 2 real OpenAI-compatible E2E** through the live provider endpoint; SKIPS when `PETGPT_OPENAI_API_KEY` is unset |
 | `backend/ai/pet-context.js` | **Phase 5** — pet-aware context service: owner-scoped normalization (no secrets, no Mongo dumps), `requireOwnedPet` ownership gate (foreign/invalid ids → null, no existence leak), `loadPetContext` (thin legacy prompt context, bounded at `AI_CONFIG.tools.maxContextPets`), `buildPetContext` (rich per-pet records bounded per type at `AI_CONFIG.tools.maxResults`) |
 | `backend/ai/context.js` | **Phase 5** — `buildProviderMessages` (mirrors the OpenAI user-turn assembly: pet context + `"User asks: "` + question) for the worker tool path; `buildConversationContext`/`updateConversationMetadata` (Phase 2 metadata shared with the worker); `publicMessage` exposure of bounded `toolCalls` |
 | `backend/ai/tools/` | **Phase 5** — tool layer: `registry.js` (explicit `registerTool` + declaration/schema validation, typed `ToolError`, `TOOL_ERRORS`), `read-tools.js` (registers the 6 read tools: `get_my_pets`, `get_my_pet`, `get_health_records`, `get_vaccinations`, `get_reminders`, `search_veterinarians`), `index.js` (`listToolDeclarations`, `executeTool`) |
-| `backend/ai/tool-calling.js` | **Phase 5** — bounded tool-calling loop (`runToolCallingLoop({ adapter, config, messages, userId })`): owns message assembly, appends assistant `tool_calls` + `role:"tool"` result messages per round, caps rounds at `AI_CONFIG.tools.maxIterations`, returns `{ok, text, toolLog}` and `{ok:false, reason:`max_iterations`|`error`|`no_tools`}`; `canUseTools(provider)` via capability declaration; `TOOL_CALLS_METADATA_MAX` (20) bounds persisted tool metadata |
-| `backend/jobs/generation.worker.js` | **Phase 4/5** — durable worker; tool-calling providers take the tool path via `runToolCallingLoop`, other providers fall back to legacy `generatePetGPTResponse`; tool-round provider failure fails the job safely (`SAFE_ERRORS.PROVIDER`, no fabricated answer); `toolCalls: result.toolLog` persisted on the assistant message |
+| `backend/ai/tool-calling.js` | **Phase 5** — bounded tool-calling loop (`runToolCallingLoop({ adapter, messages, userId })`): owns message assembly, appends assistant `tool_calls` + `role:"tool"` result messages per round, caps rounds at `AI_CONFIG.tools.maxIterations`, returns `{ok, text, toolLog}` and `{ok:false, reason:`max_iterations`|`error`|`no_tools`}`; `TOOL_CALLS_METADATA_MAX` (20) bounds persisted tool metadata |
+| `backend/jobs/generation.worker.js` | **Phase 4/5** — durable worker; always the tool path via `runToolCallingLoop`; tool-round AI failure fails the job safely (`SAFE_ERRORS.PROVIDER`, no fabricated answer); `toolCalls: result.toolLog` persisted on the assistant message |
 | `backend/ai/index.js` | **Phase 5** — `require("./tools")` registers the read tools with the AI layer as a side effect (this registration was the integration fix that made the worker's tool path actually dispatch) |
-| `backend/test/petgpt-tools.test.js` (new, npm `test`) | **Phase 5 assert-based checks** over real local Mongo + a mock OpenAI-compatible provider: registry/declarations, `get_my_pets` normalization + no-secrets, unknown tool, argument validation, ownership isolation (foreign pet error indistinguishable from nonexistent), capability gates (google stays off the tool path), bounded iterations, bounded metadata (25 calls → 20 recorded), per-tool failure model-safety, provider failure mid-round abort |
+| `backend/test/petgpt-tools.test.js` (new, npm `test`) | **Phase 5 assert-based checks** over real local Mongo + a mock OpenAI-compatible provider: registry/declarations, `get_my_pets` normalization + no-secrets, unknown tool, argument validation, ownership isolation (foreign pet error indistinguishable from nonexistent), bounded iterations, bounded metadata (25 calls → 20 recorded), per-tool failure model-safety, provider failure mid-round abort |
 | `backend/test/petgpt-jobs-tools.test.js` (new, npm `test`) | **Phase 5 durable-worker checks** over real local Mongo + a mode-switchable mock provider on :4115: tool path (worker → tool execution → final answer, 2 provider calls), persisted assistant `toolCalls`, tool result fed back to the model, tool failure completes the job with `ok:false` + error, always-tools provider bounded then failed, HTTP 500 aborts without a fake assistant, ownership isolation, idempotency, no secrets in jobs/messages/docs/logs |
-| `backend/test/petgpt-tools-omniroute.test.js` (new, npm `test`) | **Phase 5 real OpenAI-compatible E2E** through the live `catlium-omniroute` container: the model actually calls `get_my_pets`, the worker executes it and the final reply names **Rex and not Max** (no foreign-pet leak), bounded tool metadata, legacy `/ask` intact, no secrets in logs/DB; retried probe, SKIPS honestly when unreachable |
+| `backend/test/petgpt-tools-e2e.test.js` (new, npm `test`) | **Phase 5 real OpenAI-compatible E2E** through the live provider endpoint: the model actually calls `get_my_pets`, the worker executes it and the final reply names **Rex and not Max** (no foreign-pet leak), bounded tool metadata, legacy `/ask` intact, no secrets in logs/DB; retried probe, SKIPS honestly when unreachable |
 | `backend/models/HealthRecord.js`, `Vaccination.js`, `Reminder.js`, `Appointment.js`, `Veterinarian.js` | Adjacent data (currently **not** exposed to PetGPT) |
 | `backend/server.js` | Route mount `/api/ai`, middleware, error/404 handlers |
 | `frontend/js/petgpt.js` | Chat UI: `FamiPetAPI.post("/ai/ask", {question})`, error fallback to **its own** canned `getResponse()` |
@@ -136,8 +177,8 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 
 ## 4. Current Capabilities
 
-- Single-turn, stateless Q&A about general pet care via a pluggable provider layer (Google/Gemini default; any OpenAI-compatible endpoint selectable via `PETGPT_PROVIDER=openai` — Phase 1).
-- Provider failures are normalized (`config|timeout|http|malformed|unknown`) and logged with provider name + code, then fall back to canned answers; contract and status codes never leak provider errors.
+- Single-turn, stateless Q&A about general pet care via one generic OpenAI-compatible adapter pointed at an application-level `PETGPT_OPENAI_BASE_URL` (see §0).
+- AI failures are normalized (`config|timeout|http|malformed|unknown`) and logged with provider name + code, then fall back to canned answers; contract and status codes never leak provider errors.
 - Injects the user's pet names/species/breeds (max 5) into the prompt.
 - Scope gate rejects clearly unrelated requests with a fixed scope response (Phase 0).
 - Question length limit enforced (Phase 0).
@@ -148,11 +189,11 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 
 ## 5. Tools
 
-**Phase 5: read-only tool calling implemented.** Tools are explicitly registered in `backend/ai/tools/` (never invented by the model — product rule 5), strictly schema-validated, ownership-scoped per call, and only dispatched by providers that declare tool-calling capability (`canUseTools`). The calling loop (`backend/ai/tool-calling.js`) is bounded at `AI_CONFIG.tools.maxIterations` rounds and never fabricates a final answer. Only read tools exist; **mutation tools are deliberately deferred to Phase 6** (see `petGPT.md` §19 and the `ponytail:` comment in `read-tools.js`). The only non-AI "tool" remains the hard-coded `fallbackAnswer` keyword matcher.
+**Phase 5: read-only tool calling implemented.** Tools are explicitly registered in `backend/ai/tools/` (never invented by the model — product rule 5), strictly schema-validated and ownership-scoped per call. Tools are explicitly registered in `backend/ai/tools/` (never invented by the model — product rule 5), strictly schema-validated, ownership-scoped per call, and only dispatched by the single adapter's `generateWithTools()`. The calling loop (`backend/ai/tool-calling.js`) is bounded at `AI_CONFIG.tools.maxIterations` rounds and never fabricates a final answer. Only read tools exist; **mutation tools are deliberately deferred to Phase 6** (see `petGPT.md` §19 and the `ponytail:` comment in `read-tools.js`). The only non-AI "tool" remains the hard-coded `fallbackAnswer` keyword matcher.
 
 ## 6. Data/Context Available to the AI
 
-**Phase 5 (rich pet context, enabled for OpenAI-compatible tool-calling providers):** per ask, the backend injects the authenticated user's own pet records — pet `name`, `species`, `breed.name`, plus `age`, `weight`, `gender`, `vaccinated`, `description` (bounded: max 5 pets, max 3 records each by type). Health records, vaccinations, reminders, and vets are served on demand by the read tools §5 rather than pre-injected — the model stays honest about what it knows.
+**Phase 5 (rich pet context, on the tool-calling path):** per ask, the backend injects the authenticated user's own pet records — pet `name`, `species`, `breed.name`, plus `age`, `weight`, `gender`, `vaccinated`, `description` (bounded: max 5 pets, max 3 records each by type). Health records, vaccinations, reminders, and vets are served on demand by the read tools §5 rather than pre-injected — the model stays honest about what it knows.
 
 Pre-Phase-5 (legacy) path sent only `name`, `species`, `breed.name` for up to 5 owned pets.
 
@@ -162,18 +203,17 @@ Available in the DB but **not** used by the AI:
 - Per-user, per-pet: health records, vaccinations, reminders, appointments, veterinarians.
 - User: `name`, `city`, `phone`, `address`.
 
-## 7. Provider Configuration (Gemini default; OpenAI-compatible selectable)
+## 7. AI Configuration (application-level, one OpenAI-compatible adapter)
 
-- Provider/model/config centralized in `backend/config/ai.js` (`AI_CONFIG`), read once at boot (env snapshot).
-  - `PETGPT_PROVIDER` — `"google"` (default; keeps existing deployments working) or `"openai"`.
-  - `GEMINI_API_KEY` + `PETGPT_MODEL` (default `gemini-1.5-flash`) — Google/Gemini adapter.
-  - `PETGPT_OPENAI_BASE_URL` (endpoint root, no trailing slash; adapter appends `/chat/completions`), `PETGPT_OPENAI_API_KEY`, `PETGPT_OPENAI_MODEL` (required when `"openai"`) — OpenAI adapter.
-  - `PETGPT_TIMEOUT_MS` (default 25000), `PETGPT_MAX_QUESTION_LENGTH` (default 2000) — apply to every provider.
-- Transport: raw `fetch`; Google uses the v1beta REST endpoint with key in the query string; OpenAI-compatible uses `POST {baseUrl}/chat/completions` with `Authorization: Bearer <key>`. No provider SDK used by the adapters (`@google/generative-ai` package remains installed but unused).
+- Config centralized in `backend/config/ai.js` (`AI_CONFIG`), read once at boot (env snapshot). See §0 for the three AI variables.
+  - `PETGPT_OPENAI_BASE_URL` — endpoint root, no trailing slash; the adapter appends `/chat/completions`.
+  - `PETGPT_OPENAI_API_KEY`, `PETGPT_OPENAI_MODEL` — both required; missing either fails closed naming the variable.
+  - `PETGPT_TIMEOUT_MS` (default 25000), `PETGPT_MAX_QUESTION_LENGTH` (default 2000).
+- Transport: raw `fetch` — `POST {baseUrl}/chat/completions` with `Authorization: Bearer <key>`. No vendor SDK, and no AI vendor dependency in `package.json`.
 - System prompt = product rules (§Product rules) via `buildSystemPrompt()`. User turn is `userPets + "User asks: " + question`.
-- Timeout: 25s client abort; outcome logging on every path with provider name + normalized code (Phase 0 foundation, Phase 1 provider layer).
+- Timeout: 25s client abort; outcome logging on every path with the normalized code (Phase 0 foundation, Phase 1 provider layer).
 - Logs never contain API keys, auth headers, or request bodies.
-- No `generationConfig` (temperature, `maxOutputTokens`, topK/topP), no `safetySettings`, no `tools`, no stop sequences, no candidate count (later phases). No retries, no rate-limit handling, no usage/cost tracking.
+- No vendor-only generation knobs, no retries, no rate-limit handling, no usage/cost tracking.
 
 ## 8. Conversation/History Behavior
 
@@ -185,14 +225,14 @@ Available in the DB but **not** used by the AI:
 - JWT Bearer on both PetGPT endpoints (`protect`). Payload `{ id }` (user ObjectId string), exp `30d` default. `req.user` is a fresh full User doc per request.
 - `getPetAdvice` enforces pet ownership (`owner: req.user._id`) → cross-user pet access returns 404 (verified e2e).
 - `askPetGPT` scopes the pet-context query to the authenticated user — no cross-tenant leakage of context.
-- Gaps (tracked, later phases): no rate limiting / per-user quota; no per-request cost cap beyond length limit; prompt-injection surface mitigated only by prompt + length cap; Gemini key in query string; internal error messages leak on 500s.
+- Gaps (tracked, later phases): no rate limiting / per-user quota; no per-request cost cap beyond length limit; prompt-injection surface mitigated only by prompt + length cap; internal error messages leak on 500s.
 
 ## 10. Current Limitations
 
 - Legacy `/api/ai/ask` remains stateless single-turn chat (deliberate; persistent chat lives on `/api/ai/conversations`).
-- Rich pet context + read-tool calling are **only** exercised when the active provider declares tool-calling capability (OpenAI-compatible completions that advertise `tool_calling`); Gemini (`google`) currently stays on the legacy chat path without tools.
+- Rich pet context + read-tool calling require the configured endpoint to support OpenAI-style `tools` in chat completions; an endpoint that does not will fail the job rather than silently skip the feature.
 - No mutation tools (Phase 6); the AI can read pet data but cannot change anything.
-- Tool-call metadata persisted on assistant messages is bounded (`TOOL_CALLS_METADATA_MAX` = 20) and the loop caps at `AI_CONFIG.tools.maxIterations` rounds — a chatty provider degrades to a safe stop, not an unbounded loop.
+- Tool-call metadata persisted on assistant messages is bounded (`TOOL_CALLS_METADATA_MAX` = 20) and the loop caps at `AI_CONFIG.tools.maxIterations` rounds — a chatty model degrades to a safe stop, not an unbounded loop.
 - No streaming, no retry/backoff, no structured output.
 - Scope gate is a keyword heuristic (deliberate; see `config/ai.js` `ponytail:` comment).
 - Duplicated drifting canned-answer logic (backend `fallbackAnswer` vs frontend `getResponse`).
@@ -217,15 +257,13 @@ Available in the DB but **not** used by the AI:
 
 ## 12. Architecture Roadmap (design intent)
 
-Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (Phase 3), C ✅ (Phase 4), D ✅ (Phase 5), E ✅ (Phase 5). F design, not implemented.
+Implementations: A ✅ (Phase 1, then consolidated to a single adapter — §0), B ✅ (Phase 2), C ✅ (Phase 4), D ✅ (Phase 5), F partially. Per-user provider configuration (Phase 3) and the capability-detection layer (E) were removed.
 
-### A. Provider abstraction
-- PetGPT must NOT be architecturally tied to Google/Gemini, nor to OmniRoute.
-- ✅ **Implemented (Phase 1):** `backend/ai/` provider layer — `provider.js` (contract: `provider.generate({system, question, petContext}) → {text, latencyMs}`; `AiProviderError` + `AI_ERROR_CODES` `config|timeout|http|malformed|unknown`; `register/getProvider/getActiveProvider` registry; `fetchWithTimeout`, `parseJson`, `userPetsText`), `gemini.js` (name `"google"`, default), `openai.js` (name `"openai"`, chat-completions dialect, no SDK), `index.js` (registration + `generatePetGPTResponse()` with normalized logging and `null`-on-failure fallback signal). The controller no longer embeds vendor details.
-- Additive providers implement the same contract and `register()` their name; selection stays env-driven via `AI_CONFIG.provider`.
-- OpenAI-compatible APIs are the initial compatibility target (chat completions shape). OmniRoute is only one possible provider implementation/configuration, never a hard dependency.
-- Users configure their own compatible provider/API key via the Phase 3 provider-configuration API (`/api/ai/providers`).
-- Provider-specific details stay isolated behind the provider layer; the controller/policy code never embeds vendor knowledge.
+### A. AI abstraction — one generic OpenAI-compatible adapter ✅
+- PetGPT must NOT be architecturally tied to any specific vendor, gateway or proxy.
+- ✅ **Shipped:** a single adapter in `backend/ai/openai.js` speaking the OpenAI chat-completions dialect over raw `fetch`. `provider.js` holds only the contract error type (`AiProviderError` + `AI_ERROR_CODES` `config|timeout|http|malformed|unknown`) and shared helpers (`fetchWithTimeout`, `parseJson`, `userPetsText`). `index.js` exposes the adapter and `generatePetGPTResponse()` with normalized logging and a `null`-on-failure signal. Controllers embed no vendor details.
+- The registry, rotation, fallback chains, capability declaration, per-user provider configs and the Gemini adapter were **deleted** — one adapter, one env-configured endpoint, no selection to get wrong.
+- A deployment is not a code change: only `PETGPT_OPENAI_BASE_URL` moves. Any OpenAI-compatible endpoint (hosted, gateway, proxy, self-hosted) works identically.
 
 ### B. Conversation architecture ✅ implemented (Phase 2)
 - Persistent `Conversation` + `Message` models.
@@ -249,11 +287,11 @@ Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (P
   - returning structured results — normalized results, numbers/names/IDs only, no secrets;
   - auditable (logged invocations) — every execution is logged with name/ok/error and persisted (bounded) as `Message.toolCalls`.
 - Backend decides which tools exist and are available; the model only calls what the backend offers (product rule 5).
-- Capability-gated: tools are only offered to providers that declare `tool_calling` support (`canUseTools`); chat-only providers keep the legacy path.
+- The single adapter declares tool support, so the worker's tool path is unconditional; the legacy chat-only path is kept for the stateless `/ask` contract.
 
-### E. Provider capabilities ✅ implemented (Phase 5)
-- Providers/models differ in capability: chat, streaming, tool calling, structured output, vision, context length, cost.
-- Never assume a provider supports every capability; capability detection/declaration lives in the provider layer and is checked before a request relies on it — `supportsToolCalling`, surfaced as `canUseTools` and used by the worker to pick the tool path vs the legacy chat path.
+### E. Model capabilities — removed
+- A cross-provider capability-detection layer (`AI_CAPABILITIES`, `supportsToolCalling`, `canUseTools`) existed while PetGPT spoke to more than one provider. With a single adapter, the question disappeared: the tool path is the only tool path, and a model that cannot call tools is a deployment concern, not an app branch.
+- Still required of any endpoint configured: the chat-completions request/response shape.
 
 ### F. Observability and limits
 - Needed: input/question length limits (Phase 0), provider timeout handling (Phase 0), retries/backoff where appropriate, rate limiting, per-user quotas, provider failure logging (Phase 0), usage/cost tracking where available.
@@ -264,8 +302,8 @@ Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (P
 - Keep the vanilla frontend's `/api/ai/ask` contract working — the React migration runs concurrently in another worktree; any frontend-consuming change on this branch must remain compatible with `frontend/js/petgpt.js`. Do not modify files the React worktree owns.
 - Backend pattern: controller + Mongoose model + `req.user._id` ownership; `{ _id, user }` scoping is the established security idiom — new tools/conversations must follow it.
 - No test infrastructure or linter exists; any added logic leaves its own runnable check (assert-based demo or small `test_*.js`), not a framework.
-- Keep dependencies minimal — the SDK (`@google/generative-ai`) is already installed if reused; do not add providers as hard deps.
-- Env keys required for live Gemini: `GEMINI_API_KEY`; repo only tracks `.env.example`.
+- Keep dependencies minimal — the AI layer uses only Node's `fetch`; never add an AI vendor SDK or an AI endpoint dependency to `package.json`.
+- Env keys required to run the AI: `PETGPT_OPENAI_BASE_URL`, `PETGPT_OPENAI_API_KEY`, `PETGPT_OPENAI_MODEL`; repo only tracks `.env.example`.
 
 ## 14. Phased Roadmap
 
@@ -319,7 +357,7 @@ Verified on 2026-09-22 against real local Mongo (isolated port, seeded+cleaned t
 Implemented (backend only, no frontend changes, no React-migration worktree touched):
 - `backend/ai/provider.js` (new): provider contract (`provider.generate({system, question, petContext}) → {text, latencyMs}`), `AiProviderError` with normalized `AI_ERROR_CODES` (`config|timeout|http|malformed|unknown`), adapter registry (`register`/`getProvider`/`getActiveProvider`), `fetchWithTimeout` (AbortController → `timeout`; transport errors → `unknown`), `parseJson` (bad JSON → `malformed`), `userPetsText` prompt assembly.
 - `backend/ai/gemini.js` (new, name `"google"`, default): preserves the pre-Phase-0 Google adapter exactly — same v1beta `generateContent` endpoint/body, `GEMINI_API_KEY`, `PETGPT_MODEL`; `config` error when key missing; HTTP status → `http`; no text → `malformed`.
-- `backend/ai/openai.js` (new, name `"openai"`): `POST {baseUrl}/chat/completions` with `Authorization: Bearer <key>`, `{model, messages:[{role:system},{role:user}], stream:false}`; parses `choices[0].message.content` (string, non-empty); `config` error when base URL / key / model missing; no SDK, no OmniRoute/OpenAI hard-coding.
+- `backend/ai/openai.js` (new, name `"openai"`): `POST {baseUrl}/chat/completions` with `Authorization: Bearer <key>`, `{model, messages:[{role:system},{role:user}], stream:false}`; parses `choices[0].message.content` (string, non-empty); `config` error when base URL / key / model missing; no SDK, no vendor hard-coding.
 - `backend/ai/index.js` (new): registers both adapters; `generatePetGPTResponse(question, petContext)` resolves the active provider, logs `PetGPT: provider "<name>" ok ... / failed (<code>) ...; using fallback: <message>`, returns `null` on any failure (controller falls back to static answers). Logs never contain keys, headers, or bodies.
 - `backend/config/ai.js` (edited): `AI_CONFIG` split into `{provider, timeoutMs, maxQuestionLength, gemini:{apiKey, model}, openai:{baseUrl, apiKey, model}}`; `buildSystemPrompt`/`outOfScopeResponse` unchanged.
 - `backend/controllers/ai.controller.js` (edited): removed `callGemini` (and its Google-specific logic/fetch); controller now calls `generatePetGPTResponse` from `backend/ai`; validation, scope gate, fallback, `getPetAdvice` unchanged.
@@ -429,24 +467,24 @@ unauthorized (401), invalid conversation id (400), conversation not found (404),
 1. `test/ai-provider.test.js` (Phase 1, unchanged) — 17 checks.
 2. `test/conversation-api.test.js` (Phase 2, real local Mongo + real HTTP, adapted for Phase 4) — 15 checks: auth gate; create (default/custom title); client-supplied owner ignored; list scoped per user; empty retrieval; invalid-id 400 / unknown 404 / foreign read-append-delete 404 (and the target untouched); empty/oversized/missing content → 400; in-scope send → 202 + job `failed` (no assistant); out-of-scope send → 200 canned answer persisted; retrieval + ordering + title/metadata updates; ownership isolation; title auto-derived; scope-gate exchange persisted (no provider call); clear-chat hard-delete of messages+jobs; legacy `/api/ai/ask` unchanged; no JWT/secret material in persisted messages.
 3. `test/petgpt-provider-conversation.test.js` (Phase 2, mock OpenAI-compatible HTTP server, adapted) — 5 checks: persist→provider→persist; history reused in order + roles; provider 500 → job fails (no fake success); history capped at `PETGPT_MAX_HISTORY_MESSAGES`; full history durable from DB.
-4. `test/petgpt-omniroute.test.js` (Phase 2, real OpenAI-compatible E2E) — 5 checks against the local OmniRoute container; **skips** (exit 0) when `PETGPT_OPENAI_API_KEY` is unset or the container is unreachable.
+4. `test/petgpt-e2e.test.js` (Phase 2, real OpenAI-compatible E2E) — 5 checks against the live provider endpoint; **skips** (exit 0) when `PETGPT_OPENAI_API_KEY` is unset or the endpoint is unreachable.
 5. `test/petgpt-jobs.test.js` (Phase 4, real local Mongo + real HTTP + mock OpenAI server) — job lifecycle end-to-end (see §18).
-6. `test/petgpt-jobs-omniroute.test.js` (Phase 4, real OmniRoute) — durable generation through the env path with the real container; **skips** like the Phase-2 OmniRoute suite.
-7. `test/provider-config.test.js` and 8. `test/petgpt-provider-config-omniroute.test.js` (Phase 3, adapted for Phase 4) — see §17.
+6. `test/petgpt-jobs-e2e.test.js` (Phase 4, live provider) — durable generation through the env path against the real endpoint; **skips** like the Phase-2 provider suite.
+7. `test/provider-config.test.js` and 8. `test/petgpt-provider-config-e2e.test.js` (Phase 3, adapted for Phase 4) — see §17.
 
-### OmniRoute local testing setup/verification
+### External provider setup/verification
 
-- OmniRoute runs as the Docker container `catlium-omniroute` (`diegosouzapw/omniroute:latest`), exposed on `127.0.0.1:20128`. Start it with `docker start catlium-omniroute`.
-- An API key is created in the OmniRoute dashboard/API (e.g. `POST /api/keys {"name":"..."}` after log-in) and passed to the test via env — the key is **never hard-coded** in the application or the repo.
-- Verify the path: `PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1 PETGPT_OPENAI_API_KEY=<key> PETGPT_OPENAI_MODEL=auto/best-fast node test/petgpt-omniroute.test.js`.
-- The application itself points at OmniRoute purely through `PETGPT_OPENAI_*` env (Phase 1 provider config); OmniRoute is a test/lab target, not a code dependency.
+- The OpenAI-compatible endpoint is supplied by the deployment environment; it is not a service of this stack and FamiPet holds no reference to it.
+- An API key is created in that endpoint's own dashboard/API and passed to the test via env — the key is **never hard-coded** in the application or the repo.
+- Verify the path: `PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1 PETGPT_OPENAI_API_KEY=<key> PETGPT_OPENAI_MODEL=auto node test/petgpt-e2e.test.js`.
+- The application itself points at the endpoint purely through `PETGPT_OPENAI_*` env (Phase 1 provider config); the endpoint is a test/lab target, not a code dependency.
 - Verified 2026-09-22: real provider exchange + follow-up with history persisted, scope gate still enforced in the conversation flow, and the API key absent from persisted messages and all captured logs.
 
-### Phase 2 verification (2026-09-22, real local Mongo + local OmniRoute)
+### Phase 2 verification (2026-09-22, real local Mongo + live provider endpoint)
 
 - `node --check` on all touched backend files → pass.
-- `npm test` (default env, no key): 17 Phase-1 + 15 API + 5 provider-path checks pass; OmniRoute suite skips cleanly.
-- OmniRoute E2E: 5/5 pass against the live container (real model `codestral-2508` backing `auto/best-fast`).
+- `npm test` (default env, no key): 17 Phase-1 + 15 API + 5 provider-path checks pass; the live-provider suite skips cleanly.
+- Live-provider E2E: 5/5 pass against the real endpoint.
 - Ownership isolation, clear-chat determinism, scope gate, fallback behaviour, and backward-compat `/api/ai/ask` all re-verified end-to-end.
 - No API keys/secrets in logs or persisted messages (asserted by the suites).
 - No frontend file changes; no React-migration worktree/file changes.
@@ -466,11 +504,11 @@ Make PetGPT provider configuration explicit and extensible:
 ```text
 Gemini
 OpenAI-compatible provider
-      └── OmniRoute can be one configuration
+      └── any OpenAI-compatible endpoint can be one configuration
       └── Any compatible provider can be another configuration
 ```
 
-Provider-specific implementation stays inside the Phase 1 provider layer (`backend/ai/`). OmniRoute appears only through environment configuration at test time (`PETGPT_OPENAI_BASE_URL=…`, `PETGPT_OPENAI_API_KEY=…`, `PETGPT_OPENAI_MODEL=…`) — never hard-coded, no SDK, no OmniRoute-specific logic.
+Provider-specific implementation stays inside the Phase 1 provider layer (`backend/ai/`). The endpoint appears only through environment configuration at test time (`PETGPT_OPENAI_BASE_URL=…`, `PETGPT_OPENAI_API_KEY=…`, `PETGPT_OPENAI_MODEL=…`) — never hard-coded, no SDK, no endpoint-specific logic.
 
 ### Provider configuration architecture
 
@@ -560,26 +598,26 @@ persist assistant response
 
 Provider credentials never live on `Conversation`/`Message` documents. Provider failure in the persistent flow (Phase 4) fails the job (`failed`, code `provider`) with no fabricated answer; only the legacy `/api/ai/ask` still falls back to canned answers. `clear/delete` behavior: `DELETE .../conversations/:id` also removes the conversation's jobs. The scope gate is unchanged.
 
-### OmniRoute testing setup
+### External provider testing setup
 
-Same local container as Phase 2 (`catlium-omniroute`, `127.0.0.1:20128`). Phase 3 store an encrypted provider configuration pointing at it (`name`, `baseUrl`, `model`, `apiKey` sourced from env) and verify:
+Same external endpoint as Phase 2, on `127.0.0.1:20128`. Phase 3 store an encrypted provider configuration pointing at it (`name`, `baseUrl`, `model`, `apiKey` sourced from env) and verify:
 
 - the configured (encrypted-key) provider produces a real reply that is persisted;
 - follow-up conversations reuse history through the configured provider;
 - disabling and then deleting the configured provider deterministically falls back to the system configuration (google-without-key → canned answer);
 - the API key is absent from persisted messages, provider docs, and all captured logs.
 
-Reachability check: `POST /api/ai/providers/:id/test` against the stored config or the OmniRoute suite; both skip cleanly when `PETGPT_OPENAI_API_KEY` is unset or the container is down. Verify path with `PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1 PETGPT_OPENAI_API_KEY=<key> PETGPT_OPENAI_MODEL=auto/best-fast npm test`.
+Reachability check: `POST /api/ai/providers/:id/test` against the stored config or the provider suite; both skip cleanly when `PETGPT_OPENAI_API_KEY` is unset or the endpoint is down. Verify path with `PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1 PETGPT_OPENAI_API_KEY=<key> PETGPT_OPENAI_MODEL=auto npm test`.
 
-### Phase 3 verification (2026-09-22, real local Mongo + local OmniRoute)
+### Phase 3 verification (2026-09-22, real local Mongo + live provider endpoint)
 
 - `node --check` on all touched backend files → pass.
-- `npm test` (default env, no key): **17 + 15 + 5 + 19 checks pass**, the two OmniRoute suites skip cleanly.
-- With `PETGPT_OPENAI_API_KEY` set: **Phase-2 OmniRoute E2E 5/5** and **Phase-3 configured-provider OmniRoute E2E 6/6** pass against the live container — total **67 checks**.
+- `npm test` (default env, no key): **17 + 15 + 5 + 19 checks pass**, the two live-provider suites skip cleanly.
+- With `PETGPT_OPENAI_API_KEY` set: **Phase-2 provider E2E 5/5** and **Phase-3 configured-provider E2E 6/6** pass against the live endpoint — total **67 checks**.
 - Encryption: round-trip AES-256-GCM, stored value is ciphertext (not plaintext), wrong key and missing key both fail safely at the util level and at request time; plaintext never appears in responses, logs, error messages, or persisted messages (asserted).
 - Ownership isolation: cross-user read/update/delete/test all 404; list never exposes another user's provider; resolution never crosses owners.
 - Active-provider selection determinism verified (single active per owner; auto-active first config; PATCH deactivates siblings).
-- Disabled/deleted provider → system env fallback verified in both the mock and real OmniRoute suites.
+- Disabled/deleted provider → system env fallback verified in both the mock and real provider suites.
 - Legacy `/api/ai/ask` intact (system-config behavior preserved with a stored active provider present).
 - No plaintext API keys persisted anywhere (Mongo docs checked) and none in logs or API responses (asserted by the suites).
 - No frontend file changes; no React-migration worktree/file changes.
@@ -658,8 +696,8 @@ Out-of-scope content stays synchronous `200` (canned scope answer persisted + me
 
 - `node --check` all touched files → pass.
 - Local suites (mock OpenAI on :4105, OWN DBs, no keys): **`petgpt-jobs.test.js` 11 jobs / 7 provider calls** (lifecycle 202→queued/processing→completed; durability across refresh; history + pet-context follow-up; provider failure → `failed`, no fake assistant; idempotency incl. parallel race — exactly one job+message; conflict 409; cross-user reuse; failed-job reuse; concurrency atomic claim; stale + bounded retries; ownership isolation 404; no secrets in logs/docs) + adapted **conversation-api 15**, **petgpt-provider-conversation 5**, **provider-config 19** all pass.
-- OmniRoute E2E (real container `catlium-omniroute`, dummy key, env path): **petgpt-omniroute 5/5**, **petgpt-provider-config-omniroute 6/6**, **petgpt-jobs-omniroute** durable completion (queued→…→completed, reply persisted) all pass. Suites skip cleanly (exit 0) when the key is unset.
-- Full `npm test` chain exit 0 (no key) and exit 0 with the OmniRoute key.
+- Live-provider E2E (real endpoint, dummy key, env path): **petgpt-e2e 5/5**, **petgpt-provider-config-e2e 6/6**, **petgpt-jobs-e2e** durable completion (queued→…→completed, reply persisted) all pass. Suites skip cleanly (exit 0) when the key is unset.
+- Full `npm test` chain exit 0 (no key) and exit 0 with the provider key.
 - No frontend file changes; no React-migration worktree/file changes.
 
 Commit: see Phase 4 commit on `feature/petgpt-enhancement`.
@@ -723,19 +761,19 @@ Providers declare `supportsToolCalling()` (default false); OpenAI-compatible ret
 - `node --check` all touched files → pass.
 - **`petgpt-tools.test.js` 10/10** (local Mongo + mock OpenAI): registry/declarations; `get_my_pets` normalization + no secrets; unknown tool; argument validation (missing args / wrong type / unknown args); ownership isolation (foreign pet error === nonexistent-pet error, no existence leak); capability gates (google stays off the tool path); bounded iterations (maxIterations=3); bounded metadata (25 calls → 20 recorded); per-tool failures model-safe; provider failure mid-round abort.
 - **`petgpt-jobs-tools.test.js`** (local Mongo + mode-switchable mock provider on :4115): worker → tool execution → final answer over 2 provider calls; persisted assistant `toolCalls` `[{ get_my_pets, ok:true }]`; tool result fed back (answer names **Rex, not Max**); wipe_all_data tool failure → job completed with `ok:false` + error, no fake success; always-tools provider → bounded at maxIterations then job failed `provider`, no fabricated answer, no dangling jobs; HTTP 500 → failed with no assistant message; ownership isolation 404; no secrets in jobs/messages/docs/logs. Calls `startWorker()`/`stopWorker()`.
-- **`petgpt-tools-omniroute.test.js`** (real `catlium-omniroute`, dummy key works on `/chat/completions`): the model actually called `get_my_pets`, the worker executed it, final reply "You have one pet: Rex, a 3-year-old male Golden Retriever"; 1 tool call recorded; ≤ 20 and only registered tools; no "Max"/"aged 7" leak; legacy `/ask` 200; no API key in logs/DB; honest SKIP when unreachable (probe retried 3×).
-- **Full `npm test` chain exit 0 with the OmniRoute env** — all 11 suites: ai-provider 17, conversation-api 15, petgpt-provider-conversation 5, petgpt-omniroute 5, provider-config 19, petgpt-provider-config-omniroute 6, petgpt-jobs 11/7, petgpt-jobs-omniroute, petgpt-tools 10, petgpt-jobs-tools, petgpt-tools-omniroute.
+- **`petgpt-tools-e2e.test.js`** (real endpoint, dummy key works on `/chat/completions`): the model actually called `get_my_pets`, the worker executed it, final reply "You have one pet: Rex, a 3-year-old male Golden Retriever"; 1 tool call recorded; ≤ 20 and only registered tools; no "Max"/"aged 7" leak; legacy `/ask` 200; no API key in logs/DB; honest SKIP when unreachable (probe retried 3×).
+- **Full `npm test` chain exit 0 with the live-provider env** — all 11 suites: ai-provider 17, conversation-api 15, petgpt-provider-conversation 5, petgpt-e2e 5, provider-config 19, petgpt-provider-config-e2e 6, petgpt-jobs 11/7, petgpt-jobs-e2e, petgpt-tools 10, petgpt-jobs-tools, petgpt-tools-e2e.
 - No frontend file changes; no React-migration worktree/file changes; no mutation tools; no Phase 6.
 
 ## 20. Phase 6 — Mutation Tools, Per-User Limits & Reliability
 
-Status: **✅ implemented & verified** (2026-09-22). Backend-only. Provider-neutral (mock-verified, no OmniRoute hard-coding); React-migration worktree untouched; no streaming; no Phase 7. Builds directly on Phase 5: the same registry, the same durable worker, the same tool-calling loop.
+Status: **✅ implemented & verified** (2026-09-22). Backend-only. Provider-neutral (mock-verified, no vendor hard-coding); React-migration worktree untouched; no streaming; no Phase 7. Builds directly on Phase 5: the same registry, the same durable worker, the same tool-calling loop.
 
 ### Design rules (from the Phase 5 notes)
 
 - **Mutation surface is tiny and low-risk**: exactly two mutation tools — `create_reminder`, `complete_reminder`. Both are additive or a reversible status flag. Destructive/high-risk tools (delete, hard update, booking confirmations) are **not** implemented because there is no confirmation UX and the model can never be given the last word on destructive writes (product rule 5).
-- **Confirmation is model-side + guardrail**: before mutating, the model must tell the user exactly what it will do and wait for confirmation. This lives in `buildSystemPrompt()`. Backend enforcement is by *exclusion*: the registerable surface only contains safe mutations, so there is nothing destructive to "confirm".
-- **Idempotency is server-side and durable**: a retried/re-enqueued GenerationJob must never run a mutation twice. Every successful mutation writes a **MutationEffect** ledger row keyed `(owner, sha256(jobId:tool:normalizedArgs))` where `jobId` is the durable job id; a re-run of the same job+args **replays the recorded result** instead of executing again. Different job or different args = a legitimate separate action (its own key).
+- **Confirmation is enforced backend-side, and the prompt only guides the model**: `buildSystemPrompt()` tells the model to preview, ask, and re-issue on a confirming turn, but that is guidance, not control. The registry (`backend/ai/tools/registry.js`) refuses **every** `readOnly:false` tool until a *later* user turn explicitly confirms it, and returns a `confirmationRequired` result instead of writing. The verdict is read from the **persisted user message** (`backend/ai/confirmation.js`), never from model output, so a model cannot talk its way past it; a confirming turn with no matching pending request, a different conversation, or no conversation scope all fail closed. A pending request is recorded per `(owner, conversation, tool, sha256(tool:normalizedArgs))` in `backend/models/MutationRequest.js` and expires via a Mongo TTL index, which also makes a repeated confirmation replay the stored result rather than write twice. The mutation surface stays tiny and low-risk on top of that: the registerable surface only contains safe mutations, so there is nothing destructive to "confirm".
+- **Idempotency is server-side and durable**: a retried/re-enqueued GenerationJob must never run a mutation twice. Every successful mutation writes a **MutationEffect** ledger row keyed `(owner, sha256(jobId:tool:normalizedArgs))` where `jobId` is the durable job id; a re-run of the same job+args **replays the recorded result** instead of executing again. Because each user turn is its own job, cross-turn idempotency is carried by the `MutationRequest` receipt above (a different job *and* a different conversation = a legitimate separate action).
 - **Reliability retry policy is intentionally unchanged**: provider failures stay terminal `failed` (`code:"provider"`) — the ledger, not retry semantics, protects against duplicate mutations. Legacy `/api/ai/ask` stays stateless and unquotaed.
 
 ### Mutation idempotency ledger (`backend/models/MutationEffect.js`)
@@ -782,7 +820,7 @@ Status: **✅ implemented & verified** (2026-09-22). Backend-only. Provider-neut
 - **`petgpt-mutation-tools.test.js` 10/10** (local Mongo, direct layer): both mutation tools registered `readOnly:false` alongside read tools (get_my_pets stays read-only); `create_reminder` writes a real owner-scoped Reminder; argument/enum/date/id validation (schema + execute-level enums); ownership isolation (foreign pet error === nonexistent-pet error, foreign reminder === unknown reminder); `complete_reminder` reports the verified `isCompleted:true` only; idempotency ledger — same `jobId`+args → `replayed:true` returning the identical record, one Reminder, reordered args hit the same key, **different** jobId → legitimate second Reminder; failed mutation leaves **no** ledger row and stays retryable; no `jobId` → no ledger; system prompt confirm-first guardrail; persisted docs + declarations secret-free.
 - **`petgpt-quota-reliability.test.js`** (local Mongo + mock provider on :4116, `PETGPT_RATE_LIMIT_MAX=3`, worker `poll 60/stale 150/maxAttempts 3`): 3 in-window exchanges → completed, 4th → `429` with no orphan job/message; quotas are per-user; legacy `/ask` unbounded; a mutation job **simulated-crash-re-enqueued twice** re-runs its full provider flow (≥6 tool requests) yet the Reminder and the ledger row exist **exactly once** (`attemptCount ≥ 2` proven); graceful `stopWorker()` waits out an in-flight 400 ms generation and the job lands `completed`; full security scan (jobs/messages/reminders/ledger/responses/logs) clean.
 - **`petgpt-jobs.test.js` race assert hardened** (was timing-flaky when the fast mock completes an assistant reply before the follow-up GET — now counts the raced user message by content, not a length delta). Re-ran 3× green.
-- Full `npm test` chain exit 0 — prior 11 suites + the 2 new ones (OmniRoute suites skip cleanly without the container).
+- Full `npm test` chain exit 0 — prior 11 suites + the 2 new ones (live-provider suites skip cleanly when the endpoint is absent).
 - No frontend file changes; no React-migration worktree/file changes; no streaming; no Phase 7.
 
 Commit: Phase 6 on `feature/petgpt-enhancement`.
@@ -828,7 +866,7 @@ No new env vars — the 32 KB `/api/ai` body bound is hardcoded in `server.js`; 
 - `node --check` all touched files → pass.
 - **`petgpt-security.test.js` 12/12** (local Mongo + mode-switchable mock provider on :4119): cross-user conversation/job/provider access identical to unknown ids (no oracle); malformed/empty/oversized inputs deterministic 400, foreign idempotency-key reuse 409; oversized `/api/ai` body → 413 before parsing; provider-config bounds 400; strict tool date/time/length validation; **retried same-job mutation replays its recorded result** (one reminder, one ledger row — sequential exactly-once); HTTP 500 / non-JSON / empty-text / malformed-tool-call failures land the job `failed` with generic errors and no fabricated message; prompt-injection attempts refused by backend code (foreign-pet read, unregistered tool, foreign-pet mutation — all `ok:false`, nothing written); quota sequential 202/202/429 with no orphans + concurrent burst never 500/no drift; atomic claim + reaper (exhausted → failed, retryable → re-enqueued); clearConversation purges ledger rows; secret scan across persisted docs, API responses, provider requests, and logs clean.
 - Regression suites re-run green: provider-config 19/19, petgpt-mutation-tools 10/10.
-- Full `npm test` chain exit 0 (2 consecutive runs) — all 14 suites (OmniRoute suites skip cleanly without the container).
+- Full `npm test` chain exit 0 (2 consecutive runs) — all 14 suites (live-provider suites skip cleanly when the endpoint is absent).
 
 Commit: Phase 7 on `feature/petgpt-enhancement`.
 

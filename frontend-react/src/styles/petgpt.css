@@ -1,8 +1,434 @@
 /* =========================================================
-   PETGPT PAGE (Phase 22) — scoped composables only. Layout is
-   Tailwind; this file holds the few pieces CSS must own:
-   typing indicator, inner scrollbar, message fade-in.
+   PETGPT PAGE — full-height chat surface.
+
+   Layout here follows the app's page convention (health.css,
+   appointments.css, …): the page owns its own `.main-content`
+   box via `body:has(.petgpt-page)`, and its own dark palette, so
+   PetGPT reads as one surface with the conversation rail rather
+   than a card floating inside generic page padding.
+
+   Heights: the shell's `.main-content` is `min-height: 100vh` with
+   padding, so a percentage height on the page root would be
+   indefinite and collapse. The root therefore takes the viewport
+   directly with `100dvh` (dynamic viewport height, so mobile browser
+   chrome does not clip the composer) and the shell padding is
+   neutralized for this page. The composer is then always on screen
+   and only the message column scrolls.
    ========================================================= */
+
+body:has(.petgpt-page) .main-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+.petgpt-root {
+  height: 100dvh;
+}
+
+/* ---- DARK PALETTE ----
+   Reuses the authenticated app's surfaces (dashboard.css §2 dark
+   tokens) instead of the generic slate ramp the page used before,
+   so PetGPT matches the sidebar and the rest of the signed-in app
+   rather than reading as a darker, bluer foreign object.
+
+   Both palettes are declared on `.petgpt-root` — the SAME element.
+   They used to be split the way dashboard.css splits them: light on
+   an outer box, dark on `body`. That works for dashboard only
+   because BOTH of its blocks are ANCESTORS of the page content
+   (`:root:has(.dashboard-page)` and `body.dark-theme:has(
+   .dashboard-page)`), so the dark one wins for their shared
+   descendants. Here the light block sat on `.petgpt-root` itself —
+   the page content element, i.e. a DESCENDANT of `body` — so the
+   dark values were merely inherited and a value declared directly on
+   an element always beats an inherited one, whatever the
+   specificity. The light block won on every render and the page
+   stayed light with `dark-theme` on <body>: dark mode looked simply
+   absent. Both palettes now live on the one element that uses them,
+   which is the pattern that cannot lose. */
+body.dark-theme:has(.petgpt-page) .petgpt-root {
+  --pg-surface: #211e30;
+  --pg-surface-2: #1c1929;
+  --pg-page: #171523;
+  --pg-border: #332e45;
+  --pg-border-soft: #2b273c;
+  --pg-text: #f5f2ff;
+  --pg-muted: #b7b0c9;
+  --pg-faint: #89829b;
+  --pg-tint: #3a2631;
+}
+
+.petgpt-root {
+  --pg-surface: #ffffff;
+  --pg-surface-2: #fff9f6;
+  --pg-page: #fff9f6;
+  --pg-border: #ffe7ee;
+  --pg-border-soft: #f4e4ea;
+  --pg-text: #3d2314;
+  --pg-muted: #6f6259;
+  --pg-faint: #8a7d74;
+  --pg-tint: #ffeaf2;
+  background: var(--pg-page);
+  color: var(--pg-text);
+}
+
+/* ---- FOCUS ----
+   The app's focus ring is scoped to `body:has(.dashboard-page)`,
+   which PetGPT is not, so it had none at all. Same ring, same
+   offset, so keyboard focus looks identical everywhere. */
+.petgpt-page button:focus-visible,
+.petgpt-page a:focus-visible,
+.petgpt-page textarea:focus-visible,
+.petgpt-page [tabindex]:focus-visible {
+  outline: 3px solid rgba(141, 107, 209, 0.35);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* ---- SURFACES ----
+   One bordered surface per pane so the rail, transcript and
+   composer read as three distinct regions instead of a single
+   undifferentiated white field. */
+
+.petgpt-rail {
+  background: var(--pg-surface);
+  border-right: 1px solid var(--pg-border);
+  width: 17.5rem;
+}
+
+.petgpt-header,
+.petgpt-composer-bar {
+  background: color-mix(in srgb, var(--pg-surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.petgpt-composer-bar {
+  border-bottom: none;
+  border-top: 1px solid var(--pg-border);
+  padding: 0.875rem 1rem 1rem;
+}
+
+/* Transcript + composer share one measure and one gutter so message
+   bubbles line up with the composer edges at every width. */
+.petgpt-column {
+  width: 100%;
+  max-width: 46rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  .petgpt-column {
+    padding-inline: 1.5rem;
+  }
+}
+
+.petgpt-transcript {
+  padding-block: 1.25rem 1.75rem;
+}
+
+/* ---- MESSAGES ----
+   Rhythm comes from a consistent gap between turns plus one extra
+   beat between exchanges, instead of a per-row margin that had to
+   be re-guessed at every breakpoint. */
+
+.petgpt-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.petgpt-bubble {
+  max-width: 85%;
+  padding: 0.6875rem 0.9375rem;
+  border-radius: 1.125rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  box-shadow: 0 1px 2px rgba(61, 35, 20, 0.06);
+}
+
+@media (min-width: 640px) {
+  .petgpt-bubble {
+    max-width: 78%;
+  }
+}
+
+.petgpt-bubble-user {
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.petgpt-bubble-assistant {
+  background: var(--pg-surface);
+  color: var(--pg-text);
+  border: 1px solid var(--pg-border-soft);
+  border-top-left-radius: 0.375rem;
+}
+
+.petgpt-failure {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #78350f;
+  box-shadow: none;
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-failure {
+  background: rgba(120, 53, 15, 0.22);
+  border-color: #78350f;
+  color: #fcd34d;
+}
+
+.petgpt-meta {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--pg-faint);
+  margin-top: 0.25rem;
+}
+
+.petgpt-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--pg-tint);
+  color: var(--color-primary);
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-avatar {
+  background: #4a2233;
+  color: #f9a8c4;
+}
+
+/* ---- COMPOSER ---- */
+
+.petgpt-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 1rem;
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  box-shadow: 0 2px 8px rgba(61, 35, 20, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.petgpt-composer:focus-within {
+  border-color: #f9a8c4;
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.12);
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-composer {
+  border-color: var(--pg-border);
+  box-shadow: none;
+}
+
+.petgpt-composer textarea {
+  flex: 1;
+  min-height: 2.5rem;
+  max-height: 10rem;
+  resize: none;
+  background: transparent;
+  border: none;
+  padding: 0.625rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--pg-text);
+}
+
+.petgpt-composer textarea::placeholder {
+  color: var(--pg-faint);
+}
+
+.petgpt-composer textarea:focus {
+  outline: none;
+}
+
+.petgpt-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  background: var(--color-primary);
+  color: #fff;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.petgpt-send:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.petgpt-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.petgpt-disclaimer {
+  margin-top: 0.5rem;
+  padding-inline: 0.25rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--pg-faint);
+}
+
+/* ---- CONVERSATION RAIL ---- */
+
+.petgpt-rail-head {
+  padding: 0.875rem 0.75rem 0.75rem;
+}
+
+.petgpt-rail-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.petgpt-rail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.petgpt-rail-item:hover {
+  background: color-mix(in srgb, var(--pg-tint) 60%, transparent);
+}
+
+.petgpt-rail-item[aria-current='true'] {
+  background: var(--pg-tint);
+  color: #b02a4f;
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-rail-item[aria-current='true'] {
+  background: #4a2233;
+  color: #f9a8c4;
+}
+
+/* ---- TYPOGRAPHY / SECTION SPACING ---- */
+
+.petgpt-rail-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.petgpt-rail-preview {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--pg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.petgpt-empty {
+  flex: 1;
+  overflow-y: auto;
+  padding-block: 2rem 2.5rem;
+}
+
+.petgpt-empty-inner {
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.petgpt-daychip {
+  display: block;
+  margin: 0 auto 1.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border-soft);
+  font-size: 0.6875rem;
+  color: var(--pg-faint);
+}
+
+/* ---- TOOL CALLS ----
+   Real backend tool results, shown as a compact, quiet footer on
+   the message they belong to. */
+
+.petgpt-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--pg-border-soft);
+}
+
+.petgpt-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.petgpt-tool-ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.petgpt-tool-fail {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-tool-ok {
+  background: rgba(6, 78, 59, 0.35);
+  color: #6ee7b7;
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-tool-fail {
+  background: rgba(120, 53, 15, 0.3);
+  color: #fcd34d;
+}
+
+/* ---- SETUP NOTICE ---- */
+
+.petgpt-notice {
+  border-color: #fde68a;
+  background: rgba(255, 251, 235, 0.9);
+}
+
+.petgpt-notice-cta {
+  color: #92400e;
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-notice {
+  border-color: #78350f;
+  background: rgba(120, 53, 15, 0.25);
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-notice-cta {
+  background: #1c1929;
+  color: #fcd34d;
+  --tw-ring-color: #78350f;
+}
+
+/* ---- ANIMATION ---- */
 
 .petgpt-dot {
   animation: petgpt-bounce 1.2s infinite ease-in-out;
@@ -39,29 +465,42 @@
   border-radius: 20px;
 }
 
+body.dark-theme:has(.petgpt-page) .petgpt-scroll {
+  scrollbar-color: #51466a transparent;
+}
+
+body.dark-theme:has(.petgpt-page) .petgpt-scroll::-webkit-scrollbar-thumb {
+  background: #51466a;
+}
+
+/* ---- ANSWER RENDERING ---- */
+
+/* The assistant's reply is plain text, not HTML: preserve the newlines the
+   model emits and let long tokens wrap instead of overflowing the bubble. */
 .petgpt-answer {
   color: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-.petgpt-answer p {
-  margin: 0 0 0.5em;
+@media (prefers-reduced-motion: reduce) {
+  .petgpt-dot {
+    animation: none;
+    opacity: 0.8;
+  }
 }
 
-.petgpt-answer p:last-child {
-  margin-bottom: 0;
-}
+/* ---- MOBILE ----
+   The rail becomes a drawer; the page itself needs no horizontal
+   padding beyond the shared column gutter, so bubbles and the
+   composer keep their measure down to 320px. */
 
-.petgpt-answer ul,
-.petgpt-answer ol {
-  margin: 0.4em 0 0.6em;
-  padding-left: 1.25em;
-  list-style: disc;
-}
+@media (max-width: 767px) {
+  .petgpt-composer-bar {
+    padding: 0.75rem 0.75rem 0.875rem;
+  }
 
-.petgpt-answer ol {
-  list-style: decimal;
-}
-
-.petgpt-answer strong {
-  font-weight: 600;
+  .petgpt-transcript {
+    padding-block: 1rem 1.25rem;
+  }
 }

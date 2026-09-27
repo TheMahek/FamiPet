@@ -6,33 +6,31 @@
 //   * valid / invalid / unknown tool calls, argument validation
 //   * ownership isolation and foreign-pet rejection
 //   * bounded loop iterations and bounded tool-call metadata
-//   * provider-failure mapping, non-tool-provider gate
+//   * endpoint-failure mapping
 //   * no secret leakage in tool results or metadata
 //
 // Uses a dedicated test database on the locally running MongoDB.
-// The provider registry is populated by requiring backend/ai (the same
-// require path the worker/server use), so canUseTools reflects real
-// capabilities.
+// The tool registry is populated by requiring backend/ai (the same
+// require path the worker/server use).
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const mongoose = require("mongoose");
 
 process.env.NODE_ENV = "test";
-process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/animal_planet_petgpt_tools_test";
-process.env.PETGPT_PROVIDER = "openai";
+process.env.MONGODB_URI = testDbUri("animal_planet_petgpt_tools_test");
 process.env.PETGPT_OPENAI_BASE_URL = "http://127.0.0.1:9/v1";
 process.env.PETGPT_OPENAI_API_KEY = "sk-tools-test";
 process.env.PETGPT_OPENAI_MODEL = "test-model";
 process.env.PETGPT_MAX_TOOL_ITERATIONS = "3";
 process.env.PETGPT_TOOL_MAX_RESULTS = "10";
 
-require("../ai"); // registers adapters (gemini, openai) like server.js does
+require("../ai"); // registers the tools like server.js does
 const User = require("../models/User");
 const Pet = require("../models/Pet");
 const Breed = require("../models/Breed");
 const {
-  canUseTools,
   runToolCallingLoop,
   TOOL_CALLS_METADATA_MAX,
 } = require("../ai/tool-calling");
@@ -51,11 +49,9 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
 function fakeAdapter(script) {
   let i = 0;
   return {
-    name: "openai",
-    capabilities: { chat: true, toolCalling: true },
     async generateWithTools() {
       const r = script[i++];
-      if (r === "throw") throw new Error("provider exploded");
+      if (r === "throw") throw new Error("endpoint exploded");
       return r;
     },
   };
@@ -82,7 +78,7 @@ async function main() {
   const decls = listToolDeclarations();
   assert.ok(decls.length >= 6, "declarations include every registered tool");
   const getPetsDecl = decls.find((d) => d.function && d.function.name === "get_my_pets");
-  assert.ok(getPetsDecl, "get_my_pets has a provider declaration");
+  assert.ok(getPetsDecl, "get_my_pets has a tool declaration");
   assert.strictEqual(getPetsDecl.type, "function", "declaration is OpenAI function shape");
   assert.ok(typeof getPetsDecl.function.description === "string" && getPetsDecl.function.description.length > 0, "declaration has a description");
   assert.deepStrictEqual(getPetsDecl.function.parameters, { type: "object", properties: {}, required: [] }, "get_my_pets takes no arguments");
@@ -133,13 +129,11 @@ async function main() {
   assert.strictEqual(own.result.pet.name, "Rex");
   ok("tools: ownership re-checked per call; foreign/invalid pets indistinguishable");
 
-  // ---- 6. capability gates -----------------------------------------------
-  assert.strictEqual(canUseTools("openai"), true, "openai declares tool calling");
-  assert.strictEqual(canUseTools("google"), false, "gemini does not declare tool calling");
-  const chatOnly = { name: "google", capabilities: { chat: true }, generateWithTools: async () => ({ text: "x" }) };
-  const gate = await runToolCallingLoop({ adapter: chatOnly, config: {}, messages: makeMessages(), userId: alice._id });
-  assert.strictEqual(gate.reason, "no_tools", "loop refuses a non-tool provider");
-  ok("tools: capability gates keep chat-only providers off the tool path");
+  // ---- 6. an adapter without generateWithTools stays off the tool path --
+  const chatOnly = { name: "chat-only", generate: async () => ({ text: "x" }) };
+  const gate = await runToolCallingLoop({ adapter: chatOnly, messages: makeMessages(), userId: alice._id });
+  assert.strictEqual(gate.reason, "no_tools", "loop refuses an adapter with no tool support");
+  ok("tools: an adapter with no tool support is refused");
 
   // ---- 7. bounded loop iterations ----------------------------------------
   const boundedScript = [];
@@ -147,19 +141,19 @@ async function main() {
   let calls = 0;
   const alwaysTools = fakeAdapter(boundedScript);
   alwaysTools.generateWithTools = async () => { calls++; return { text: "", toolCalls: [{ id: `c${calls}`, name: "get_my_pets", arguments: {} }] }; };
-  const r7 = await runToolCallingLoop({ adapter: alwaysTools, config: {}, messages: makeMessages(), userId: alice._id });
+  const r7 = await runToolCallingLoop({ adapter: alwaysTools, messages: makeMessages(), userId: alice._id });
   assert.strictEqual(calls, 3, "loop stopped exactly at AI_CONFIG.tools.maxIterations=3");
   assert.strictEqual(r7.ok, false);
   assert.strictEqual(r7.reason, "max_iterations");
   assert.ok(!r7.text, "no fabricated final answer on exhaustion");
-  ok("tools: provider that never finishes is bounded at maxIterations with no fabricated text");
+  ok("tools: an endpoint that never finishes is bounded at maxIterations with no fabricated text");
 
   // ---- 8. bounded tool-call metadata --------------------------------------
-  const manyCalls = { name: "openai", capabilities: { chat: true, toolCalling: true }, generateWithTools: async () => ({
+  const manyCalls = { generateWithTools: async () => ({
     text: "",
     toolCalls: Array.from({ length: 25 }, (_, i) => ({ id: `m${i}`, name: "get_my_pets", arguments: {} })),
   }) };
-  const r8 = await runToolCallingLoop({ adapter: manyCalls, config: {}, messages: makeMessages(), userId: alice._id });
+  const r8 = await runToolCallingLoop({ adapter: manyCalls, messages: makeMessages(), userId: alice._id });
   assert.strictEqual(r8.reason, "max_iterations", "one huge round still respects iteration bounds");
   assert.ok(r8.toolLog.length <= TOOL_CALLS_METADATA_MAX, `metadata bounded at ${TOOL_CALLS_METADATA_MAX} (was ${r8.toolLog.length})`);
   for (const entry of r8.toolLog) {
@@ -175,7 +169,6 @@ async function main() {
       { text: "", toolCalls: [{ id: "u", name: "get_pet_details", arguments: { petId: rex._id.toString() } }, { id: "v", name: "ghost_tool", arguments: {} }] },
       { text: "I could not find that.", toolCalls: [] },
     ]),
-    config: {},
     messages: makeMessages(),
     userId: bob._id,
   });
@@ -186,17 +179,16 @@ async function main() {
   assert.strictEqual(r9.toolLog[1].ok, false, "unknown tool call failed safely");
   ok("tools: per-tool failures become model-safe results, never fabricated success");
 
-  // ---- 10. provider error mid-round ----------------------------------------
+  // ---- 10. endpoint error mid-round -----------------------------------------
   const r10 = await runToolCallingLoop({
     adapter: fakeAdapter([{ text: "let me check", toolCalls: [{ id: "c", name: "get_my_pets", arguments: {} }] }, "throw"]),
-    config: {},
     messages: makeMessages(),
     userId: alice._id,
   });
   assert.strictEqual(r10.ok, false);
-  assert.strictEqual(r10.reason, "error", "provider transport failure aborts the loop");
+  assert.strictEqual(r10.reason, "error", "endpoint transport failure aborts the loop");
   assert.strictEqual(r10.text, "let me check", "last real model text is reported for the log, never invented");
-  ok("tools: provider failure mid-tool-round aborts safely");
+  ok("tools: endpoint failure mid-tool-round aborts safely");
 
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();

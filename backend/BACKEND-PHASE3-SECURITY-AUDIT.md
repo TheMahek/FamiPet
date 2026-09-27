@@ -6,6 +6,12 @@
 **Scope:** Backend `server.js`, routes, controllers, models, middleware, config, utils, auth, uploads, environment. No frontend modifications. No `npm audit fix --force`. No blind upgrades. No commits.
 **Phase 2 baseline:** ESLint 0 errors / 0 warnings, regression 62/62 PASS, Winston logger, `console.*` removed, `logs/` git-ignored — all preserved through this phase.
 
+> **Superseded in part (Gemini consolidation).** This audit is a dated record of the
+> `backend-audit` branch as of 2026-09-22. The AI surface it describes no longer
+> exists: Gemini, the per-user provider-config API, and `PETGPT_ENCRYPTION_KEY`
+> were removed. The AI layer is now one application-configured OpenAI-compatible
+> adapter — see `petGPT.md` §0. Findings about every other area still stand.
+
 ---
 
 ## 1. EXECUTIVE SUMMARY
@@ -180,7 +186,7 @@ Inspected: `middleware/upload.js`, `config/cloudinary.js`, `controllers/auth.con
 | `POST /api/auth/forgot-password` | 5 | reset-token spam / enumeration |
 | `POST /api/auth/resend-verification` | 5 | email abuse |
 | `POST /api/auth/reset-password` | 10 | token brute force |
-| `POST /api/ai/ask`, `POST /api/ai/advice` | 30 | paid Gemini quota |
+| `POST /api/ai/ask`, `POST /api/ai/advice` | 30 | paid AI quota |
 
 All authenticated read/write endpoints inherit ownership protection; limiting only the sensitive surface avoids false-positive throttling of normal use.
 
@@ -204,7 +210,7 @@ All authenticated read/write endpoints inherit ownership protection; limiting on
 
 Audited every `logger.*` call in `utils/logger.js`, `server.js`, `config/*`, `controllers/*`, `middleware/*`.
 
-- **Never logs:** passwords, JWT tokens/headers, API keys, MongoDB URI, SMTP/Cloudinary/Gemini credentials, reset tokens. (Reset/verify tokens appear only in request URLs — see below.)
+- **Never logs:** passwords, JWT tokens/headers, API keys, MongoDB URI, SMTP/Cloudinary/AI credentials, reset tokens. (Reset/verify tokens appear only in request URLs — see below.)
 - **Fixed (`server.js`):** `morgan('dev')` previously logged **full request URLs**, which include long hex reset/verify tokens in the path. `morgan.token('url')` now redacts `[a-f0-9]{32,}` → `[REDACTED]` before logging.
 - Structured Winston JSON output; `console.*` fully removed (Phase 2) and verified again.
 - `utils/logger.js` (committed in Phase 2) is the single log sink; no credential-bearing variable is ever passed to it.
@@ -219,7 +225,7 @@ Searched all backend source for hardcoded credentials/keys/passwords.
 - **JWT secret:** env (`JWT_SECRET`) only; `.env.example` holds a placeholder.
 - **SMTP:** env (`EMAIL_USER`/`EMAIL_PASS`) only; service gmail.
 - **Cloudinary:** env (`CLOUDINARY_*`) only; guarded fallback.
-- **Gemini/API keys:** env (`GEMINI_API_KEY`) only.
+- **AI keys:** env (`PETGPT_OPENAI_API_KEY`) only — the single adapter reads the key and never passes it to a log sink or a response.
 - **`.env` ignored by Git:** verified — `.gitignore` contains `.env` (and `logs/` from Phase 2).
 - **`.env.example`:** placeholders only, no real secrets.
 - No hardcoded secrets found in source. **PASS.**
