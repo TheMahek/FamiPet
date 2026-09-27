@@ -10,10 +10,18 @@ const crypto = require("crypto");
 // closed on a missing/wrong key — plaintext is never written.
 // =========================================================
 
+// Stable, non-secret marker so callers can tell "this deployment has no
+// PETGPT_ENCRYPTION_KEY" apart from a real crypto/IO failure and answer with an
+// actionable configuration error instead of a generic 500. The message names the
+// variable (never a value) and no plaintext is written on this path.
+const ENCRYPTION_KEY_MISSING = "PETGPT_ENCRYPTION_KEY_MISSING";
+
 function encryptionKey() {
   const secret = process.env.PETGPT_ENCRYPTION_KEY;
   if (!secret) {
-    throw new Error("PETGPT_ENCRYPTION_KEY is not configured");
+    const error = new Error("PETGPT_ENCRYPTION_KEY is not configured");
+    error.code = ENCRYPTION_KEY_MISSING;
+    throw error;
   }
   return crypto.createHash("sha256").update(String(secret)).digest();
 }
@@ -46,4 +54,4 @@ function decryptSecret(stored) {
   }
 }
 
-module.exports = { encryptSecret, decryptSecret };
+module.exports = { encryptSecret, decryptSecret, ENCRYPTION_KEY_MISSING };

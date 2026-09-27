@@ -851,6 +851,146 @@ body:has(.settings-page) .main-content {
 }
 
 /* =========================================================
+   AI PROVIDER (PetGPT provider configuration)
+
+   Reuses the primitives above (preference-row / form-group /
+   purple-btn / toggle / form-feedback) so the section reads as
+   part of Settings rather than a bolted-on widget. Only the
+   pieces with no equivalent get their own rule: the one-line
+   status banner, the per-provider badges, the secondary
+   (ghost) buttons, and the provider form block.
+   ========================================================= */
+
+.settings-page .provider-status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 14px;
+    padding: 9px 12px;
+    border: 1px solid #eeeaf4;
+    border-radius: 10px;
+    background: #faf8ff;
+    color: #77839a;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.settings-page .provider-status.on {
+    border-color: #cdeeda;
+    background: #f2fbf6;
+    color: #2f7d52;
+}
+
+.settings-page .provider-status svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.settings-page .provider-list {
+    margin-bottom: 16px;
+}
+
+.settings-page .provider-list .preference-row {
+    flex-wrap: wrap;
+}
+
+.settings-page .provider-list .preference-content {
+    flex: 1 1 190px;
+}
+
+.settings-page .provider-list .form-feedback {
+    flex-basis: 100%;
+    margin: 4px 0 0;
+}
+
+.settings-page .provider-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 7px;
+}
+
+.settings-page .provider-badge {
+    padding: 2px 8px;
+    border: 1px solid #e6e1f2;
+    border-radius: 20px;
+    background: #f7f5fd;
+    color: #77839a;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.settings-page .provider-badge.on {
+    border-color: #bfe6cf;
+    background: #eafaf1;
+    color: #2f7d52;
+}
+
+.settings-page .provider-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.settings-page .form-button-row.provider-actions {
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.settings-page .ghost-btn {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 11px;
+    border: 1px solid #e6e1f2;
+    border-radius: 8px;
+    background: #fff;
+    color: #68758e;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.settings-page .ghost-btn:hover:not(:disabled) {
+    border-color: #c9b8ef;
+    color: var(--settings-accent-dark);
+}
+
+.settings-page .ghost-btn.danger:hover:not(:disabled) {
+    border-color: #f3bcbc;
+    color: #e05252;
+}
+
+.settings-page .ghost-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.settings-page .provider-form {
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid #eeeaf4;
+}
+
+.settings-page .provider-form .preferences-list {
+    margin: 4px 0 16px;
+}
+
+.settings-page .provider-hint {
+    display: block;
+    margin: 6px 0 0;
+    color: #98a1b1;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* =========================================================
    FOOTER
    ========================================================= */
 
@@ -1107,6 +1247,50 @@ body.dark-theme .settings-page .settings-footer strong {
     color: #c9b8ef;
 }
 
+body.dark-theme .settings-page .provider-status {
+    border-color: #332e45;
+    background: #211e30;
+    color: #b7b0c9;
+}
+
+body.dark-theme .settings-page .provider-status.on {
+    border-color: #2c5c42;
+    background: #1b2b23;
+    color: #7fd6a5;
+}
+
+body.dark-theme .settings-page .provider-badge {
+    border-color: #3a3450;
+    background: #211e30;
+    color: #a89fc0;
+}
+
+body.dark-theme .settings-page .provider-badge.on {
+    border-color: #2c5c42;
+    background: #1b2b23;
+    color: #7fd6a5;
+}
+
+body.dark-theme .settings-page .provider-form {
+    border-top-color: #332e45;
+}
+
+body.dark-theme .settings-page .ghost-btn {
+    background: #211e30;
+    border-color: #3a3450;
+    color: #c3bad6;
+}
+
+body.dark-theme .settings-page .ghost-btn:hover:not(:disabled) {
+    border-color: #5b4c7d;
+    color: #c9b8ef;
+}
+
+body.dark-theme .settings-page .ghost-btn.danger:hover:not(:disabled) {
+    border-color: #6b3a3a;
+    color: #ff9d9d;
+}
+
 /* =========================================================
    ACCESSIBILITY
    ========================================================= */
@@ -1119,6 +1303,7 @@ body.dark-theme .settings-page .settings-footer strong {
 .settings-page .password-eye:focus-visible,
 .settings-page .manage-pets-btn:focus-visible,
 .settings-page .info-link:focus-visible,
+.settings-page .ghost-btn:focus-visible,
 .settings-page .toggle-slider:focus-visible {
     outline: 3px solid rgba(139, 97, 216, 0.35);
     outline-offset: 2px;

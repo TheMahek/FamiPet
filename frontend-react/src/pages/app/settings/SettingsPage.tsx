@@ -27,6 +27,7 @@ import { getMyPets, type Pet } from '../../../api/pets'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTheme } from '../../../hooks/useTheme'
 import { Icon } from '../../../components/shared/Icon'
+import { AiProviderSettings } from './AiProviderSettings'
 import { ageText, breedName, petImage } from '../../../lib/formatters'
 import { getErrorMessage } from '../../../lib/errors'
 
@@ -668,6 +669,9 @@ export function SettingsPage() {
               </div>
             </div>
           </section>
+
+          {/* --- AI PROVIDER (PetGPT provider configuration) --- */}
+          <AiProviderSettings />
 
           {/* --- LANGUAGE & REGION --- */}
           <section className="settings-card">
