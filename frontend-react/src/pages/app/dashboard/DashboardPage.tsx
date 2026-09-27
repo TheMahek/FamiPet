@@ -8,15 +8,19 @@
 // - Mobile nav is owned by AppLayout's toggle (the in-page hamburger is
 //   dropped); links use React Router (View all / Calendar / Details / empty
 //   state CTAs).
+// - No notification bell/panel here: there is one app-level bell in AppLayout.
+//   The recent-activity feed still needs notifications, so it reads the same
+//   centralized NotificationProvider state the bell does (one fetch, and it
+//   stays current on its own instead of only on mount).
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAppointments, type Appointment } from '../../../api/appointments'
 import { getMyAdoptions, type Adoption } from '../../../api/adoptions'
-import { getNotifications, type AppNotification } from '../../../api/notifications'
 import { getMyPets, type Pet } from '../../../api/pets'
 import { getReminders, type Reminder } from '../../../api/reminders'
 import { useAuth } from '../../../hooks/useAuth'
 import { useFavorites } from '../../../hooks/useFavorites'
+import { useNotifications } from '../../../hooks/useNotifications'
 import { useTheme } from '../../../hooks/useTheme'
 import { fmtDate } from '../../../lib/formatters'
 import { Icon } from '../../../components/shared/Icon'
@@ -24,7 +28,6 @@ import {
   ActivitySection,
   AppointmentSection,
   LoveCard,
-  NotificationPanel,
   PetsSection,
   RemindersSection,
   StatCard,
@@ -36,7 +39,6 @@ interface DashboardData {
   appointments: Appointment[] | null
   reminders: Reminder[] | null
   adoptions: Adoption[] | null
-  notes: AppNotification[] | null
 }
 
 const INITIAL: DashboardData = {
@@ -44,18 +46,15 @@ const INITIAL: DashboardData = {
   appointments: null,
   reminders: null,
   adoptions: null,
-  notes: null,
 }
 
 export function DashboardPage() {
   const { user } = useAuth()
   const { setDark, setLight } = useTheme()
   const { favIds, toggle: toggleFav } = useFavorites()
+  const { notifications } = useNotifications()
   const [data, setData] = useState<DashboardData>(INITIAL)
-  const [panelOpen, setPanelOpen] = useState(false)
 
-  const panelRef = useRef<HTMLDivElement>(null)
-  const bellRef = useRef<HTMLButtonElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLElement>(null)
 
@@ -78,9 +77,6 @@ export function DashboardPage() {
     getMyAdoptions()
       .then((r) => merge({ adoptions: r.adoptions || r.requests || [] }))
       .catch((e) => warn('Dashboard adoptions:', e))
-    getNotifications()
-      .then((r) => merge({ notes: r.notifications || [] }))
-      .catch((e) => warn('Dashboard notifications:', e))
 
     return () => {
       cancelled = true
@@ -93,9 +89,9 @@ export function DashboardPage() {
   )
 
   const activityItems: ActivityItem[] | null = useMemo(() => {
-    if (data.notes === null || data.adoptions === null) return null
+    if (notifications === null || data.adoptions === null) return null
     const items: ActivityItem[] = []
-    for (const n of data.notes.slice(0, 3)) {
+    for (const n of notifications.slice(0, 3)) {
       items.push({
         title: n.title || '',
         date: fmtDate(n.createdAt),
@@ -117,24 +113,7 @@ export function DashboardPage() {
       })
     }
     return items.slice(0, 3)
-  }, [data.notes, data.adoptions])
-
-  // panel open/close: bell toggles, click-outside + Escape close (dashboard.js §§9/17)
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (panelRef.current?.contains(e.target as Node) || bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPanelOpen(false)
-    }
-    document.addEventListener('click', onDocClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('click', onDocClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [])
+  }, [notifications, data.adoptions])
 
   // Ctrl/Cmd+K focuses search (dashboard.js §18)
   useEffect(() => {
@@ -162,7 +141,6 @@ export function DashboardPage() {
 
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || ''
   const greeting = firstName ? `Good morning, ${firstName}! 🌸` : 'Good morning! 🌸'
-  const unreadCount = (data.notes || []).filter((n) => !n.isRead).length
 
   return (
     <div className="dashboard-page">
@@ -193,24 +171,8 @@ export function DashboardPage() {
             <Icon name="moon" />
           </button>
 
-          <button
-            ref={bellRef}
-            className="notification-btn"
-            id="notificationBtn"
-            type="button"
-            aria-label="Notifications"
-            title="Notifications"
-            onClick={() => setPanelOpen((o) => !o)}
-          >
-            <Icon name="bell" />
-            <span className="notification-count">{unreadCount || '0'}</span>
-          </button>
         </div>
       </header>
-
-      <div ref={panelRef}>
-        <NotificationPanel open={panelOpen} notes={data.notes} onClose={() => setPanelOpen(false)} />
-      </div>
 
       <section className="dashboard-content" ref={contentRef}>
         <div className="stats-grid">

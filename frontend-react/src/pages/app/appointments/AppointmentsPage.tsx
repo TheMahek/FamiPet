@@ -3,9 +3,10 @@
 //
 // Deltas from the Vanilla page (documented in migration.md Phase 12):
 // - Notifications: Vanilla rendered only locally-created fake items that never
-//   persisted (addNotification() pushed to an in-memory array). This page
-//   loads real /notifications like the Dashboard/Health pages (AGENTS §7);
-//   booking a visit also creates a real backend notification.
+//   persisted (addNotification() pushed to an in-memory array). Real
+//   notifications are backend-persisted (AGENTS §7) and are shown by the single
+//   app-level bell in AppLayout, which the NotificationProvider refreshes —
+//   so booking a visit surfaces its own notification there without a reload.
 // - Success/failure feedback: Vanilla alert()/toast; this port uses the same
 //   toast + inline form errors and window.confirm for cancellation (React
 //   conventions from Phases 9-11). History "View Details" opens a read-only
@@ -17,17 +18,12 @@
 //   (Vanilla legend was hardcoded "Bruno - Checkup"/"Luna - Vaccination").
 // - "Set Reminder" quick action navigates to /app/reminders (Phase 14)
 //   instead of fake-adding a notification + alerting (AGENTS §5).
-// - Notification button was wired to the bell (Vanilla page had the button but
-//   no handler); bell/sun parity as on the Health page.
+// - The page's own notification bell is gone (Vanilla page had a button with
+//   no handler); there is one bell for the app now, in AppLayout.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { deleteAppointment, getAppointments } from '../../../api/appointments'
-import {
-  getNotifications,
-  markAllNotificationsRead,
-  type AppNotification,
-} from '../../../api/notifications'
 import { getMyPets } from '../../../api/pets'
 import { getVeterinarians, type Veterinarian } from '../../../api/veterinarians'
 import { Icon } from '../../../components/shared/Icon'
@@ -43,7 +39,6 @@ export function AppointmentsPage() {
   const [pets, setPets] = useState<PetView[]>([])
   const [vets, setVets] = useState<Veterinarian[]>([])
   const [appointments, setAppointments] = useState<AppointmentView[] | null>(null)
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
 
   const [query, setQuery] = useState('')
@@ -51,26 +46,22 @@ export function AppointmentsPage() {
   const [bookOpen, setBookOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<AppointmentView | null>(null)
   const [details, setDetails] = useState<AppointmentView | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
   const [message, setMessage] = useState('')
 
-  const bellRef = useRef<HTMLButtonElement>(null)
   const historyCardRef = useRef<HTMLDivElement>(null)
 
   const loadData = () => {
     setLoadFailed(false)
-    Promise.all([getMyPets(), getVeterinarians(), getAppointments(), getNotifications()])
-      .then(([petsRes, vetsRes, apptsRes, notesRes]) => {
+    Promise.all([getMyPets(), getVeterinarians(), getAppointments()])
+      .then(([petsRes, vetsRes, apptsRes]) => {
         setPets((petsRes.pets || []).map(toPetView))
         setVets((vetsRes.veterinarians || []).filter((v) => v.isActive !== false))
         setAppointments((apptsRes.appointments || []).map(toAppointmentView))
-        setNotifications(notesRes.notifications || [])
       })
       .catch(() => {
         setPets([])
         setVets([])
         setAppointments([])
-        setNotifications([])
         setLoadFailed(true)
       })
   }
@@ -87,34 +78,8 @@ export function AppointmentsPage() {
 
   const reload = async () => {
     const apptsRes = await getAppointments()
-    const notesRes = await getNotifications()
     setAppointments((apptsRes.appointments || []).map(toAppointmentView))
-    setNotifications(notesRes.notifications || [])
   }
-
-  const unread = (notifications || []).filter((n) => !n.isRead).length
-
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
-    try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
-    }
-  }
-
-  // click outside closes the notification panel
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
 
   const stats = useMemo(() => {
     const list = appointments || []
@@ -244,49 +209,6 @@ export function AppointmentsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-          </div>
-
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : `${unread} unread`}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
 
           <button className="book-btn" type="button" onClick={() => setBookOpen(true)}>

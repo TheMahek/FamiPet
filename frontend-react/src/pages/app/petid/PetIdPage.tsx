@@ -5,12 +5,12 @@
 //   `petPreview.querySelector("img")` but the markup had none, so it threw on
 //   every pet selection — the React port matches the CSS that targets it).
 // - "No pets yet" empty state links to /app/mypet (Vanilla: mypet.html).
-// - Header runs the real /notifications panel and a working theme toggle.
+// - Header keeps a working theme toggle; the notification bell is the single
+//   app-level one in AppLayout (fed by the centralized NotificationProvider).
 
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMe } from '../../../api/auth'
-import { getNotifications, type AppNotification } from '../../../api/notifications'
 import { getMyPets, getPetQr } from '../../../api/pets'
 import { useTheme } from '../../../hooks/useTheme'
 import { Icon } from '../../../components/shared/Icon'
@@ -23,11 +23,8 @@ export function PetIdPage() {
   const [currentPet, setCurrentPet] = useState<PetView | null>(null)
   const [qr, setQr] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
-  const [notes, setNotes] = useState<AppNotification[] | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
 
   const idCardRef = useRef<HTMLDivElement>(null)
-  const bellRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     getMe()
@@ -36,24 +33,7 @@ export function PetIdPage() {
     getMyPets()
       .then((res) => setPets((res.pets || []).map(toPetView)))
       .catch(() => setPets([]))
-    getNotifications()
-      .then((res) => setNotes(res.notifications || []))
-      .catch(() => setNotes([]))
   }, [])
-
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
-
-  const unread = (notes || []).filter((n) => !n.isRead).length
 
   const onSelect = (id: string) => {
     const pet = (pets || []).find((p) => p.id === id) || null
@@ -157,33 +137,8 @@ export function PetIdPage() {
           <button className="icon-action-btn" type="button" title="Toggle theme" onClick={toggle}>
             <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
           </button>
-          <button ref={bellRef} className="icon-action-btn badge-btn" type="button" title="Notifications" onClick={() => setPanelOpen((o) => !o)}>
-            <Icon name="bell" />
-            <span className="badge">{unread || '0'}</span>
-          </button>
         </div>
       </header>
-
-      <div className={`pet-notification-panel${panelOpen ? ' show' : ''}`} id="petNotificationPanel">
-        <div className="pet-notification-header">
-          <strong>Notifications</strong>
-          <button type="button" className="pet-notification-close" aria-label="Close notifications" onClick={() => setPanelOpen(false)}>
-            &times;
-          </button>
-        </div>
-        {notes === null ? (
-          <div className="pet-notification-item">Loading notifications…</div>
-        ) : notes.length === 0 ? (
-          <div className="pet-notification-item">No notifications yet.</div>
-        ) : (
-          notes.slice(0, 6).map((n) => (
-            <div className="pet-notification-item" key={n._id}>
-              <span className="notification-dot" />
-              {n.message || n.title}
-            </div>
-          ))
-        )}
-      </div>
 
       <section className="dashboard-card" id="petIdSection">
         <div className="petid-layout">
