@@ -14,14 +14,14 @@
 // - No Add New Pet / Delete Pet buttons and no Filters modal / grid-list toggle:
 //   dead or duplicate UI (pet CRUD lives on My Pets, Phase 9) and the backend
 //   DELETE /pets/:id is owner-only anyway.
-// - Notification bell shows real /notifications + unread badge + panel, like the
-//   other migrated pages (Vanilla here hardcoded a "3" badge — AGENTS §7).
+// - No notification bell: it is the single app-level bell in AppLayout, fed by
+//   the centralized NotificationProvider (Vanilla here hardcoded a "3" badge —
+//   AGENTS §7).
 // - Application form drops Email and City: the backend Adoption model stores
 //   neither, and Vanilla collected but never sent them (Phase 9/16 precedent).
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getAvailablePets } from '../../../api/pets'
-import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
 import { Icon } from '../../../components/shared/Icon'
 import { useFavorites } from '../../../hooks/useFavorites'
 import { AdoptionCard } from './AdoptionCard'
@@ -47,22 +47,16 @@ export function AdoptionPage() {
   const [category, setCategory] = useState<CategoryValue>('all')
   const [sort, setSort] = useState<SortValue>('newest')
 
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
   const [selected, setSelected] = useState<AdoptionPetView | null>(null)
   const [toast, setToast] = useState('')
 
-  const bellRef = useRef<HTMLButtonElement>(null)
-
   const load = () => {
     setLoadFailed(false)
-    Promise.all([getAvailablePets(), getNotifications()])
-      .then(([petsRes, notesRes]) => {
+    getAvailablePets()
+      .then((petsRes) => {
         setPets((petsRes.pets || []).map((p) => toAdoptionPet(p)))
-        setNotifications(notesRes.notifications || [])
       })
       .catch(() => {
-        setNotifications([])
         setLoadFailed(true)
       })
   }
@@ -75,29 +69,6 @@ export function AdoptionPage() {
     const t = setTimeout(() => setToast(''), 2500)
     return () => clearTimeout(t)
   }, [toast])
-
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
-
-  const unread = (notifications || []).filter((n) => !n.isRead).length
-
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
-    try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
-    }
-  }
 
   /* ---------------- FILTER / SORT (Vanilla renderPetCards + sort logic) ---------------- */
 
@@ -160,49 +131,6 @@ export function AdoptionPage() {
 
         <div className="top-bar-actions">
           <SearchBar value={query} onChange={setQuery} />
-
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : unread + ' unread'}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 

@@ -15,6 +15,14 @@
 // - Danger Zone "Delete Account" is dropped: there is no self-delete backend
 //   endpoint, and the Vanilla button only cleared localStorage client-side
 //   without deleting the account, so "permanently delete" would be fake.
+// - "Push Notifications" was a localStorage-only preference that did nothing
+//   (AGENTS §5). It now drives the real Web Push subscription: enable asks the
+//   browser for permission and POSTs the subscription to the backend, disable
+//   unsubscribes and DELETEs it, and the toggle reflects the real device/server
+//   state (unsupported browser, insecure context, blocked permission or an
+//   unconfigured server are all reported instead of pretending to be on).
+// - No notification bell here: the single app-level bell lives in AppLayout and
+//   reads the centralized NotificationProvider.
 
 import { useEffect, useRef, useState, type ChangeEvent, type Ref } from 'react'
 import { Link } from 'react-router-dom'
@@ -22,7 +30,13 @@ import { changePassword, updateProfile, uploadAvatar } from '../../../api/settin
 import { getMe, type AuthUser } from '../../../api/auth'
 import { normalizeUser } from '../../../api/client'
 import { getAppointments } from '../../../api/appointments'
-import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
+import { deletePushSubscription, savePushSubscription } from '../../../api/notifications'
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushState,
+  type PushState,
+} from '../../../api/push'
 import { getMyPets, type Pet } from '../../../api/pets'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTheme } from '../../../hooks/useTheme'
@@ -51,11 +65,13 @@ export function SettingsPage() {
   const [pets, setPets] = useState<Pet[]>([])
   const [apptCount, setApptCount] = useState<number | null>(null)
 
-  /* ---------------- NOTIFICATION BELL ---------------- */
+  /* ---------------- PUSH NOTIFICATIONS (real Web Push) ---------------- */
 
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
-  const bellRef = useRef<HTMLButtonElement>(null)
+  // null = not resolved yet, so the toggle is disabled rather than briefly
+  // showing "off" for a device that is actually subscribed.
+  const [pushState, setPushState] = useState<PushState | null>(null)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushMessage, setPushMessage] = useState('')
 
   /* ---------------- PROFILE FORM ---------------- */
 
@@ -89,7 +105,9 @@ export function SettingsPage() {
 
   /* ---------------- PREFERENCES (localStorage — Vanilla parity) ---------------- */
 
-  const prefKeys = ['email', 'push', 'appointments'] as const
+  // 'push' is deliberately NOT here: it is real device state, not a stored
+  // preference (see the push block above).
+  const prefKeys = ['email', 'appointments'] as const
   const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
     const saved: Record<string, boolean> = {}
     prefKeys.forEach((k) => {
@@ -117,8 +135,8 @@ export function SettingsPage() {
 
   const load = () => {
     setLoadFailed(false)
-    Promise.all([getMe(), getNotifications(), getAppointments(), getMyPets()])
-      .then(([meRes, notesRes, apptRes, petsRes]) => {
+    Promise.all([getMe(), getAppointments(), getMyPets()])
+      .then(([meRes, apptRes, petsRes]) => {
         const u = meRes.user as AuthUser | undefined
         if (u) {
           fillFields(u)
@@ -126,13 +144,11 @@ export function SettingsPage() {
         } else if (authUser) {
           fillFields(authUser)
         }
-        setNotifications(notesRes.notifications || [])
         const scheduled = (apptRes.appointments || []).filter((a) => a.status === 'scheduled').length
         setApptCount(scheduled)
         setPets(petsRes.pets || [])
       })
       .catch(() => {
-        setNotifications([])
         if (authUser) {
           fillFields(authUser)
         } else {
@@ -144,27 +160,62 @@ export function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [])
 
-  // click outside closes the notification panel
+  // Read the real push state on mount. This never prompts: `getPushState`
+  // only inspects support/permission/subscription.
   useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
+    let cancelled = false
+    getPushState()
+      .then((state) => {
+        if (!cancelled) setPushState(state)
+      })
+      .catch(() => {
+        if (!cancelled) setPushState('off')
+      })
+    return () => {
+      cancelled = true
     }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
+  }, [])
 
-  const unread = (notifications || []).filter((n) => !n.isRead).length
+  const PUSH_LABELS: Record<PushState, string> = {
+    unsupported: 'This browser does not support push notifications.',
+    insecure: 'Push notifications need a secure connection (https, or localhost).',
+    denied: 'Notifications are blocked for this site. Re-enable them in your browser settings.',
+    off: 'Get alerts on this device when something happens with your pets.',
+    on: 'This device will receive push alerts. Turn off to stop them.',
+  }
 
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
+  const onPushToggle = async () => {
+    if (pushBusy) return
+    setPushBusy(true)
+    setPushMessage('')
     try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
+      if (pushState === 'on') {
+        const result = await disablePushNotifications()
+        if (result.ok) {
+          // Drop the server record too, so a stale endpoint is not kept alive
+          // and counted as a delivery failure.
+          if (result.endpoint) await deletePushSubscription(result.endpoint).catch(() => {})
+          setPushState('off')
+        } else {
+          setPushMessage(result.reason)
+          setPushState(await getPushState())
+        }
+        return
+      }
+
+      const result = await enablePushNotifications()
+      if (!result.ok || !result.subscription) {
+        setPushMessage(result.reason)
+        setPushState(result.state || (await getPushState()))
+        return
+      }
+      await savePushSubscription(result.subscription)
+      setPushState('on')
+    } catch (error) {
+      setPushMessage(getErrorMessage(error) || 'Could not update push notifications.')
+      setPushState(await getPushState().catch((): PushState => 'off'))
+    } finally {
+      setPushBusy(false)
     }
   }
 
@@ -327,6 +378,7 @@ export function SettingsPage() {
     subtitle: string,
     checked: boolean,
     onToggle: () => void,
+    disabled = false,
   ) => (
     <div className="preference-row">
       <div className="preference-icon">
@@ -337,7 +389,13 @@ export function SettingsPage() {
         <span>{subtitle}</span>
       </div>
       <label className="toggle">
-        <input type="checkbox" checked={checked} onChange={onToggle} aria-label={title} />
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={onToggle}
+          aria-label={title}
+        />
         <span className="toggle-slider" />
       </label>
     </div>
@@ -396,49 +454,6 @@ export function SettingsPage() {
             <Icon name="arrow-left" />
             Back to Dashboard
           </Link>
-
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : unread + ' unread'}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -553,9 +568,13 @@ export function SettingsPage() {
               {toggleRow(
                 'bell',
                 'Push Notifications',
-                'Get instant alerts on your device.',
-                prefs.push,
-                () => setPref('push', !prefs.push),
+                pushState === null
+                  ? 'Checking this device…'
+                  : PUSH_LABELS[pushState] +
+                    (pushMessage ? ` ${pushMessage}` : ''),
+                pushState === 'on',
+                onPushToggle,
+                pushBusy || pushState === null || pushState === 'unsupported' || pushState === 'insecure',
               )}
               {toggleRow(
                 'calendar-check',

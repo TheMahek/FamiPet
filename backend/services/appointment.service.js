@@ -14,7 +14,8 @@
 //   * date must parse and must not be in the past
 //   * the same veterinarian cannot be double-booked for the same
 //     date+time while the booking is pending or confirmed
-//   * a notification is created for the owner
+//   * a notification is created for the owner (best effort — a
+//     notification failure never fails the booking)
 //   * an appointment reminder is auto-created (skipped when an
 //     identical active one already exists)
 //
@@ -26,8 +27,9 @@
 const Appointment = require("../models/Appointment");
 const Pet = require("../models/Pet");
 const Veterinarian = require("../models/Veterinarian");
-const Notification = require("../models/Notification");
 const Reminder = require("../models/Reminder");
+const { createNotification } = require("./notification.service");
+const logger = require("../utils/logger");
 
 class AppointmentError extends Error {
   constructor(status, message) {
@@ -101,12 +103,22 @@ async function createAppointmentForUser({ userId, pet, veterinarian, date, time,
     notes: notes || "",
   });
 
-  await Notification.create({
-    user: userId,
-    title: "Appointment Booked",
-    message: `Your appointment is booked for ${appointmentDate.toDateString()} at ${time}.`,
-    type: "appointment",
-  });
+  // The appointment is already persisted at this point, so a
+  // notification failure must NOT fail the booking: the user would
+  // lose a real appointment because an inbox row could not be
+  // written. Failure is logged; the notification write is the only
+  // thing that can throw here, and push delivery inside it cannot.
+  try {
+    await createNotification({
+      user: userId,
+      title: "Appointment Booked",
+      message: `Your appointment is booked for ${appointmentDate.toDateString()} at ${time}.`,
+      type: "appointment",
+      url: "/app/appointments",
+    });
+  } catch (notifyError) {
+    logger.error(`Appointment notification error: ${notifyError.message}`);
+  }
 
   // Auto-create the appointment reminder (pre-existing behaviour). The
   // title is exactly what the controller produced before this extraction:
