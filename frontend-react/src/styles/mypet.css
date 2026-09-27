@@ -56,6 +56,21 @@ body:has(.mypet-page) {
   justify-content: space-between;
 }
 
+/* The shared `.top-header` is a nowrap flex row. Without a flex basis the
+   title claimed its subtitle's whole max-content width and starved
+   `.header-right`, collapsing the 38px circular icon buttons into ~30px pills.
+   Give the title a modest basis and let the action cluster drop to its own
+   line instead of being compressed — the same thing Vanilla faked with
+   `padding-left: 68px` on `.top-header` below 1100px. */
+.mypet-page .top-header {
+  flex-wrap: wrap;
+}
+
+.mypet-page .header-title {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
 .mypet-page .header-title h1 {
   font-size: 1.8rem;
   font-weight: 700;
@@ -77,6 +92,8 @@ body:has(.mypet-page) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: none;
+  margin-left: auto;
 }
 
 /* Match the 38px icon-action-btn / badge-btn height so the header row is a
@@ -87,6 +104,16 @@ body:has(.mypet-page) {
   padding-bottom: 0;
 }
 
+.mypet-page .icon-action-btn,
+.mypet-page .badge-btn {
+  flex: none;
+}
+
+/* `width`/`height` are the dashboard's own search box (295x48). Vanilla loaded
+   one page stylesheet at a time so My Pet never saw them; React loads them all
+   at once, and the 295px box is what squeezed the header controls. Restore the
+   Vanilla My Pet box — content width, padding-derived height (~38px, matching
+   the icon buttons and the Add Pet button). */
 .mypet-page .search-bar {
   background: white;
   border: 1px solid var(--border-color);
@@ -96,6 +123,9 @@ body:has(.mypet-page) {
   align-items: center;
   gap: 0.5rem;
   color: var(--text-sub);
+  width: auto;
+  height: auto;
+  flex: none;
 }
 
 .mypet-page .search-bar input {
@@ -2268,25 +2298,55 @@ body.dark-theme .mypet-page .stat-card {
     border-color: #332e45 !important;
 }
 
-body.dark-theme .mypet-page h1,
-body.dark-theme .mypet-page h2,
-body.dark-theme .mypet-page h3,
-body.dark-theme .mypet-page h4,
-body.dark-theme .mypet-page h5,
-body.dark-theme .mypet-page strong {
+/* The header icon buttons and the card edit button are the two control
+   surfaces the dark pass never reached: they kept mypet.css's `white` /
+   `--blue-bg` fill and read as bright chips on the dark header and cards.
+   Same dark-surface language as the search bars and the outline button
+   (petid.css already does this for its own header buttons). */
+body.dark-theme .mypet-page .icon-action-btn,
+body.dark-theme .mypet-page .btn-icon-blue {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+    color: #b7b0c9 !important;
+}
+
+body.dark-theme .mypet-page .btn-icon-blue {
+    color: #7cb8e8 !important;
+}
+
+/* The pet modals, the row action menu and the notification panel are white
+   surfaces (they are never recoloured for dark mode), so these broad pivots
+   must not reach inside them — the previous allow-list of individual tags let
+   h4/p/span/label and the form controls fall through to near-white text and
+   dark inputs on a white dialog. Excluding the overlays lets every element
+   fall back to its own light-mode colour, which is the design intent. */
+body.dark-theme .mypet-page :is(h1, h2, h3, h4, h5, strong):not(
+    .pet-modal *,
+    .pet-details-modal *,
+    .pet-delete-modal *,
+    .pet-action-menu *,
+    .pet-notification-panel *
+) {
     color: #f5f2ff !important;
 }
 
-body.dark-theme .mypet-page p,
-body.dark-theme .mypet-page span,
-body.dark-theme .mypet-page small,
-body.dark-theme .mypet-page label {
+body.dark-theme .mypet-page :is(p, span, small, label):not(
+    .pet-modal *,
+    .pet-details-modal *,
+    .pet-delete-modal *,
+    .pet-action-menu *,
+    .pet-notification-panel *
+) {
     color: #b7b0c9;
 }
 
-body.dark-theme .mypet-page input,
-body.dark-theme .mypet-page select,
-body.dark-theme .mypet-page textarea {
+body.dark-theme .mypet-page :is(input, select, textarea):not(
+    .pet-modal *,
+    .pet-details-modal *,
+    .pet-delete-modal *,
+    .pet-action-menu *,
+    .pet-notification-panel *
+) {
     background: #211e30 !important;
     color: #ffffff !important;
     border-color: #332e45 !important;
@@ -2294,18 +2354,10 @@ body.dark-theme .mypet-page textarea {
 
 /* =========================================================
    DARK MODE — WHITE SURFACES
-   Vanilla ships the pet modals and ID card on white surfaces;
-   the heading/text !important overrides above would blank them
-   out, so restore those text colors here. (Pet ID page panels
-   now get dark surfaces — see petid.css — so they are exempt.)
+   Only the Pet ID card still needs an explicit restore: the My Pet
+   overlays are handled by the `:not()` exclusions above.
    ========================================================= */
 
-body.dark-theme .mypet-page .pet-modal h2,
-body.dark-theme .mypet-page .pet-details-modal h2,
-body.dark-theme .mypet-page .pet-details-modal h3,
-body.dark-theme .mypet-page .pet-details-modal .detail-box strong,
-body.dark-theme .mypet-page .pet-details-modal .pet-qr-info strong,
-body.dark-theme .mypet-page .pet-delete-modal h3,
 body.dark-theme .mypet-page .id-card-info h2,
 body.dark-theme .mypet-page .id-card-info p,
 body.dark-theme .mypet-page .id-card-info .id-row strong {
@@ -2314,12 +2366,6 @@ body.dark-theme .mypet-page .id-card-info .id-row strong {
 
 body.dark-theme .mypet-page .id-card-info .id-row span {
     color: #64748b !important;
-}
-
-body.dark-theme .mypet-page .pet-modal-title p,
-body.dark-theme .mypet-page .pet-details-title p,
-body.dark-theme .mypet-page .pet-details-name p {
-    color: #8a96a8 !important;
 }
 
 /* Vanilla's dark mode never recoloured these control surfaces, so they
