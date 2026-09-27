@@ -5,8 +5,9 @@
 // - Grid renders real /lost-found reports (Vanilla shipped static demo cards
 //   that its JS replaced on load; a genuine empty state shows instead of the
 //   demo cards, and loading shows a neutral state — AGENTS §5).
-// - Notification bell shows real /notifications + unread badge and the shared
-//   panel (Vanilla hardcoded a "3" badge and three fake items — AGENTS §7).
+// - No notification bell here: the single app-level bell lives in AppLayout and
+//   reads the centralized NotificationProvider (Vanilla hardcoded a "3" badge
+//   and three fake items — AGENTS §7).
 // - Create uses the backend's multer multipart path (FormData `image`) so
 //   photos are stored under /uploads, not as inline base64 JSON.
 // - Edit/Delete for own reports (3-dot menu on own cards) — the Vanilla page
@@ -21,7 +22,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { deleteReport, getReports } from '../../../api/lostFound'
-import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
 import { getUser } from '../../../api/client'
 import { Icon } from '../../../components/shared/Icon'
 import { DetailsModal } from './DetailsModal'
@@ -50,8 +50,6 @@ export function LostFoundPage() {
   const [locationFilter, setLocationFilter] = useState('all')
   const [sortFilter, setSortFilter] = useState('recent')
 
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [message, setMessage] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -59,18 +57,15 @@ export function LostFoundPage() {
   const [editing, setEditing] = useState<ReportView | null>(null)
   const [details, setDetails] = useState<ReportView | null>(null)
 
-  const bellRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
     setLoadFailed(false)
-    Promise.all([getReports(), getNotifications()])
-      .then(([res, notesRes]) => {
+    getReports()
+      .then((res) => {
         setReports((res.reports || []).map((r) => toReportView(r, currentUserId)))
-        setNotifications(notesRes.notifications || [])
       })
       .catch(() => {
-        setNotifications([])
         setLoadFailed(true)
       })
   }
@@ -84,19 +79,6 @@ export function LostFoundPage() {
     const t = setTimeout(() => setMessage(''), 2500)
     return () => clearTimeout(t)
   }, [message])
-
-  // click outside closes the notification panel
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
 
   // click outside + Escape close the report more-menu
   useEffect(() => {
@@ -114,17 +96,6 @@ export function LostFoundPage() {
       document.removeEventListener('keydown', onKey)
     }
   }, [])
-
-  const unread = (notifications || []).filter((n) => !n.isRead).length
-
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
-    try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
-    }
-  }
 
   const reload = async () => {
     const res = await getReports()
@@ -248,48 +219,6 @@ export function LostFoundPage() {
             />
           </div>
 
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : unread + ' unread'}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 

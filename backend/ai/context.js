@@ -10,7 +10,7 @@
 const { AI_CONFIG } = require("../config/ai");
 const Message = require("../models/Message");
 const { loadPetContext } = require("./pet-context");
-const { userPetsText } = require("./provider");
+const { currentUserTurnPrefix } = require("./provider");
 
 const DEFAULT_TITLE = "New conversation";
 const TITLE_CHARS = 60;
@@ -26,15 +26,15 @@ function publicMessage(m) {
   return out;
 }
 
-// Assistant message shape handed to a generateWithTools adapter on the
-// FIRST round of the tool-calling exchange. Mirrors the exact user-turn
-// shape the openai.generate() adapter builds for the non-tool path, so a
-// provider sees identical context whether or not the tool path is used.
+// Assistant message shape handed to the adapter on the FIRST round of the
+// tool-calling exchange. Mirrors the exact user-turn shape the adapter
+// builds for the non-tool path, so the endpoint sees identical context
+// whether or not the tool path is used.
 function buildProviderMessages({ system, history, petContext, question }) {
   return [
     { role: "system", content: system },
     ...(history || []).map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: userPetsText(petContext) + "User asks: " + question },
+    { role: "user", content: currentUserTurnPrefix(petContext) + "User asks: " + question },
   ];
 }
 

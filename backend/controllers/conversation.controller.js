@@ -37,6 +37,7 @@ const { publicMessage, updateConversationMetadata } = require("../ai/context");
 const { publicJob } = require("./job.controller");
 const { enforceGenerationQuota } = require("../ai/quota");
 const MutationEffect = require("../models/MutationEffect");
+const MutationRequest = require("../models/MutationRequest");
 
 const DEFAULT_TITLE = "New conversation";
 const IDEMPOTENCY_KEY_MAX = 200;
@@ -306,6 +307,9 @@ exports.clearConversation = async (req, res) => {
     if (jobs.length) {
       await MutationEffect.deleteMany({ owner: req.user._id, job: { $in: jobs.map((j) => j._id) } });
     }
+    // Pending confirmations are scoped to the conversation too: a cleared
+    // chat must not leave behind a request a later "yes" could still approve.
+    await MutationRequest.deleteMany({ owner: req.user._id, conversation: conversationId });
     await Conversation.deleteOne({ _id: conversationId, owner: req.user._id });
 
     console.log(`PetGPT: conversation ${conversationId} cleared for user ${req.user._id}.`);

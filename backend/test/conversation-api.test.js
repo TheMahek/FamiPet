@@ -1,21 +1,24 @@
 // =========================================================
 // PetGPT conversations (Phase 2 + Phase 4) — assert-based E2E checks.
 // Run: node test/conversation-api.test.js
-// Requires a reachable MongoDB (MONGODB_URI or the default
-// localhost:27017). Uses a dedicated test database, cleaned up
-// afterwards. Provider is the default google adapter with no
-// GEMINI_API_KEY, so every in-scope exchange deterministically
-// fails in the durable worker (job -> failed, no fake assistant);
-// out-of-scope exchanges stay synchronous (canned scope answer).
+// Requires a reachable MongoDB. MONGODB_URI, if set, supplies
+// only the host:port; the database name is forced to a dedicated
+// `*_test` database by test/db.js, which refuses any other name.
+// That database is dropped before and after the run. The app-level
+// OpenAI-compatible endpoint is left unconfigured, so every in-scope
+// exchange deterministically fails in the durable worker (job ->
+// failed, no fake assistant); out-of-scope exchanges stay synchronous
+// (canned scope answer).
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
 const DB_NAME = "animal_planet_petgpt_conv_test";
-const URI = process.env.MONGODB_URI || `mongodb://localhost:27017/${DB_NAME}`;
+const URI = testDbUri(DB_NAME);
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { fallbackAnswer } = require("../controllers/ai.controller");
 const GenerationJob = require("../models/GenerationJob");

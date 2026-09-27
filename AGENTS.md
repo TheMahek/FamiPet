@@ -106,6 +106,38 @@ Preserve and maintain the existing functionality around:
 
 When modifying one feature, check for dependencies with related features.
 
+### 4.1 PetGPT AI provider
+
+PetGPT's default AI provider is **OmniRoute**, FamiPet's own
+OpenAI-compatible gateway. It runs on the deployment **host** and is
+addressed on **localhost**:
+
+```text
+PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1
+PETGPT_OPENAI_API_KEY=dummy-key
+PETGPT_OPENAI_MODEL=free-chat
+```
+
+Rules for anyone changing this:
+
+* OmniRoute is a **host-local** service. `localhost` is correct and must not
+  be replaced with a container address, a `172.x` container IP, or any other
+  machine-specific address. Its address is a property of the host, not of this
+  repo, so nothing about it is hardcoded in tracked files.
+* `dummy-key` is a **placeholder, not a secret**. OmniRoute accepts any
+  non-empty bearer value on `/v1/chat/completions`. Never commit a real
+  provider key; a real key belongs only in the gitignored `backend/.env`.
+* The adapter is vendor-agnostic and stays that way. Keep the three
+  variables as the only provider configuration - no vendor SDK, no vendor
+  name, no hardcoded model or URL in application code.
+* **Never modify or reconfigure the OmniRoute service** to make FamiPet
+  work. Reachability is a deployment concern, fixed on the FamiPet side.
+* Inside a container, `localhost` is the container itself. When the backend
+  runs under Docker and the provider is host-local, reachability is resolved
+  by the deployment (see `backend/.env.example` and the notes in
+  `docker-compose.yml`) - never by changing tracked configuration to suit
+  one machine.
+
 ---
 
 ## 5. Real Data Only

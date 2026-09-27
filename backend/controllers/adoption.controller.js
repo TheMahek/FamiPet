@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Adoption = require("../models/Adoption");
 const Pet = require("../models/Pet");
-const Notification = require("../models/Notification");
+const { createNotification } = require("../services/notification.service");
 const logger = require("../utils/logger");
 
 exports.getAllAdoptions = async (req, res) => {
@@ -93,11 +93,12 @@ exports.createAdoption = async (req, res) => {
 
     // Notify the pet owner that a new adoption request was submitted.
     try {
-      await Notification.create({
+      await createNotification({
         user: petExists.owner,
         title: "New Adoption Request",
         message: `${fullName} has submitted an adoption request for your pet ${petExists.name}.`,
         type: "adoption",
+        url: "/app/adoption",
       });
     } catch (notifyError) {
       logger.error("Adoption owner notification error:", notifyError);
@@ -186,11 +187,12 @@ exports.updateAdoptionStatus = async (req, res) => {
       await adoption.save();
     }
 
-    await Notification.create({
+    await createNotification({
       user: adoption.user,
       title: `Adoption Request ${status}`,
       message: `Your adoption request for ${pet ? pet.name : "this pet"} is now ${status.toLowerCase()}.`,
       type: "adoption",
+      url: "/app/adoption",
     });
 
     res.json({

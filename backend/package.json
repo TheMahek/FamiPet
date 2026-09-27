@@ -9,10 +9,9 @@
     "seed": "node utils/seedData.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "node test/pet-authz.test.js && node test/ai-provider.test.js && node test/conversation-api.test.js && node test/petgpt-provider-conversation.test.js && node test/petgpt-omniroute.test.js && node test/provider-config.test.js && node test/petgpt-provider-config-omniroute.test.js && node test/petgpt-jobs.test.js && node test/petgpt-jobs-omniroute.test.js && node test/petgpt-tools.test.js && node test/petgpt-jobs-tools.test.js && node test/petgpt-mutation-tools.test.js && node test/petgpt-quota-reliability.test.js && node test/petgpt-tools-omniroute.test.js && node test/petgpt-security.test.js"
+    "test": "node test/test-db-isolation.test.js && node test/pet-authz.test.js && node test/ai-provider.test.js && node test/conversation-api.test.js && node test/petgpt-e2e.test.js && node test/petgpt-jobs.test.js && node test/petgpt-jobs-e2e.test.js && node test/petgpt-tools.test.js && node test/petgpt-jobs-tools.test.js && node test/petgpt-mutation-tools.test.js && node test/petgpt-quota-reliability.test.js && node test/petgpt-tools-e2e.test.js && node test/petgpt-tool-metadata.test.js && node test/petgpt-security.test.js && node test/push-notifications.test.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.14.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.2.0",
     "compression": "^1.7.4",
@@ -29,6 +28,7 @@
     "nodemailer": "^10.0.10",
     "qrcode": "^1.5.3",
     "socket.io": "^4.7.5",
+    "web-push": "^3.6.7",
     "winston": "^3.19.0"
   },
   "devDependencies": {

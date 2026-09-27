@@ -157,69 +157,88 @@ svg.lucide {
 }
 
 /* =========================================================
-   GLOBAL COMPONENT PRIMITIVES — mirrors frontend/css/style.css
+   LAYOUT PRIMITIVE — mirrors frontend/css/style.css `.container`
+
+   Kept OUT of `@layer components` on purpose. Tailwind v4 ships
+   its own `.container` utility in `@layer utilities`, and layers
+   rank after `components`, so a layered `.container` loses to it
+   and collapses to `width: 100%; max-width: 1280px` — full-bleed,
+   pinned left, no gutters. Unlayered, this wins, and the specific
+   `min(90%, 1350px)` + auto margins also beat the `* { margin: 0 }`
+   reset in dashboard.css.
    ========================================================= */
-@layer components {
-  .container {
-    width: min(90%, 1350px);
-    margin-inline: auto;
-  }
+.container {
+  width: min(90%, 1350px);
+  margin-inline: auto;
+}
 
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 16px 34px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: var(--white);
-    border-radius: 50px;
-    font-size: 1rem;
-    font-weight: 600;
-    box-shadow: 0 10px 25px rgba(255, 92, 138, 0.25);
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
-  }
+/* =========================================================
+   GLOBAL COMPONENT PRIMITIVES — mirrors frontend/css/style.css
 
-  .btn-primary::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-    transition: 0.7s;
-  }
+   Also kept OUT of `@layer components`, for the same reason as
+   `.container` above: dashboard.css ships an unlayered
+   `* { margin: 0; padding: 0 }` reset, and unlayered rules outrank
+   every layer, so the layered `padding: 16px 34px` lost and every
+   `.btn-primary`/`.btn-secondary` rendered unpadded. Measured on the
+   landing CTA: both buttons 28px tall instead of 60px; footer subscribe
+   button 81x24px — flat text inside a 62px pill. Unlayered, the padding
+   applies again. Only 3 call sites use these classes and none add
+   overriding utilities, so nothing loses to them.
+   ========================================================= */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 34px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: var(--white);
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(255, 92, 138, 0.25);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
 
-  .btn-primary:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 35px rgba(255, 92, 138, 0.35);
-  }
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transition: 0.7s;
+}
 
-  .btn-primary:hover::before {
-    left: 100%;
-  }
+.btn-primary:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 35px rgba(255, 92, 138, 0.35);
+}
 
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 16px 34px;
-    background: var(--white);
-    color: var(--text-dark);
-    border: 2px solid var(--primary-light);
-    border-radius: 50px;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: var(--transition);
-  }
+.btn-primary:hover::before {
+  left: 100%;
+}
 
-  .btn-secondary:hover {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    transform: translateY(-4px);
-  }
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 34px;
+  background: var(--white);
+  color: var(--text-dark);
+  border: 2px solid var(--primary-light);
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-4px);
 }
