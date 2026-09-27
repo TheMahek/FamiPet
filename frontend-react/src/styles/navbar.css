@@ -126,6 +126,18 @@
 
     height:48px;
 
+    /* Legacy centred this with an inline FA <i> glyph. The port swaps in an
+       <svg>, which Tailwind's preflight makes display:block — a block box in
+       a display:block button sits on the left content edge, so the icon
+       measured 15px left of the circle's centre (free 1px left / 31px right).
+       Flex centring is the pattern dashboard.css already uses on its
+       .theme-btn. */
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
     border-radius:50%;
 
     background:white;
