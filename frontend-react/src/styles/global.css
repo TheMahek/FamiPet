@@ -157,14 +157,25 @@ svg.lucide {
 }
 
 /* =========================================================
+   LAYOUT PRIMITIVE — mirrors frontend/css/style.css `.container`
+
+   Kept OUT of `@layer components` on purpose. Tailwind v4 ships
+   its own `.container` utility in `@layer utilities`, and layers
+   rank after `components`, so a layered `.container` loses to it
+   and collapses to `width: 100%; max-width: 1280px` — full-bleed,
+   pinned left, no gutters. Unlayered, this wins, and the specific
+   `min(90%, 1350px)` + auto margins also beat the `* { margin: 0 }`
+   reset in dashboard.css.
+   ========================================================= */
+.container {
+  width: min(90%, 1350px);
+  margin-inline: auto;
+}
+
+/* =========================================================
    GLOBAL COMPONENT PRIMITIVES — mirrors frontend/css/style.css
    ========================================================= */
 @layer components {
-  .container {
-    width: min(90%, 1350px);
-    margin-inline: auto;
-  }
-
   .btn-primary {
     display: inline-flex;
     align-items: center;
