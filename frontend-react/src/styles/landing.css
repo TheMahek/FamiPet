@@ -251,7 +251,10 @@
 
 .landing .about-container {
   display: grid;
-  grid-template-columns: 45% 55%;
+  /* 45% 55% plus a 50px gap always overflowed the track box by the gap
+     (8px past the viewport at 851px). fr shares the space left after the
+     gap, so the 45/55 proportion survives without the overflow. */
+  grid-template-columns: 45fr 55fr;
   gap: 50px;
   align-items: center;
 }
@@ -515,7 +518,11 @@
 
 @media (max-width: 480px) {
   .landing .hero {
-    padding: 45px 0 55px;
+    /* Was 45px top / 55px bottom — an asymmetric pad that pushed the hero
+       container 10px above its section's centre. Symmetric now, so the
+       container sits in the middle of the hero the same way it does on
+       every other breakpoint. */
+    padding: 45px 0;
   }
 
   .landing .hero-content h1 {
