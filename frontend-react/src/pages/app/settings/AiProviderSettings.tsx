@@ -256,7 +256,7 @@ export function AiProviderSettings() {
       // Clear the plaintext key out of state the moment it is no longer needed.
       setForm((f) => (f ? { ...f, id: res.provider.id, apiKey: '', keyVisible: false, configured: true, active: res.provider.active, enabled: res.provider.enabled } : f))
       setFormOk(creating ? 'Provider added.' : 'Provider updated.')
-      setProviders((cur) => (cur ? sortProviders(replaceProvider(cur, res.provider)) : cur))
+      setProviders((cur) => (cur ? applyServerProvider(cur, res.provider) : cur))
     } catch (err) {
       setFormError(getErrorMessage(err, 'Could not save this provider.'))
     } finally {
@@ -288,15 +288,7 @@ export function AiProviderSettings() {
     setTestResult(null)
     try {
       const res = await updateProvider(p.id, { active: true, enabled: true })
-      // The backend demotes every sibling; mirror that in one pass from the
-      // authoritative response instead of trusting local state.
-      setProviders((cur) =>
-        cur
-          ? sortProviders(
-              cur.map((x) => (x.id === res.provider.id ? res.provider : x.active ? { ...x, active: false } : x)),
-            )
-          : cur,
-      )
+      setProviders((cur) => (cur ? applyServerProvider(cur, res.provider) : cur))
     } catch (err) {
       setTestResult({ id: p.id, ok: false, text: getErrorMessage(err, 'Could not activate this provider.') })
     } finally {
@@ -627,10 +619,18 @@ function sortProviders(list: PetGPTProvider[]): PetGPTProvider[] {
   return [...list].sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '') || a.id.localeCompare(b.id))
 }
 
-function replaceProvider(list: PetGPTProvider[], p: PetGPTProvider): PetGPTProvider[] {
-  return list.some((x) => x.id === p.id)
+// Single place that folds a server response back into the list. Every write
+// path (save AND activate) goes through here, because the backend demotes every
+// sibling the moment one config becomes active. Mirroring that in only one of
+// the two left two rows badged "Active" while the status line named the other
+// one, so the list has to be rebuilt from the authoritative response every time.
+function applyServerProvider(list: PetGPTProvider[], p: PetGPTProvider): PetGPTProvider[] {
+  const replaced = list.some((x) => x.id === p.id)
     ? list.map((x) => (x.id === p.id ? p : x))
     : [...list, p]
+  return sortProviders(
+    p.active ? replaced.map((x) => (x.id === p.id ? p : x.active ? { ...x, active: false } : x)) : replaced,
+  )
 }
 
 // One honest sentence about what PetGPT will actually do. "Configured" is only

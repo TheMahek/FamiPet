@@ -47,7 +47,16 @@ const isDevOrigin = function (origin) {
 app.use(cors({
   origin(origin, callback) {
     if (isDevOrigin(origin)) return callback(null, true);
-    return callback(new Error('CORS origin not allowed'));
+    // Reject with an explicit 403, not a bare Error. A bare Error carries no
+    // status, so the error handler below turns an origin the operator simply
+    // forgot to allowlist into "Internal Server Error" — which reads like a
+    // server fault and hides the only actionable fact (the allowed origins).
+    // Browsers send Origin on every non-GET, even same-origin ones, so a
+    // same-origin deploy whose public origin is missing from CLIENT_URL breaks
+    // every write while reads keep working.
+    const err = new Error('Origin not allowed by CORS');
+    err.status = 403;
+    return callback(err);
   },
   credentials: true
 }));
