@@ -332,13 +332,26 @@ body:has(.login-page) {
 
 }
 
+/* The icon is pinned to the INPUT's own box, not to `.input-box`: the wrapper
+   is 24px taller because `.error` always reserves its slot, so `top: 50%`
+   pushed the icon 12px below the text it belongs to. Height must track the
+   54px input above. */
 .input-box > i {
     position: absolute;
     left: 22px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    height: 54px;
+    display: flex;
+    align-items: center;
     color: var(--secondary);
     font-size: 1rem;
+}
+
+/* The icon <i> is a flex box centered on the input, but the svg inside it is
+   inline and rides the text baseline, leaving it ~2px high. Blockifying it
+   makes the glyph the whole box. */
+.input-box i svg {
+    display: block;
 }
 
 .toggle-password{
@@ -347,12 +360,10 @@ body:has(.login-page) {
 
     right:18px;
 
-    top:50%;
-
-    transform:translateY(-50%);
+    top:0;
 
     width:32px;
-    height:32px;
+    height:54px;
 
     display:flex;
     align-items:center;

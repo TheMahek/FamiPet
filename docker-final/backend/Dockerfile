@@ -39,6 +39,11 @@ COPY models ./models
 COPY routes ./routes
 COPY utils ./utils
 COPY ai ./ai
+# services/ holds the shared appointment booking workflow used by BOTH
+# controllers/appointment.controller.js and the PetGPT create_appointment
+# tool. Omitting it makes the container die on boot with MODULE_NOT_FOUND
+# (the same failure jobs/ caused), so it MUST be part of the image.
+COPY services ./services
 # jobs/ is required by server.js (durable PetGPT generation worker) and by the
 # graceful-shutdown handler. Omitting it makes the container die on boot with
 # MODULE_NOT_FOUND, so it MUST be part of the image.

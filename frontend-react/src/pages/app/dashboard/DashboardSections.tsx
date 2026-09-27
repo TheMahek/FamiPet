@@ -7,7 +7,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { Appointment } from '../../../api/appointments'
-import type { AppNotification } from '../../../api/notifications'
 import type { Pet } from '../../../api/pets'
 import type { Reminder } from '../../../api/reminders'
 import { ageText, breedName, fmtDate, fmtTime, petImage } from '../../../lib/formatters'
@@ -280,45 +279,5 @@ export function LoveCard() {
         <img src="/assets/images/dashboard/cute-pet.svg" alt="Cute pets" />
       </div>
     </section>
-  )
-}
-
-export function NotificationPanel({
-  open,
-  notes,
-  onClose,
-}: {
-  open: boolean
-  notes: AppNotification[] | null
-  onClose: () => void
-}) {
-  const colors = ['pink', 'green', 'lavender']
-  const icons = ['syringe', 'check', 'heart']
-  return (
-    <div className={`notification-panel${open ? ' show' : ''}`} id="notificationPanel">
-      <div className="notification-header">
-        <h3>Notifications</h3>
-        <button type="button" onClick={onClose}>
-          ×
-        </button>
-      </div>
-      {notes === null ? (
-        <Loading />
-      ) : notes.length === 0 ? (
-        <div style={LOADING_STYLE}>No notifications yet.</div>
-      ) : (
-        notes.slice(0, 5).map((n, i) => (
-          <div className="notification-item" key={n._id}>
-            <div className={`notification-icon ${colors[i % colors.length]}`}>
-              <Icon name={icons[i % icons.length]} />
-            </div>
-            <div>
-              <strong>{n.title}</strong>
-              <span>{n.message || fmtDate(n.createdAt)}</span>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
   )
 }

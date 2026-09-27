@@ -137,11 +137,16 @@ async function requireOwnedPet(userId, petId) {
 async function loadPetContext(userId) {
   try {
     const pets = await Pet.find({ owner: userId })
-      .select("name species breed")
+      .select("_id name species breed")
       .populate("breed", "name")
       .limit(AI_CONFIG.tools.maxContextPets)
       .lean();
+    // _id is carried because the prompt names each pet's petId: every
+    // per-pet tool takes `petId`, so a context without it leaves the
+    // model unable to fill the argument (it would guess the name, and
+    // the ownership check would reject it).
     return pets.map((p) => ({
+      id: p._id,
       name: p.name,
       species: p.species,
       breed: p.breed && p.breed.name ? p.breed.name : undefined,

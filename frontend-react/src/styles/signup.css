@@ -187,12 +187,15 @@
     box-shadow: 0 10px 25px rgba(74, 168, 255, 0.10);
 }
 
-/* Left Icon */
+/* Left Icon — pinned to the INPUT's box (58px), not to `.input-box`, which is
+   24px taller because `.error` always reserves its slot. */
 .login-page.signup-page .input-box i:first-child {
     position: absolute;
     left: 22px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    height: 58px;
+    display: flex;
+    align-items: center;
     color: #4AA8FF;
     font-size: 1rem;
     transition: all 0.3s ease;
@@ -206,18 +209,23 @@
 /* Left Icon Focus */
 .login-page.signup-page .input-box:focus-within i:first-child {
     color: #4AA8FF;
-    transform: translateY(-50%) scale(1.08);
+    transform: scale(1.08);
 }
 
-/* Eye Icons */
+/* Icon glyphs — the <i> wrappers are already centered on the input, but an
+   inline svg rides the text baseline and lands ~2px off. */
+.login-page.signup-page .input-box i svg {
+    display: block;
+}
+
+/* Eye Icons — same as the left icon: track the 58px input, not the wrapper. */
 .login-page.signup-page .toggle-password,
 .login-page.signup-page .toggle-confirm-password {
     position: absolute;
-    top: 50%;
+    top: 0;
     right: 20px;
-    transform: translateY(-50%);
     width: 24px;
-    height: 24px;
+    height: 58px;
     display: flex;
     align-items: center;
     justify-content: center;

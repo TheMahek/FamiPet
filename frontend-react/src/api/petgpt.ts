@@ -9,6 +9,10 @@
 //   DELETE /api/ai/conversations/:id            clear conversation (hard delete)
 //   GET    /api/ai/jobs/:id                     durable generation job status
 //
+// There are no user-owned provider endpoints: AI configuration is
+// APPLICATION-LEVEL (environment), never per-user, and holds no per-user
+// API keys.
+//
 // Ownership is always backend-derived from the JWT; the client never sends
 // ownership ids. Nothing here invents endpoints, fields, or polling behavior
 // beyond what origin/main exposes.
