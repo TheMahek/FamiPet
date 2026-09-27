@@ -8,14 +8,15 @@
 // - Stats are computed from the real feed (Members = unique authors, Posts =
 //   total, Discussions/Stories = mapped types). Vanilla hardcoded 1,248/24/156/89
 //   with no updating code (AGENTS §5).
-// - Notification bell shows real /notifications (Vanilla hardcoded a "3" badge
+// - No notification bell here: the single app-level bell lives in AppLayout and
+//   reads the centralized NotificationProvider (Vanilla hardcoded a "3" badge
 //   + a static fake panel — AGENTS §7). No "Report Post" action (it only toasted
 //   a fake message; no backend endpoint). The compose modal + toolbar avatar use
 //   the logged-in user instead of the hardcoded "Mahek Shaikh".
 // - Toast: single page toast for success/errors (React convention from Phases
 //   10-14) instead of the Vanilla ann-toast stack/alert()s.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   addCommunityComment,
   deleteCommunityPost,
@@ -23,11 +24,6 @@ import {
   toggleCommunityLike,
 } from '../../../api/community'
 import { getUser } from '../../../api/client'
-import {
-  getNotifications,
-  markAllNotificationsRead,
-  type AppNotification,
-} from '../../../api/notifications'
 import { Icon } from '../../../components/shared/Icon'
 import { CommentsModal } from './CommentsModal'
 import { ComposePostModal } from './ComposePostModal'
@@ -57,25 +53,19 @@ export function CommunityPage() {
   const [activeFilter, setActiveFilter] = useState('all')
   const [shareCounts, setShareCounts] = useState<Record<string, number>>(() => getShareCounts())
   const [joined, setJoined] = useState<Record<string, boolean>>(() => getJoinedGroups())
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [composeOpen, setComposeOpen] = useState(false)
   const [composeType, setComposeType] = useState('discussion')
   const [commentsPost, setCommentsPost] = useState<PostView | null>(null)
 
-  const bellRef = useRef<HTMLButtonElement>(null)
-
   const load = () => {
     setLoadFailed(false)
-    Promise.all([getCommunityPosts(), getNotifications()])
-      .then(([res, notesRes]) => {
+    getCommunityPosts()
+      .then((res) => {
         setPosts((res.posts || []).map((p) => toPostView(p, currentUserId)))
-        setNotifications(notesRes.notifications || [])
       })
       .catch(() => {
         setPosts([])
-        setNotifications([])
         setLoadFailed(true)
       })
   }
@@ -89,30 +79,6 @@ export function CommunityPage() {
     const t = setTimeout(() => setMessage(''), 2500)
     return () => clearTimeout(t)
   }, [message])
-
-  // click outside closes the notification panel
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (bellRef.current?.contains(e.target as Node)) return
-      setPanelOpen(false)
-    }
-    if (panelOpen) {
-      document.addEventListener('click', onDocClick)
-      return () => document.removeEventListener('click', onDocClick)
-    }
-    return undefined
-  }, [panelOpen])
-
-  const unread = (notifications || []).filter((n) => !n.isRead).length
-
-  const markAllRead = async () => {
-    setNotifications((list) => (list || []).map((n) => ({ ...n, isRead: true })))
-    try {
-      await markAllNotificationsRead()
-    } catch {
-      /* ignore — optimistic update already applied */
-    }
-  }
 
   const stats = useMemo(() => {
     const list = posts || []
@@ -275,49 +241,6 @@ export function CommunityPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
             <Icon name="magnifying-glass" />
-          </div>
-
-          <div className="notification-wrapper">
-            <button
-              ref={bellRef}
-              className="notification-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={panelOpen}
-              onClick={() => setPanelOpen((o) => !o)}
-            >
-              <Icon name="bell" />
-              <span className="badge" style={{ display: unread ? 'flex' : 'none' }}>
-                {unread}
-              </span>
-            </button>
-
-            <div className={`notification-panel${panelOpen ? ' open' : ''}`}>
-              <div className="notification-panel-header">
-                <div>
-                  <strong>Notifications</strong>
-                  <span>{unread === 1 ? '1 unread' : unread + ' unread'}</span>
-                </div>
-                <button type="button" onClick={markAllRead}>
-                  Mark all read
-                </button>
-              </div>
-              <div className="notification-list">
-                {!notifications || notifications.length === 0 || unread === 0 ? (
-                  <div className="notification-empty">You&apos;re all caught up!</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div className={`notification-item${n.isRead ? ' read' : ''}`} key={n._id}>
-                      <span className="notification-dot" />
-                      <div>
-                        <strong>{n.title || ''}</strong>
-                        <p>{n.message || ''}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
 
           <button className="new-post-btn" type="button" onClick={() => openCompose('discussion')}>
