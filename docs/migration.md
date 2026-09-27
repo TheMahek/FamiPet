@@ -1451,9 +1451,9 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   `@custom-variant dark` line so Tailwind 4 emits `:where` dark variants for
   the globally-scoped CSS).
 - `backend/.env.example` documents the OpenAI-compatible provider block
-  (verified locally): `PETGPT_OPENAI_BASE_URL=http://172.18.0.2:20128/v1` (container IP of the
-  the local endpoint), `PETGPT_OPENAI_MODEL=auto`, any non-empty
-  `PETGPT_OPENAI_API_KEY` (the local endpoint accepts a dummy key). Rate-limit knobs
+  (the default provider is OmniRoute on `localhost`, model `free-chat`,
+  placeholder key `dummy-key` - see AGENTS.md §4.1; no container IP or other
+  machine-specific address is ever committed). Rate-limit knobs
   `PETGPT_RATE_LIMIT_MAX` / `PETGPT_RATE_LIMIT_WINDOW_MS`; scope gate keyword
   list `OFF_TOPIC_KEYWORDS`.
 - **Verification:** `npm run lint` (oxlint, zero new issues), `tsc -b`, and
