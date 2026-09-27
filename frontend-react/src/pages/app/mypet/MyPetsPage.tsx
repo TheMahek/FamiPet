@@ -295,12 +295,12 @@ export function MyPetsPage() {
 
       <section className="pets-grid">
         {pets === null ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
+          <div className="pets-state">
             <Icon name="paw" spin style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>Loading your pets…</h3>
           </div>
         ) : loadFailed && pets.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
+          <div className="pets-state">
             <Icon name="triangle-exclamation" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>Could not load your pets</h3>
             <p style={{ color: '#8a96a8', marginTop: 8 }}>Please check your connection and try again.</p>
@@ -309,7 +309,7 @@ export function MyPetsPage() {
             </button>
           </div>
         ) : pets.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
+          <div className="pets-state">
             <Icon name="paw" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>No pets yet</h3>
             <p style={{ color: '#8a96a8', marginTop: 8 }}>
@@ -320,7 +320,7 @@ export function MyPetsPage() {
             </button>
           </div>
         ) : filtered && filtered.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
+          <div className="pets-state">
             <Icon name="paw" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>No pets found</h3>
             <p style={{ color: '#8a96a8', marginTop: 8 }}>Try another search or filter.</p>

@@ -12,11 +12,11 @@ const mongoose = require("mongoose");
 // complete the same job twice. Retries are bounded by
 // attemptCount vs AI_CONFIG.worker.maxAttempts (see scan).
 //
-// Security: this doc holds NO secrets. It stores only provider
-// observability labels (name/model), the client-safe error code
-// and message, and object references. API keys, auth headers,
-// and full provider requests/responses never live here (they
-// live, encrypted, on AiProvider only).
+// Security: this doc holds NO secrets. It stores only non-secret
+// observability labels (endpoint contract name + model), the
+// client-safe error code and message, and object references. API
+// keys, auth headers and raw request/response payloads never live
+// here — credentials exist only in the environment.
 // =========================================================
 
 const generationJobSchema = new mongoose.Schema(
@@ -61,9 +61,9 @@ const generationJobSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Observability labels only — resolved and set by the worker.
-    // "env" means system-level configuration; otherwise the user's
-    // stored provider display name. Never contains credentials.
+    // Observability labels only — set by the worker from the
+    // application-level environment configuration. Never contains
+    // credentials.
     provider: {
       type: String,
       default: "",

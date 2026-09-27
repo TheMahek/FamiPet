@@ -8,8 +8,8 @@
 //   veterinarian directory (GET /api/veterinarians).
 //
 // The UI renders ONLY persisted backend data. There is no fabricated reply,
-// no fake polling, no client-side tool execution, and no assumption that a
-// provider performed an action — the backend is the source of truth.
+// no fake polling, no client-side tool execution, and no assumption that the
+// backend performed an action — the backend is the source of truth.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -103,23 +103,21 @@ export function PetGPTPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  // ── Initial load: real conversations + real pets ───────────────────
+  // ── Initial load: real conversations + real pets ──
   useEffect(() => {
     let cancelled = false
-    Promise.all([listConversations(), getMyPets()])
-      .then(([listRes, petsRes]) => {
-        if (cancelled) return
-        setConversations(listRes.conversations)
-        const chips = (petsRes.pets || []).map((p) => toPetView(p)).map((p) => ({
-          id: p.id,
-          name: p.name,
-          species: p.species,
-          image: p.image,
-        }))
-        setPets(chips)
-        setLoadFailed(false)
-      })
-      .catch(() => {
+    Promise.all([listConversations(), getMyPets()]).then(([listRes, petsRes]) => {
+      if (cancelled) return
+      setConversations(listRes.conversations)
+      const chips = (petsRes.pets || []).map((p) => toPetView(p)).map((p) => ({
+        id: p.id,
+        name: p.name,
+        species: p.species,
+        image: p.image,
+      }))
+      setPets(chips)
+      setLoadFailed(false)
+    }).catch(() => {
         if (cancelled) return
         setLoadFailed(true)
         setConversations([])
@@ -372,7 +370,7 @@ export function PetGPTPage() {
   const showEmpty = !convLoading && messages.length === 0
 
   return (
-    <div className="petgpt-root flex h-screen w-full flex-col overflow-hidden bg-canvas text-ink dark:bg-slate-950 dark:text-slate-100">
+    <div className="petgpt-page petgpt-root flex w-full flex-col overflow-hidden bg-canvas text-ink dark:bg-slate-950 dark:text-slate-100">
       {/* toast */}
       {toast && (
         <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm text-white shadow-lg dark:bg-slate-800">
@@ -380,26 +378,26 @@ export function PetGPTPage() {
         </div>
       )}
 
-      <div className="mx-auto flex h-full w-full max-w-7xl flex-1">
+      <div className="flex min-h-0 flex-1">
         {/* ─── Conversation rail (desktop) ─── */}
-        <aside className="hidden h-full w-72 shrink-0 flex-col border-r border-line bg-white/70 dark:border-slate-800 dark:bg-slate-900 md:flex">
-          <div className="p-3">
+        <aside className="petgpt-rail hidden shrink-0 flex-col md:flex">
+          <div className="petgpt-rail-head">
             <button
               type="button"
               onClick={startNewChat}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
             >
               <Icon name="plus" /> New chat
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-2 pb-3">
+          <div className="petgpt-rail-list petgpt-scroll">
             {conversations === null ? (
-              <div className="flex items-center gap-2 p-3 text-sm text-ink-light dark:text-slate-400">
+              <div className="flex items-center gap-2 px-3 py-3 text-sm" style={{ color: 'var(--pg-muted)' }}>
                 <Icon name="spinner" spin /> Loading chats…
               </div>
             ) : loadFailed ? (
-              <div className="flex flex-col items-start gap-2 p-3 text-sm">
-                <span className="text-ink-light dark:text-slate-400">
+              <div className="flex flex-col items-start gap-2 px-3 py-3 text-sm">
+                <span style={{ color: 'var(--pg-muted)' }}>
                   <Icon name="triangle-exclamation" /> Couldn&apos;t load chats.
                 </span>
                 <button
@@ -417,23 +415,21 @@ export function PetGPTPage() {
                 </button>
               </div>
             ) : conversations.length === 0 ? (
-              <p className="p-3 text-sm text-ink-light dark:text-slate-400">No conversations yet.</p>
+              <p className="px-3 py-3 text-sm" style={{ color: 'var(--pg-muted)' }}>
+                No conversations yet.
+              </p>
             ) : (
               conversations.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => openConversation(c.id)}
-                  className={`mb-1 flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition ${
-                    c.id === activeId
-                      ? 'bg-pink-50 text-pink-700 dark:bg-pink-950/40 dark:text-pink-200'
-                      : 'text-ink hover:bg-pink-50/60 dark:text-slate-200 dark:hover:bg-slate-800'
-                  }`}
+                  aria-current={c.id === activeId}
+                  className="petgpt-rail-item"
+                  style={c.id === activeId ? undefined : { color: 'var(--pg-text)' }}
                 >
-                  <span className="truncate text-sm font-medium">{c.title || 'New conversation'}</span>
-                  {c.lastMessagePreview && (
-                    <span className="truncate text-xs text-ink-light dark:text-slate-400">{c.lastMessagePreview}</span>
-                  )}
+                  <span className="petgpt-rail-title">{c.title || 'New conversation'}</span>
+                  {c.lastMessagePreview && <span className="petgpt-rail-preview">{c.lastMessagePreview}</span>}
                 </button>
               ))
             )}
@@ -441,27 +437,28 @@ export function PetGPTPage() {
         </aside>
 
         {/* ─── Main chat area ─── */}
-        <main className="relative flex h-full min-w-0 flex-1 flex-col">
+        {/* A <section>, not a <main>: AppLayout already renders the page's
+            single <main> landmark, and nesting a second one is invalid. */}
+        <section className="petgpt-main relative flex min-h-0 min-w-0 flex-1 flex-col">
           {/* chat header (only when a conversation is open) */}
           {activeId ? (
-            <header className="flex items-center gap-2 border-b border-line bg-white/70 px-3 py-2.5 backdrop-blur dark:border-slate-800 dark:bg-slate-900 md:px-5">
+            <header className="petgpt-header flex items-center gap-3 px-3 py-3 md:px-5">
               <button
                 type="button"
-                className="rounded-lg p-1.5 text-ink-light transition hover:bg-pink-50 dark:text-slate-400 dark:hover:bg-slate-800 md:hidden"
+                className="rounded-lg p-2 transition hover:bg-pink-50 md:hidden"
+                style={{ color: 'var(--pg-muted)' }}
                 onClick={() => setRailOpen(true)}
                 aria-label="Show conversations"
               >
                 <Icon name="menu" />
               </button>
-              <div className="flex min-h-9 min-w-0 items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-pink-950/60 dark:text-pink-300">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="petgpt-avatar">
                   <Icon name="sparkles" />
                 </span>
                 <div className="min-w-0">
-                  <h1 className="truncate text-sm font-semibold leading-tight">
-                    {activeListEntry?.title || 'PetGPT'}
-                  </h1>
-                  <p className="text-xs leading-tight text-ink-light dark:text-slate-400">
+                  <h1 className="truncate text-sm font-semibold leading-tight">{activeListEntry?.title || 'PetGPT'}</h1>
+                  <p className="mt-0.5 text-xs leading-tight" style={{ color: 'var(--pg-muted)' }}>
                     {pending && (pending.status === 'queued' || pending.status === 'processing')
                       ? 'Working on your question…'
                       : 'AI pet-care assistant'}
@@ -469,15 +466,16 @@ export function PetGPTPage() {
                 </div>
               </div>
 
-              <div className="ml-auto flex items-center gap-1">
+              <div className="ml-auto flex items-center gap-1.5">
                 {pending && (pending.status === 'queued' || pending.status === 'processing') && (
-                  <span className="mr-1 hidden items-center gap-1.5 rounded-full bg-primary-light px-2.5 py-1 text-xs font-medium text-primary-dark dark:bg-pink-950/50 dark:text-pink-200 sm:flex">
+                  <span className="hidden items-center gap-1.5 rounded-full bg-primary-light px-2.5 py-1 text-xs font-medium text-primary-dark dark:bg-pink-950/50 dark:text-pink-200 sm:flex">
                     <Icon name="spinner" spin /> Generating…
                   </span>
                 )}
                 <button
                   type="button"
-                  className="rounded-lg p-2 text-ink-light transition hover:bg-pink-50 hover:text-pink-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="rounded-lg p-2 transition hover:bg-pink-50"
+                  style={{ color: 'var(--pg-muted)' }}
                   aria-label="Clear conversation (delete all messages)"
                   onClick={() => setConfirmClear((v) => !v)}
                 >
@@ -510,27 +508,25 @@ export function PetGPTPage() {
           {/* ─── Body: chat messages or empty/welcome state ─── */}
           {convLoading ? (
             <div className="flex flex-1 items-center justify-center">
-              <div className="flex items-center gap-2 text-sm text-ink-light dark:text-slate-400">
+              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--pg-muted)' }}>
                 <Icon name="spinner" spin /> Loading conversation…
               </div>
             </div>
           ) : showEmpty ? (
-            <div className="petgpt-empty flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-2xl px-4 pb-4 pt-8 md:pt-12">
+            <div className="petgpt-empty petgpt-scroll">
+              <div className="petgpt-empty-inner">
                 {/* greeting */}
                 <div className="flex flex-col items-center text-center">
                   <div className="relative flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-pink-400 via-rose-400 to-orange-300 text-white shadow-lg shadow-pink-200/60 dark:shadow-pink-950/40">
                     <Icon name="sparkles" className="text-3xl" />
                   </div>
-                  <h2 className="mt-4 text-2xl font-bold tracking-tight text-ink dark:text-slate-100">
-                    {firstName ? `Hi ${firstName} 👋` : 'Welcome back'}
-                  </h2>
-                  <p className="mt-1 text-sm text-ink-light dark:text-slate-400">
+                  <h2 className="mt-5 text-2xl font-bold tracking-tight">{firstName ? `Hi ${firstName}` : 'Welcome back'}</h2>
+                  <p className="mt-2 max-w-sm text-sm leading-relaxed" style={{ color: 'var(--pg-muted)' }}>
                     Meet PetGPT — your pet-care assistant, ready with your pet&apos;s records in mind.
                   </p>
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-9">
                   {showVets ? (
                     <VeterinarianPanel onBack={() => setShowVets(false)} onAskVet={askSelectedPet} />
                   ) : (
@@ -546,57 +542,69 @@ export function PetGPTPage() {
               </div>
             </div>
           ) : (
-            <div ref={scrollRef} className="petgpt-scroll flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-3xl px-3 py-5 md:px-6">
+            <div ref={scrollRef} className="petgpt-scroll min-h-0 flex-1 overflow-y-auto">
+              <div className="petgpt-column petgpt-transcript">
                 {/* early-conversation hint row */}
-                <div className="mb-4 flex justify-center">
-                  <span className="rounded-full bg-white px-3 py-1 text-xs text-ink-light shadow-sm dark:bg-slate-900 dark:text-slate-400">
-                    Today, {fmtTime(new Date().toISOString())}
-                  </span>
+                <span className="petgpt-daychip">Today, {fmtTime(new Date().toISOString())}</span>
+
+                <div className="petgpt-turns">
+                  {messages.map((m) => (
+                    <MessageRow
+                      key={m.id}
+                      role={m.role}
+                      content={friendlyContent(m)}
+                      time={fmtTime(m.createdAt)}
+                      toolCalls={m.toolCalls}
+                      onRetry={m.role === 'user' ? () => retryTurn(m) : undefined}
+                      retrying={retryingId === m.id}
+                      failed={!!(pending && pending.userMessageId === m.id && pending.status === 'failed')}
+                    />
+                  ))}
+
+                  {pending && (pending.status === 'queued' || pending.status === 'processing') && (
+                    <div className="flex items-start gap-2.5">
+                      <Avatar />
+                      <div className="petgpt-bubble petgpt-bubble-assistant">
+                        <TypingDots />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {messages.map((m) => (
-                  <MessageRow
-                    key={m.id}
-                    role={m.role}
-                    content={friendlyContent(m)}
-                    time={fmtTime(m.createdAt)}
-                    toolCalls={m.toolCalls}
-                    onRetry={m.role === 'user' ? () => retryTurn(m) : undefined}
-                    retrying={retryingId === m.id}
-                    failed={!!(pending && pending.userMessageId === m.id && pending.status === 'failed')}
-                  />
-                ))}
-
-                {pending && (pending.status === 'queued' || pending.status === 'processing') && (
-                  <div className="mt-2 flex items-start gap-2.5">
-                    <Avatar />
-                    <div className="rounded-2xl rounded-tl-sm bg-white px-4 py-3 shadow-sm dark:bg-slate-900">
-                      <TypingDots />
-                    </div>
-                  </div>
-                )}
-
                 {pending && pending.status === 'failed' && (
-                  <div className="mt-2 flex items-start gap-2.5">
+                  <div className="mt-4 flex items-start gap-2.5">
                     <Avatar />
-                    <div className="max-w-3xl rounded-2xl rounded-tl-sm border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
-                      <div className="flex items-start gap-2">
-                        <Icon name="triangle-exclamation" className="mt-0.5 text-amber-500" />
-                        <div>
-                          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    <div className="petgpt-failure petgpt-bubble rounded-tl-sm">
+                      <div className="flex items-start gap-2.5">
+                        <Icon name="triangle-exclamation" className="mt-0.5 shrink-0 text-base text-amber-500" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
                             {pending.error ? pending.error.message : 'AI generation failed. Please try again.'}
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-                              if (lastUser) retryTurn(lastUser)
-                            }}
-                            className="mt-2 flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm ring-1 ring-amber-200 transition hover:bg-amber-100 dark:bg-slate-900 dark:text-amber-200 dark:ring-slate-700"
-                          >
-                            <Icon name="rotate" /> Try again
-                          </button>
+                          {/* An endpoint failure is an application-configuration
+                              problem, not a transient one: retrying the same
+                              request against the same unreachable endpoint just
+                              fails again. PetGPT's AI endpoint is set for the whole
+                              deployment (there is no per-user AI setting), so there
+                              is nothing for this user to change here. */}
+                          {pending.error?.code === 'provider' && (
+                            <p className="mt-1.5 text-xs leading-relaxed text-amber-800/90 dark:text-amber-200/80">
+                              PetGPT could not reach the AI service configured for this FamiPet deployment. This is
+                              an administrator configuration issue, not something you can change in your account.
+                            </p>
+                          )}
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+                                if (lastUser) retryTurn(lastUser)
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-sm ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:opacity-60 dark:bg-slate-900 dark:text-amber-200 dark:ring-slate-700"
+                            >
+                              <Icon name="rotate" /> Try again
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -607,10 +615,10 @@ export function PetGPTPage() {
           )}
 
           {/* ─── Composer ─── */}
-          <div className="border-t border-line bg-white/70 px-3 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-900 md:px-6">
-            <div className="mx-auto w-full max-w-3xl">
+          <div className="petgpt-composer-bar">
+            <div className="petgpt-column">
               <form
-                className="flex items-end gap-2 rounded-2xl border border-line bg-white p-2 shadow-sm focus-within:border-pink-300 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:border-pink-800"
+                className="petgpt-composer"
                 onSubmit={(e) => {
                   e.preventDefault()
                   void submit()
@@ -630,23 +638,18 @@ export function PetGPTPage() {
                   disabled={sending}
                   placeholder="Ask about your pet's health, nutrition, care…"
                   aria-label="Message PetGPT"
-                  className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-ink placeholder:text-ink-light focus:outline-none disabled:opacity-60 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  className="disabled:opacity-60"
                 />
-                <button
-                  type="submit"
-                  disabled={sending || !composer.trim()}
-                  aria-label="Send message"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
-                >
+                <button type="submit" disabled={sending || !composer.trim()} aria-label="Send message" className="petgpt-send">
                   <Icon name={sending ? 'spinner' : 'send'} spin={sending} />
                 </button>
               </form>
-              <p className="mt-1.5 px-1 text-center text-[11px] text-ink-light dark:text-slate-500">
+              <p className="petgpt-disclaimer">
                 PetGPT can make mistakes — important concerns should never replace professional veterinary care.
               </p>
             </div>
           </div>
-        </main>
+        </section>
       </div>
 
       {/* ─── Mobile conversation drawer ─── */}
@@ -705,7 +708,7 @@ export function PetGPTPage() {
 
 function Avatar() {
   return (
-    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-pink-950/60 dark:text-pink-300">
+    <span className="petgpt-avatar mt-0.5">
       <Icon name="sparkles" className="text-sm" />
     </span>
   )
@@ -714,9 +717,9 @@ function Avatar() {
 function TypingDots() {
   return (
     <span className="flex items-center gap-1">
-      <span className="petgpt-dot h-1.5 w-1.5 rounded-full bg-ink-light dark:bg-slate-400" />
-      <span className="petgpt-dot h-1.5 w-1.5 rounded-full bg-ink-light dark:bg-slate-400" style={{ animationDelay: '0.15s' }} />
-      <span className="petgpt-dot h-1.5 w-1.5 rounded-full bg-ink-light dark:bg-slate-400" style={{ animationDelay: '0.3s' }} />
+      <span className="petgpt-dot h-1.5 w-1.5 rounded-full" />
+      <span className="petgpt-dot h-1.5 w-1.5 rounded-full" style={{ animationDelay: '0.15s' }} />
+      <span className="petgpt-dot h-1.5 w-1.5 rounded-full" style={{ animationDelay: '0.3s' }} />
     </span>
   )
 }
@@ -747,44 +750,38 @@ function MessageRow({ role, content, time, toolCalls, onRetry, retrying, failed 
 
   if (isUser) {
     return (
-      <div className="mb-3 flex justify-end">
-        <div className="max-w-[88%] sm:max-w-[75%]">
+      <div className="flex justify-end">
+        <div className="max-w-[88%] sm:max-w-[78%]">
           {failed && (
-            <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
               <Icon name="triangle-exclamation" /> Could not get a reply
             </p>
           )}
-          <div className="rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-white shadow-sm">
-            {content}
-          </div>
-          <p className="mt-1 text-right text-[11px] text-ink-light dark:text-slate-500">{time}</p>
+          <div className="petgpt-bubble petgpt-bubble-user">{content}</div>
+          <p className="petgpt-meta text-right">{time}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="mb-3 flex items-start gap-2.5">
+    <div className="flex items-start gap-2.5">
       <Avatar />
-      <div className="max-w-[88%] sm:max-w-[75%]">
-        <div className="rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm leading-relaxed text-ink shadow-sm dark:bg-slate-900 dark:text-slate-100">
+      <div className="max-w-[88%] sm:max-w-[78%]">
+        <div className="petgpt-bubble petgpt-bubble-assistant rounded-tl-sm">
           {content ? (
-            <div className="petgpt-answer whitespace-pre-wrap">{content}</div>
+            <div className="petgpt-answer">{content}</div>
           ) : (
-            <p className="text-ink-light dark:text-slate-400">PetGPT didn&apos;t return a reply.</p>
+            <p style={{ color: 'var(--pg-muted)' }}>PetGPT didn&apos;t return a reply.</p>
           )}
 
           {toolCalls && toolCalls.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-2.5 dark:border-slate-800">
+            <div className="petgpt-tools">
               {toolCalls.map((t, i) => (
                 <span
                   key={`${t.name}-${i}`}
                   title={t.error || undefined}
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    t.ok
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
-                      : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
-                  }`}
+                  className={`petgpt-tool ${t.ok ? 'petgpt-tool-ok' : 'petgpt-tool-fail'}`}
                 >
                   <Icon name={t.ok ? 'circle-check' : 'circle-xmark'} className="text-[10px]" />
                   {TOOL_LABELS[t.name] || t.name}
@@ -793,14 +790,14 @@ function MessageRow({ role, content, time, toolCalls, onRetry, retrying, failed 
             </div>
           )}
         </div>
-        <p className="mt-1 pl-1 text-[11px] text-ink-light dark:text-slate-500">
+        <p className="petgpt-meta">
           {time}
           {onRetry && (
             <button
               type="button"
               onClick={onRetry}
               disabled={retrying}
-              className="ml-2 inline-flex items-center gap-1 rounded px-1 py-0.5 text-primary transition hover:bg-pink-50 disabled:opacity-60 dark:hover:bg-slate-800"
+              className="ml-2 inline-flex items-center gap-1 rounded px-1 py-0.5 transition hover:bg-pink-50 disabled:opacity-60 dark:hover:bg-slate-800"
             >
               <Icon name={retrying ? 'spinner' : 'rotate'} spin={retrying} /> {retrying ? 'Resending…' : 'Try again'}
             </button>

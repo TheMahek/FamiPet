@@ -1,20 +1,20 @@
 // =========================================================
-// PetGPT bounded tool-calling loop (Phase 5)
+// PetGPT bounded tool-calling loop
 // ---------------------------------------------------------
-// The ONE place that drives a generateWithTools round-trip:
+// The ONE place that drives a tool-calling round-trip against the
+// single OpenAI-compatible adapter (./openai.js):
 //
-//   1. Pre-check capabilities (provider must declare toolCalling
-//      and implement generateWithTools) and that the registry has
-//      at least one tool.
+//   1. Check the registry has at least one tool.
 //   2. Call adapter.generateWithTools with a caller-assembled
 //      message array plus the registered tool declarations.
 //   3. For each returned tool call: validate args against the tool
-//      schema, run the tool's authorize() ownership gate, then
-//      execute() — backend code only.
+//      schema, run the tool's authorize() ownership gate, then —
+//      for mutations only — the confirmation gate, then execute() —
+//      backend code only.
 //   4. Append the model-safe assistant turn + tool results to the
 //      message array as a new round and loop, bounded by
 //      AI_CONFIG.tools.maxIterations.
-//   5. On exhaustion or a provider error, STOP safely: return the
+//   5. On exhaustion or an endpoint error, STOP safely: return the
 //      last real model text, never a fabricated final answer.
 //
 // Policy: the model can never invent tools, never touch another
@@ -25,12 +25,11 @@
 //
 // The caller (the durable generation worker) supplies `messages`
 // (system + history + current turn) and trusts this loop with the
-// provider/tool side only; HTTP requests and tool execution happen
+// endpoint/tool side only; HTTP requests and tool execution happen
 // here, inside the durable worker lifecycle, never in a controller.
 // =========================================================
 
 const { AI_CONFIG } = require("../config/ai");
-const { supportsToolCalling } = require("./provider");
 const { logEvent } = require("./logging");
 const {
   listToolDeclarations,
@@ -39,14 +38,6 @@ const {
 
 const MAX_ITERATIONS = () => AI_CONFIG.tools.maxIterations;
 
-// Capability gate: a provider that did not declare toolCalling is never
-// asked to run tools. false signals "tool path unavailable" — the caller
-// keeps the plain generate() fallback. This keeps non-tool providers
-// (e.g. Gemini) on the legacy single-turn path.
-function canUseTools(providerName) {
-  return supportsToolCalling(providerName);
-}
-
 // Cap on persisted tool-call metadata per assistant message. The loop
 // may execute more calls in theory, but only this many are recorded —
 // the log stays bounded (rounds x calls, truncated defensively).
@@ -54,10 +45,15 @@ const TOOL_CALLS_METADATA_MAX = 20;
 
 // Tool metadata kept for history/debugging. Bounded: name + validated
 // model-supplied arguments + success flag. Never stores API keys, auth
-// headers, provider payloads, or raw results.
+// headers, raw payloads, or raw results. `confirmationRequired` marks a
+// call the backend refused to execute pending the user's confirmation,
+// and `replayed` marks one whose result came from a recorded receipt, so
+// an audit can tell a real write from an asked-for or replayed one.
 function toolLogEntry(call, outcome) {
   const entry = { name: call.name, ok: outcome && outcome.ok };
   if (!(outcome && outcome.ok)) entry.error = outcome && outcome.error ? outcome.error : null;
+  if (outcome && outcome.confirmationRequired) entry.confirmationRequired = true;
+  if (outcome && outcome.replayed) entry.replayed = true;
   if (call.arguments && typeof call.arguments === "object" && Object.keys(call.arguments).length) {
     entry.arguments = call.arguments;
   }
@@ -70,18 +66,22 @@ function toolLogEntry(call, outcome) {
 //                                                                 be the last real
 //                                                                 model text or null)
 //   { ok: false, reason: "error", text }                         — provider failed mid-loop
-//   { ok: false, reason: "no_tools" }                            — capability/declarations absent
+//   { ok: false, reason: "no_tools" }                            — no declarations registered
 // The caller compensates by persisting a safe outcome — never by
 // fabricating a success the model did not confirm.
 //
-// options.jobId (Phase 6): the caller passes the durable GenerationJob
+// options.jobId: the caller passes the durable GenerationJob
 // id so mutation tools can key their idempotency ledger — a retried job
 // replays its recorded mutation results instead of executing twice.
-async function runToolCallingLoop({ adapter, config, messages, userId, options = {} }) {
-  if (!adapter || !adapter.capabilities || !adapter.capabilities.toolCalling) {
-    return { ok: false, reason: "no_tools" };
-  }
-  if (typeof adapter.generateWithTools !== "function") {
+// options.conversation + options.confirmed: the conversation a mutation
+// request belongs to, and the caller's verdict on the PERSISTED USER
+// TURN (backend/ai/confirmation.js). The registry refuses every mutation
+// until a later user turn explicitly confirms it. Note the verdict is
+// per user turn, not per tool call: re-issuing the same tool call later
+// in THIS loop still cannot execute, because the user has not confirmed
+// anything yet.
+async function runToolCallingLoop({ adapter, messages, userId, options = {} }) {
+  if (!adapter || typeof adapter.generateWithTools !== "function") {
     return { ok: false, reason: "no_tools" };
   }
 
@@ -89,7 +89,7 @@ async function runToolCallingLoop({ adapter, config, messages, userId, options =
   if (!declarations.length) {
     return { ok: false, reason: "no_tools" };
   }
-  const { jobId } = options;
+  const { jobId, conversation, confirmed } = options;
 
   const toolLog = [];
   let lastText = null;
@@ -97,10 +97,10 @@ async function runToolCallingLoop({ adapter, config, messages, userId, options =
   for (let i = 0; i < MAX_ITERATIONS(); i++) {
     let response;
     try {
-      response = await adapter.generateWithTools({ messages, tools: declarations, config });
+      response = await adapter.generateWithTools({ messages, tools: declarations });
     } catch (error) {
       const code = error && error.code ? error.code : "unknown";
-      console.error(`PetGPT: tool round ${i + 1} provider failed (${code}): ${error && error.message ? error.message : "unknown"}`);
+      console.error(`PetGPT: tool round ${i + 1} failed (${code}): ${error && error.message ? error.message : "unknown"}`);
       return { ok: false, reason: "error", text: lastText };
     }
     if (!response) {
@@ -122,7 +122,11 @@ async function runToolCallingLoop({ adapter, config, messages, userId, options =
       });
 
       for (const call of response.toolCalls) {
-        const outcome = await executeTool(call.name, call.arguments, userId, { jobId });
+        const outcome = await executeTool(call.name, call.arguments, userId, {
+          jobId,
+          conversation,
+          confirmed,
+        });
         if (toolLog.length < TOOL_CALLS_METADATA_MAX) {
           toolLog.push(toolLogEntry(call, outcome));
         }
@@ -131,6 +135,7 @@ async function runToolCallingLoop({ adapter, config, messages, userId, options =
           tool: call.name,
           ok: outcome.ok,
           replayed: !!(outcome && outcome.replayed),
+          confirmationRequired: !!(outcome && outcome.confirmationRequired),
         });
         messages.push({
           role: "tool",
@@ -154,7 +159,6 @@ async function runToolCallingLoop({ adapter, config, messages, userId, options =
 }
 
 module.exports = {
-  canUseTools,
   runToolCallingLoop,
   TOOL_CALLS_METADATA_MAX,
   toolLogEntry,

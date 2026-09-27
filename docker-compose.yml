@@ -76,16 +76,18 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    # Real configuration + every PetGPT/OmniRoute variable, from the
+    # Real configuration + every PetGPT_* variable, from the
     # gitignored backend/.env. Nothing secret is baked into the image.
     env_file:
       - ./backend/.env
-    # PetGPT/OmniRoute: OmniRoute is NOT a service in this stack - it
-    # already runs on this host. A container cannot reach the host's
-    # loopback, so host.docker.internal is mapped to the host gateway and
-    # the existing OmniRoute is addressed by that STABLE name:
-    #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:20128/v1
+    # PetGPT calls an EXTERNAL OpenAI-compatible endpoint that the
+    # deployment provides. When that endpoint lives on the host, a
+    # container cannot reach the host's loopback address directly, so
+    # host.docker.internal is mapped to the host gateway and the endpoint
+    # is addressed by that STABLE name:
+    #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:<port>/v1
     # (A 172.x container IP is never used - it changes on every recreate.)
+    # This mapping is inert when no host-local endpoint is used.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -190,52 +192,24 @@ services:
     mem_limit: 128m
     cpus: 0.5
 
-  # -------- OMNIROUTE (OpenAI-compatible PetGPT provider, OFF BY DEFAULT) ----
-  # This host ALREADY runs OmniRoute in another Compose project, so it is NOT
-  # a service of this stack. The backend reaches the existing one through the
-  # host-gateway name (see `extra_hosts` + PETGPT_OPENAI_BASE_URL above):
-  #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:20128/v1
+  # -------- AI PROVIDER (OpenAI-compatible endpoint) --------
+  # PetGPT talks to an EXTERNAL, OpenAI-compatible HTTP endpoint. That
+  # endpoint is a deployment concern, not a FamiPet service: this stack
+  # neither runs one nor depends on one. Nothing below is required for
+  # FamiPet to boot - PetGPT simply reports "no provider configured"
+  # until the deployment supplies a base URL.
   #
-  # The definition below is CONDITIONAL, not part of a default `up`: it carries
-  # profile "omniroute", exactly like cloudflared's profile "tunnel", so
-  # `docker compose up -d` can never start a second OmniRoute by accident.
-  # Start it only on a host that has none, e.g. a fresh single-project box:
-  #   docker compose --profile omniroute up -d omniroute
-  # then in backend/.env:
-  #   PETGPT_OPENAI_BASE_URL=http://omniroute:20128/v1
-  # It joins famipet-backend-net so the backend resolves it by SERVICE NAME -
-  # a 172.x container IP changes on every recreate and silently breaks PetGPT.
+  # The backend reaches an endpoint on the host through the stable
+  # `host.docker.internal` name mapped to the host gateway (see
+  # `extra_hosts` on the backend above):
+  #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:<port>/v1
+  # A container IP (172.x) is never used - it changes on every recreate.
   #
-  # If OmniRoute runs in ANOTHER project and is published on host LOOPBACK only
-  # (127.0.0.1:20128, the usual secure default) a container cannot reach it via
-  # the gateway at all. Attach the backend to the network that OmniRoute is
-  # already on, then address it by service name. Uncomment and set the name:
-  #   OMNIROUTE_NETWORK=edutech_default
-  # services:
-  #   backend:
-  #     networks:
-  #       - famipet-backend-net
-  #       - omniroute-net
-  # networks:
-  #   omniroute-net:
-  #     name: ${OMNIROUTE_NETWORK:-edutech_default}
-  #     external: true
-  omniroute:
-    image: diegosouzapw/omniroute:latest
-    restart: unless-stopped
-    init: true
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - omniroute
-    environment:
-      - OMNIROUTE_PORT=20128
-    expose:
-      - "20128"
-    networks:
-      - famipet-backend-net
-    mem_limit: 1g
-    cpus: 1.0
+  # The endpoint may be any OpenAI-compatible gateway (host-local, remote,
+  # or behind a tunnel). Only base URL + key + model matter; FamiPet does
+  # not care which implementation serves it. This is the ONLY place the
+  # endpoint is configured: there is no per-user AI setting and no
+  # in-app provider configuration, so a user can never redirect PetGPT.
 
 # -------- NETWORKS (frontend isolated from backend + database) --------
 networks:

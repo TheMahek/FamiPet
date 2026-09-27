@@ -159,7 +159,7 @@ export function PetIdPage() {
           </button>
           <button ref={bellRef} className="icon-action-btn badge-btn" type="button" title="Notifications" onClick={() => setPanelOpen((o) => !o)}>
             <Icon name="bell" />
-            <span className="badge-count">{unread || '0'}</span>
+            <span className="badge">{unread || '0'}</span>
           </button>
         </div>
       </header>
