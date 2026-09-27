@@ -43,6 +43,13 @@ const messageSchema = new mongoose.Schema(
           arguments: { type: mongoose.Schema.Types.Mixed, default: undefined },
           ok: { type: Boolean, required: true },
           error: { type: String, default: undefined },
+          // Set when the backend WITHHELD this mutation because the user
+          // had not confirmed it yet, and when the result was replayed from
+          // a recorded receipt instead of written again. Together with
+          // `ok`, this tells a real mutation from an asked-for or replayed
+          // one, so the trace is an honest audit of what happened.
+          confirmationRequired: { type: Boolean, default: undefined },
+          replayed: { type: Boolean, default: undefined },
         },
       ],
       default: undefined,

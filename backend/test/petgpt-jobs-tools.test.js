@@ -19,6 +19,7 @@
 // =========================================================
 
 const assert = require("assert");
+const { testDbUri } = require("./db");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -26,9 +27,8 @@ const mongoose = require("mongoose");
 const WORKER_POLL_MS = 60;
 
 process.env.NODE_ENV = "test";
-process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/animal_planet_petgpt_jobs_tools_test";
+process.env.MONGODB_URI = testDbUri("animal_planet_petgpt_jobs_tools_test");
 process.env.JWT_SECRET = "petgpt-jobs-tools-secret";
-process.env.PETGPT_PROVIDER = "openai";
 process.env.PETGPT_OPENAI_BASE_URL = "http://127.0.0.1:4115/v1";
 process.env.PETGPT_OPENAI_API_KEY = "sk-jobs-tools";
 process.env.PETGPT_OPENAI_MODEL = "test-model";

@@ -29,18 +29,14 @@ const { AI_CONFIG, buildSystemPrompt } = require("../config/ai");
 const GenerationJob = require("../models/GenerationJob");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
-const {
-  resolveActiveProviderConfig,
-  generatePetGPTResponse,
-  buildProviderRequest,
-  getActiveProvider,
-} = require("../ai");
+const { adapter } = require("../ai");
 const {
   buildConversationContext,
   buildProviderMessages,
   updateConversationMetadata,
 } = require("../ai/context");
-const { canUseTools, runToolCallingLoop } = require("../ai/tool-calling");
+const { runToolCallingLoop } = require("../ai/tool-calling");
+const { isExplicitConfirmation } = require("../ai/confirmation");
 const { logEvent } = require("../ai/logging");
 
 const POLL_MS = AI_CONFIG.worker.pollMs;
@@ -98,58 +94,44 @@ async function fail(jobId, safeError) {
   );
 }
 
-// Run the provider exchange for one job — tool-calling path or legacy
+// Run the AI exchange for one job — tool-calling path or legacy
 // generate() — entirely inside the durable worker lifecycle. Returns
 // { answer, toolLog } on success, or { error: SAFE_ERRORS.* }. No tool
 // execution ever happens inside the HTTP request that queued the job.
-async function generateJobAnswer({ providerConfig, providerType, userId, userMessage, context, jobId }) {
-  // Phase 5 tool path: ONLY for providers that declared tool calling.
-  // Others (e.g. Gemini) keep the legacy single-turn path unchanged.
-  if (canUseTools(providerType)) {
-    let request;
-    try {
-      // Stored user config: decrypt the key here, immediately before the
-      // request (fail closed on a missing encryption secret). Env config:
-      // the active adapter + the system-level OpenAI-compatible config.
-      request = providerConfig
-        ? buildProviderRequest(providerConfig)
-        : { adapter: getActiveProvider(), config: AI_CONFIG.openai };
-    } catch (error) {
-      console.error(`PetGPT: tool path provider resolution failed (${providerType}): ${error.message}`);
-      return { error: SAFE_ERRORS.PROVIDER };
-    }
+// Mutations only execute on a turn whose persisted user message is an
+// explicit confirmation (see backend/ai/confirmation.js).
+async function generateJobAnswer({ userId, userMessage, context, jobId, conversation }) {
+  const messages = buildProviderMessages({
+    system: buildSystemPrompt(),
+    history: context.history,
+    petContext: context.petContext,
+    question: userMessage.content,
+  });
 
-    const messages = buildProviderMessages({
-      system: buildSystemPrompt(),
-      history: context.history,
-      petContext: context.petContext,
-      question: userMessage.content,
-    });
+  const result = await runToolCallingLoop({
+    adapter,
+    messages,
+    userId,
+    // `confirmed` is read from the PERSISTED user message, never from model
+    // output: it is the backend's own verdict on whether this turn carries
+    // explicit consent, and the registry's mutation gate fails closed when
+    // it is false. The conversation id scopes a pending request to the chat
+    // it was raised in, so a confirmation here can never approve a mutation
+    // previewed elsewhere.
+    options: {
+      jobId: jobId,
+      conversation: conversation,
+      confirmed: isExplicitConfirmation(userMessage.content),
+    },
+  });
 
-    const result = await runToolCallingLoop({
-      adapter: request.adapter,
-      config: request.config,
-      messages,
-      userId,
-      options: { jobId: jobId },
-    });
-
-    // Transport/HTTP provider failure mid-loop: safe client error, never
-    // a fabricated answer. Bounded-exhaustion and clean finishes carry
-    // real model text (may be null when the model never produced any).
-    if (result.reason === "error") {
-      return { error: SAFE_ERRORS.PROVIDER };
-    }
-    return { answer: result.text || null, toolLog: result.toolLog || [] };
+  // Transport/HTTP failure mid-loop: safe client error, never a fabricated
+  // answer. Bounded-exhaustion and clean finishes carry real model text
+  // (may be null when the model never produced any).
+  if (result.reason === "error") {
+    return { error: SAFE_ERRORS.PROVIDER };
   }
-
-  const answer = await generatePetGPTResponse(
-    userMessage.content,
-    context.petContext,
-    context.history,
-    providerConfig
-  );
-  return { answer };
+  return { answer: result.text || null, toolLog: result.toolLog || [] };
 }
 
 // Run one claimed job to completion/failure.
@@ -166,19 +148,16 @@ async function runJob(job) {
       return await fail(job._id, SAFE_ERRORS.MESSAGE);
     }
 
-    // Provider resolution happens here, in the worker, owner-scoped
-    // (Phase 3 rules): the authenticated owner's active provider, or
-    // the system env configuration. Never another user's provider.
-    const providerConfig = await resolveActiveProviderConfig(job.owner);
-    const providerType = providerConfig ? providerConfig.provider : AI_CONFIG.provider;
-    const provider = providerConfig ? providerConfig.name || providerConfig.provider : "env";
-    const model = providerConfig ? providerConfig.model : "";
+    // The endpoint and model come from the application-level environment
+    // configuration. They are non-secret observability labels only.
+    const provider = adapter.label;
+    const model = AI_CONFIG.openai.model;
     await GenerationJob.updateOne(
       { _id: job._id, status: "processing" },
       { $set: { provider, model } }
     );
 
-    // Shared Phase 2 context assembly: bounded history + own pets.
+    // Shared bounded-history + own-pets context assembly.
     const context = await buildConversationContext({
       conversationId: job.conversation,
       userId: job.owner,
@@ -186,12 +165,11 @@ async function runJob(job) {
     });
 
     const result = await generateJobAnswer({
-      providerConfig,
-      providerType,
       userId: job.owner,
       userMessage,
       context,
       jobId: job._id,
+      conversation: job.conversation,
     });
 
     if (result.error) {
@@ -200,9 +178,9 @@ async function runJob(job) {
 
     const answer = result.answer;
     if (!answer) {
-      // Provider failed with no real text (generatePetGPTResponse already
-      // logged the normalized code server-side). No fabricated success, no
-      // fallback posing as an AI answer.
+      // Endpoint failed with no real text (the adapter already logged the
+      // normalized code server-side). No fabricated success, no fallback
+      // posing as an AI answer.
       return await fail(job._id, SAFE_ERRORS.PROVIDER);
     }
 
