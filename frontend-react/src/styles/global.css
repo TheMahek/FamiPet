@@ -166,9 +166,21 @@ svg.lucide {
    pinned left, no gutters. Unlayered, this wins, and the specific
    `min(90%, 1350px)` + auto margins also beat the `* { margin: 0 }`
    reset in dashboard.css.
+
+   `max-width: none` is required as well. Tailwind's utility also declares a
+   `max-width` ladder (`@media (width >= 40rem) { max-width: 40rem }` and 48 /
+   64 / 80 / 96rem) and nothing here overrode it, so it kept winning every
+   cascade contest against a property we simply did not set. Result: the
+   container was silently clamped to 768px from 768px up to 1023px (881px
+   expected at 992, 801px at 900) and to 1280px from 1280px up to 1535px,
+   which re-centred the whole page against the wrong box and pulled the
+   navbar logo, links and toggles inward. The width cap this rule wants is
+   already inside `min(90%, 1350px)`, so dropping the inherited one restores
+   the Vanilla geometry without changing the intended max.
    ========================================================= */
 .container {
   width: min(90%, 1350px);
+  max-width: none;
   margin-inline: auto;
 }
 

@@ -85,6 +85,10 @@
 
     font-size:1.8rem;
 
+    /* Tailwind v4 preflight resets `h1..h6` to `font-weight: inherit`, so this
+       heading fell back to body's 400. Vanilla relied on the UA default bold. */
+    font-weight:700;
+
     margin-bottom:15px;
 
 }
@@ -175,6 +179,8 @@
 .footer-column h4{
 
     font-size:1.2rem;
+
+    font-weight:700;
 
     margin-bottom:20px;
 
