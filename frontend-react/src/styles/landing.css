@@ -37,6 +37,12 @@
 .landing .hero-content h1 {
   font-size: 4rem;
   line-height: 1.15;
+  /* Tailwind v4 preflight sets `h1..h6 { font-size: inherit; font-weight:
+     inherit }`, so every heading inherits body's 400. Vanilla's `*` reset
+     never touched font-weight, so the headings there kept the UA default
+     bold. Restated explicitly wherever the Vanilla file relied on that
+     default. */
+  font-weight: 700;
   color: #3d2314;
   margin-bottom: 25px;
 }
@@ -101,10 +107,15 @@
 }
 
 .landing .hero-image img {
-  /* Was 115%: the 15% bleed overhung the hero column and, once the container
-     reached the viewport edge (~1280px), pushed the page 35px wider than the
-     viewport and clipped the image. Capped to its own column instead. */
-  width: 100%;
+  /* Was capped to 100% in b3a3007 to stop a 35px horizontal overflow. That
+     overflow was the full-bleed `.container` (no gutters), which 8c0d1dd
+     fixed; with the container back to min(90%, 1350px) the 15% bleed always
+     fits inside the 5% gutter (0.0375·cw − 2.25 < 0.05·cw at every width).
+     Restored so the hero image matches Vanilla's 700px cap, which in turn
+     restores the vertical centring of the hero text — the image is the
+     taller of the two flex tracks, so a narrower image lifted the whole
+     text block 25.8px at 1440. */
+  width: 115%;
   max-width: 700px;
   border-radius: 30px;
   filter: drop-shadow(0 20px 40px rgba(255, 170, 190, 0.25));
@@ -152,6 +163,7 @@
 
 .landing .section-header h2 {
   font-size: 2.3rem;
+  font-weight: 700;
   margin-bottom: 15px;
   line-height: 1.2;
   color: #3d2314;
@@ -216,6 +228,7 @@
 
 .landing .service-content h3 {
   font-size: 18px;
+  font-weight: 700;
   margin-bottom: 8px;
   color: #3d2314;
 }
@@ -344,6 +357,7 @@
 
 .landing .why-card h3 {
   color: #3d2314;
+  font-weight: 700;
   margin-bottom: 15px;
   transition: 0.35s;
   font-size: 1.3rem;
@@ -383,6 +397,7 @@
 
 .landing .cta-content h2 {
   font-size: 3rem;
+  font-weight: 700;
   color: var(--text-dark);
   line-height: 1.2;
   margin: 20px 0;
@@ -437,6 +452,94 @@
 .landing .paw3 {
   bottom: 45px;
   right: 120px;
+}
+
+/* =====================================================
+   DARK THEME
+   The theme toggle has always written `body.dark-theme`
+   (parity with frontend/js/theme.js), but this port never
+   ported a landing rule for it, so on `/` the button
+   swapped sun for moon and changed nothing on screen.
+   Vanilla only reached the landing indirectly through
+   responsive.css's global `body.dark-theme` block.
+
+   Scoped to `.landing` / `.header`, which are rendered only
+   by LandingLayout, so the authenticated pages keep their own
+   dark palettes. Colours are the app's existing dark tokens
+   (#171523 canvas, #211e30 surface, #332e45 line, #f5f2ff
+   heading, #b7b0c9 muted) — no new palette introduced.
+   ===================================================== */
+
+body.dark-theme:has(.landing) {
+  background: #171523;
+}
+
+body.dark-theme .landing .about,
+body.dark-theme .landing .why-choose {
+  background: #171523;
+}
+
+body.dark-theme .landing .hero-content h1,
+body.dark-theme .landing .section-header h2,
+body.dark-theme .landing .service-content h3,
+body.dark-theme .landing .why-card h3,
+body.dark-theme .landing .about-content h2,
+body.dark-theme .landing .cta-content h2 {
+  color: #f5f2ff;
+}
+
+body.dark-theme .landing .hero-content p,
+body.dark-theme .landing .section-header p,
+body.dark-theme .landing .service-content p,
+body.dark-theme .landing .why-card p,
+body.dark-theme .landing .about-content p,
+body.dark-theme .landing .cta-content p {
+  color: #b7b0c9;
+}
+
+body.dark-theme .landing .hero-tag {
+  background: #332e45;
+  color: #ff5c8a;
+}
+
+body.dark-theme .landing .service-card {
+  background: #211e30;
+  border-color: #332e45;
+}
+
+/* Restated: `.landing .service-card:hover` ties these on specificity and sits
+   earlier in the file, so without this the pink hover border is lost. */
+body.dark-theme .landing .service-card:hover {
+  border-color: #ff5c8a;
+}
+
+body.dark-theme .landing .service-icon {
+  background: #332e45;
+}
+
+body.dark-theme .landing .why-card {
+  background: #211e30;
+  border-color: #332e45;
+}
+
+/* Same tie as the service card: keeps the per-card accent on hover. */
+body.dark-theme .landing .why-card:hover h3 {
+  color: var(--accent);
+}
+
+body.dark-theme .landing .secondary-btn {
+  background: #211e30;
+  color: #f5f2ff;
+  border-color: #332e45;
+}
+
+body.dark-theme .landing .secondary-btn:hover {
+  background: #332e45;
+}
+
+body.dark-theme .landing .cta-box {
+  background: linear-gradient(135deg, #211e30, #171523);
+  border-color: #332e45;
 }
 
 /* =====================================================
