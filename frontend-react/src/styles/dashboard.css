@@ -144,9 +144,6 @@ body.dark-theme:has(.dashboard-page) {
 
 * {
 
-    margin: 0;
-    padding: 0;
-
     box-sizing: border-box;
 
 }
@@ -184,15 +181,6 @@ button,
 input {
 
     font-family: inherit;
-
-}
-
-
-button {
-
-    border: none;
-
-    cursor: pointer;
 
 }
 

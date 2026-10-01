@@ -71,6 +71,20 @@ body.dark-theme:has(.petgpt-page) .petgpt-root {
   color: var(--pg-text);
 }
 
+/* ---- CARD TREATMENT PARITY ----
+   PetGPT is the only page styled with Tailwind utilities rather than the
+   app's own card classes, so its cards borrow Tailwind's default slate
+   ramp: dark surfaces came out cold navy (#1e293b) against the app's warm
+   #211e30, and `rounded-2xl` gave 16px against the 22px card radius every
+   other page uses. Repoint the ramp and the radius at the values already
+   in use elsewhere. Text slate shades are left alone. */
+.petgpt-root {
+  --radius-2xl: var(--radius-card);
+  --color-slate-900: var(--pg-surface);
+  --color-slate-800: var(--pg-border);
+  --color-slate-700: #3f3955;
+}
+
 /* ---- FOCUS ----
    The app's focus ring is scoped to `body:has(.dashboard-page)`,
    which PetGPT is not, so it had none at all. Same ring, same
