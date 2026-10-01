@@ -1,0 +1,19 @@
+# AI Breed Intelligence — isolated ML service.
+#
+# Deliberately small: the college-practical MobileNetV2/ImageNet path only.
+# No training, no custom dataset, no large breed model, no DB driver.
+#
+# tensorflow-cpu is the CPU-only build: ~230 MB installed (~600 MB for the
+# default tensorflow wheel, which also pulls a CUDA stack this deployment
+# never uses). Keras 3 ships inside it, so there is no separate keras pin.
+tensorflow-cpu>=2.16,<3
+fastapi>=0.110
+uvicorn[standard]>=0.29
+# The upload parser. FastAPI 0.110+ requires >0.0.12, so an older floor
+# would not resolve against the FastAPI range above.
+python-multipart>=0.0.13
+pillow>=10.3
+
+# Test-only. Not needed to serve predictions.
+httpx>=0.27
+pytest>=8.0

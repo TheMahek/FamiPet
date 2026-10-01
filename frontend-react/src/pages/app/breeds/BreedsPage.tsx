@@ -13,14 +13,16 @@
 //   "0" badge — AGENTS §7).
 
 import { useEffect, useMemo, useState } from 'react'
-import { getBreeds, type Breed } from '../../../api/breeds'
+import { getBreeds, getBreedAiStatus, type Breed, type BreedAiStatus } from '../../../api/breeds'
 import { Icon } from '../../../components/shared/Icon'
 import { BreedCard } from './BreedCard'
+import { IdentifyBreed } from './IdentifyBreed'
 import { breedSearchText, SPECIES_TABS, type SpeciesTabValue } from './breedsBase'
 
 export function BreedsPage() {
   const [breeds, setBreeds] = useState<Breed[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [aiStatus, setAiStatus] = useState<BreedAiStatus | null>(null)
 
   const [query, setQuery] = useState('')
   const [species, setSpecies] = useState<SpeciesTabValue>('all')
@@ -39,6 +41,23 @@ export function BreedsPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [])
+
+  // Breed identification is optional, so a failure here must not take the page
+  // down: `null` simply hides the Identify panel (AGENTS §11).
+  useEffect(() => {
+    getBreedAiStatus()
+      .then((res) => setAiStatus(res))
+      .catch(() => setAiStatus(null))
+  }, [])
+
+  // A breed created by identification joins the grid without a refetch.
+  const onIdentified = (breed: Breed) => {
+    setBreeds((current) => {
+      const list = current || []
+      return list.some((b) => b._id === breed._id) ? list : [breed, ...list]
+    })
+    setExpandedId(breed._id)
+  }
 
   /* ---------------- FILTER (Vanilla renderBreeds filter) ---------------- */
 
@@ -90,6 +109,8 @@ export function BreedsPage() {
 
       {/* ================= TOOLBAR ================= */}
       <section className="breeds-panel">
+        <IdentifyBreed status={aiStatus} onResult={onIdentified} />
+
         <div className="breeds-toolbar">
           <div className="search-box">
             <Icon name="magnifying-glass" />
