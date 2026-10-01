@@ -34,24 +34,23 @@ const seedData = async () => {
       Notification.deleteMany(),
     ]);
 
-    // Every seeded account reuses the app's own bundled placeholder avatar
-    // (frontend-react/public/assets/images/dashboard/user-profile.svg) so no
-    // demo user depends on an external image URL that can rot. Passwords are
-    // throwaway demo credentials and all end in "famipet".
+    // Seeded accounts get no avatar: the client renders its own generic
+    // placeholder (pink initials in the sidebar, avatar-generic.svg elsewhere),
+    // and a bundled asset path must never be stored as a user's avatar.
+    // Passwords are throwaway demo credentials and all end in "famipet".
     // User.create() (not insertMany) is required: User.js pre("save") hashes
     // the password, and insertMany skips save hooks.
-    const GENERIC_AVATAR = '/assets/images/dashboard/user-profile.svg';
     const ADMIN_PW = 'adminfamipet';
     const USER_PW = 'userfamipet';
 
     const [admin, admin2, admin3, user, user2, user3, user4] = await Promise.all([
-      User.create({ name: 'Admin User', email: 'admin@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Sara Ahmed', email: 'sara@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Marcus Lee', email: 'marcus@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Demo User', email: 'user@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Priya Sharma', email: 'priya@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Daniel Okafor', email: 'daniel@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Emily Novak', email: 'emily@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Admin User', email: 'admin@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true }),
+      User.create({ name: 'Sara Ahmed', email: 'sara@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true }),
+      User.create({ name: 'Marcus Lee', email: 'marcus@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true }),
+      User.create({ name: 'Demo User', email: 'user@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
+      User.create({ name: 'Priya Sharma', email: 'priya@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
+      User.create({ name: 'Daniel Okafor', email: 'daniel@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
+      User.create({ name: 'Emily Novak', email: 'emily@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
     ]);
 
     const breeds = await Breed.insertMany([

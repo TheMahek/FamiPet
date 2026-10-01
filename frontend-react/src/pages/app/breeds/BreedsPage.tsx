@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getBreeds, type Breed } from '../../../api/breeds'
 import { Icon } from '../../../components/shared/Icon'
 import { BreedCard } from './BreedCard'
+import { BreedDetailsModal } from './BreedDetailsModal'
 import { breedSearchText, SPECIES_TABS, type SpeciesTabValue } from './breedsBase'
 
 export function BreedsPage() {
@@ -24,7 +25,7 @@ export function BreedsPage() {
 
   const [query, setQuery] = useState('')
   const [species, setSpecies] = useState<SpeciesTabValue>('all')
-  const [expandedId, setExpandedId] = useState('')
+  const [openBreed, setOpenBreed] = useState<Breed | null>(null)
 
   const load = () => {
     setLoadFailed(false)
@@ -126,12 +127,7 @@ export function BreedsPage() {
             </div>
           ) : (
             visible.map((breed) => (
-              <BreedCard
-                key={breed._id}
-                breed={breed}
-                expanded={expandedId === breed._id}
-                onToggle={setExpandedId}
-              />
+              <BreedCard key={breed._id} breed={breed} onOpen={setOpenBreed} />
             ))
           )}
         </div>
@@ -148,6 +144,8 @@ export function BreedsPage() {
           </div>
         )}
       </section>
+
+      {openBreed && <BreedDetailsModal breed={openBreed} onClose={() => setOpenBreed(null)} />}
     </div>
   )
 }

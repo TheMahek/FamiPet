@@ -9,6 +9,8 @@
 import type { CommunityComment, CommunityPost } from '../../../api/community'
 
 // Shared backend-media resolution (uploads → API origin, absolute → passthrough).
+import { GENERIC_AVATAR } from '../../../lib/image'
+
 export { assetUrl } from '../../../lib/image'
 
 export const CATEGORY_TO_TYPE: Record<string, string> = {
@@ -75,7 +77,7 @@ export interface PostView {
   comments: PostCommentView[]
 }
 
-export const FALLBACK_AVATAR = '/assets/images/dashboard/user-profile.svg'
+export const FALLBACK_AVATAR = GENERIC_AVATAR
 
 function authorId(post: CommunityPost): string | null {
   const u = post.user

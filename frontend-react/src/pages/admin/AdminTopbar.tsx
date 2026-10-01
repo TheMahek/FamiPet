@@ -4,16 +4,14 @@
 
 import { getUser } from '../../api/client'
 import { Icon } from '../../components/shared/Icon'
-import { assetUrl } from '../../lib/image'
-
-const DEFAULT_AVATAR = '/assets/images/dashboard/user-profile.svg'
+import { assetUrl, GENERIC_AVATAR, isGenericAvatar } from '../../lib/image'
 
 // Resolve backend-relative upload paths (/uploads/...) via the shared assetUrl
 // (API origin); the bundled placeholder SVG is never a user's actual avatar
 // (SettingsPage parity).
 function topbarAvatar(value: string | null | undefined): string {
-  if (value && !String(value).includes('user-profile.svg')) return assetUrl(value)
-  return DEFAULT_AVATAR
+  if (isGenericAvatar(value)) return GENERIC_AVATAR
+  return assetUrl(value)
 }
 
 export function AdminTopbar({ title, subtitle, emoji = '🌸' }: { title: string; subtitle: string; emoji?: string }) {
