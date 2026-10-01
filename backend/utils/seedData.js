@@ -34,25 +34,49 @@ const seedData = async () => {
       Notification.deleteMany(),
     ]);
 
-    // Every seeded account reuses the app's own bundled placeholder avatar
-    // (frontend-react/public/assets/images/dashboard/user-profile.svg) so no
-    // demo user depends on an external image URL that can rot. Passwords are
-    // throwaway demo credentials and all end in "famipet".
+    // Seeded accounts get no avatar: the client renders its own generic
+    // placeholder (pink initials in the sidebar, avatar-generic.svg elsewhere),
+    // and a bundled asset path must never be stored as a user's avatar.
+    // Passwords are throwaway demo credentials and all end in "famipet".
     // User.create() (not insertMany) is required: User.js pre("save") hashes
     // the password, and insertMany skips save hooks.
-    const GENERIC_AVATAR = '/assets/images/dashboard/user-profile.svg';
     const ADMIN_PW = 'adminfamipet';
     const USER_PW = 'userfamipet';
 
     const [admin, admin2, admin3, user, user2, user3, user4] = await Promise.all([
-      User.create({ name: 'Admin User', email: 'admin@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Sara Ahmed', email: 'sara@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Marcus Lee', email: 'marcus@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Demo User', email: 'user@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Priya Sharma', email: 'priya@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Daniel Okafor', email: 'daniel@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Emily Novak', email: 'emily@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Admin User', email: 'admin@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true }),
+      User.create({ name: 'Sara Ahmed', email: 'sara@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true }),
+      User.create({ name: 'Marcus Lee', email: 'marcus@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true }),
+      User.create({ name: 'Demo User', email: 'user@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
+      User.create({ name: 'Priya Sharma', email: 'priya@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
+      User.create({ name: 'Daniel Okafor', email: 'daniel@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
+      User.create({ name: 'Emily Novak', email: 'emily@famipet.in', password: USER_PW, role: 'user', isVerified: true }),
     ]);
+
+    // One representative photo per curated breed, keyed by breed name.
+    // Wikimedia Commons originals: freely licensed, stable URLs, and every
+    // entry below was checked to still serve an image. Without these the
+    // gallery falls back to one generic dog/cat/bird asset per species
+    // (breedsBase.ts breedImage), so every card looks identical.
+    const BREED_IMAGES = {
+      'Golden Retriever': 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Golden_Retriever_Dukedestiny01_drvd.jpg',
+      'Persian Cat': 'https://upload.wikimedia.org/wikipedia/commons/8/81/Persialainen.jpg',
+      'Labrador Retriever': 'https://upload.wikimedia.org/wikipedia/commons/3/34/Labrador_on_Quantock_%282175262184%29.jpg',
+      'Siamese Cat': 'https://upload.wikimedia.org/wikipedia/commons/1/16/Siamese_cat_Vaillante.JPG',
+      'Beagle': 'https://upload.wikimedia.org/wikipedia/commons/5/55/Beagle_600.jpg',
+      'German Shepherd': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/German_Shepherd_-_DSC_0346_%2810096362833%29.jpg',
+      'Pomeranian': 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Pomeranian.JPG',
+      'Rottweiler': 'https://upload.wikimedia.org/wikipedia/commons/2/26/Rottweiler_standing_facing_left.jpg',
+      'Siberian Husky': 'https://upload.wikimedia.org/wikipedia/commons/8/8b/Husky_L.jpg',
+      'Domestic Shorthair': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Three_stray_cats_in_Japan_street%2C_August_2014.jpg/3840px-Three_stray_cats_in_Japan_street%2C_August_2014.jpg',
+      'Ragdoll': 'https://upload.wikimedia.org/wikipedia/commons/6/64/Ragdoll_from_Gatil_Ragbelas.jpg',
+      'Bengal': 'https://upload.wikimedia.org/wikipedia/commons/b/ba/Paintedcats_Red_Star_standing.jpg',
+      'Budgerigar': 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Budgerigar-male-strzelecki-qld.jpg',
+      'Cockatiel': 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Cockatiel_3.jpg',
+      'Domestic Rabbit': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Heimtier_004_2023_08_26.jpg/3840px-Heimtier_004_2023_08_26.jpg',
+      'Goldfish': 'https://upload.wikimedia.org/wikipedia/commons/6/65/Gold_fish1.jpg',
+      'Hamster': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/European_hamster_%28Cricetus_cricetus%29_Meidling.jpg/3840px-European_hamster_%28Cricetus_cricetus%29_Meidling.jpg',
+    };
 
     const breeds = await Breed.insertMany([
       // The four breeds the demo pets below reference (breeds[0..2]).
@@ -259,6 +283,16 @@ const seedData = async () => {
         isActive: true },
 
     ]);
+
+    // Attach photos by name after insert so the curated list above stays a
+    // plain readable table and the image map stays in one place.
+    await Promise.all(
+      breeds.map((breed) =>
+        BREED_IMAGES[breed.name]
+          ? Breed.updateOne({ _id: breed._id }, { $set: { images: [BREED_IMAGES[breed.name]] } })
+          : null
+      )
+    );
 
     const pets = await Pet.insertMany([
       { owner: admin._id, breed: breeds[0]._id, name: 'Buddy', species: 'dog', gender: 'male', age: 2, weight: 30, color: 'Golden', vaccinated: true, adopted: false, status: 'available', description: 'Friendly and energetic Golden Retriever looking for a loving home. Great with kids!', images: ['https://images.unsplash.com/photo-1552053831-71594a27632d?w=400'] },
