@@ -183,6 +183,9 @@ body:has(.login-page) {
 }
 
 .login-page:not(.signup-page) .hero-image img {
+    width:100%;
+    max-width:350px;
+    height:auto;
     animation:floatImage 5s ease-in-out infinite;
 }
 
@@ -244,6 +247,14 @@ body:has(.login-page) {
 .card-header {
     text-align: center;
     margin-bottom: 30px;
+}
+
+/* dashboard.css styles a bare `.card-header` as a flex row, and the single
+   global bundle leaks that into the auth card, laying the paw badge, heading
+   and subtitle out side by side instead of stacked. Scoped to `.login-page`
+   (both Login and Signup) so dashboard/mypet keep their own flex row. */
+.login-page .card-header {
+    display: block;
 }
 
 .paw-icon{
