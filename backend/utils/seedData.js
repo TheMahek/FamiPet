@@ -45,13 +45,13 @@ const seedData = async () => {
     const USER_PW = 'userfamipet';
 
     const [admin, admin2, admin3, user, user2, user3, user4] = await Promise.all([
-      User.create({ name: 'Admin User', email: 'admin@animalplanet.com', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Sara Ahmed', email: 'sara@animalplanet.com', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Marcus Lee', email: 'marcus@animalplanet.com', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Demo User', email: 'user@example.com', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Priya Sharma', email: 'priya@example.com', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Daniel Okafor', email: 'daniel@example.com', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
-      User.create({ name: 'Emily Novak', email: 'emily@example.com', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Admin User', email: 'admin@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Sara Ahmed', email: 'sara@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Marcus Lee', email: 'marcus@famipet.in', password: ADMIN_PW, role: 'admin', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Demo User', email: 'user@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Priya Sharma', email: 'priya@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Daniel Okafor', email: 'daniel@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
+      User.create({ name: 'Emily Novak', email: 'emily@famipet.in', password: USER_PW, role: 'user', isVerified: true, avatar: GENERIC_AVATAR }),
     ]);
 
     const breeds = await Breed.insertMany([
