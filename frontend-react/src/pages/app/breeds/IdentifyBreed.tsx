@@ -98,7 +98,9 @@ export function IdentifyBreed({ status, onResult }: IdentifyBreedProps) {
 
   // The feature is optional. When the deployment has no ML service the
   // control is hidden rather than shown broken (AGENTS §11 empty states).
-  if (status && !status.enabled) return null
+  // Status is null until the probe resolves, so treat "not known yet" the
+  // same as "off" or the panel renders once and then vanishes.
+  if (!status?.enabled) return null
 
   const breed = result && result.breed
   const unsupported = result && result.status === 'unsupported'
