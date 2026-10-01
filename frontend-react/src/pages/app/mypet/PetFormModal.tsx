@@ -28,7 +28,6 @@ const AGE_OPTIONS = [
   '10 Years',
 ]
 
-const WEIGHT_OPTIONS = ['1 kg', '2 kg', '3 kg', '4 kg', '5 kg', '7 kg', '10 kg', '15 kg', '20 kg', '25 kg', '30 kg', '35 kg', '40 kg']
 
 interface Props {
   editing: PetView | null
@@ -237,13 +236,8 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
                 <label>
                   Weight <span>*</span>
                 </label>
-                <input list="weightOptions" placeholder="Choose or type weight" value={weight} onChange={(e) => setWeight(e.target.value)} required />
-                <datalist id="weightOptions">
-                  {WEIGHT_OPTIONS.map((w) => (
-                    <option key={w} value={w} />
-                  ))}
-                </datalist>
-                <span className="form-hint">Choose a weight or type your own</span>
+                <input type="number" min="0" step="0.1" placeholder="e.g. 4.5" value={weight} onChange={(e) => setWeight(e.target.value)} required />
+                <span className="form-hint">Weight in kilograms</span>
               </div>
 
               <div className="pet-form-group">
