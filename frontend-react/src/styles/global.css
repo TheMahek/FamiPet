@@ -100,6 +100,15 @@ svg.lucide {
   animation: lucide-spin 1s linear infinite;
 }
 @layer base {
+  /* Vanilla parity: frontend/css/style.css zeroes every margin/padding.
+     This lives in the base layer on purpose. As an unlayered `*` rule it
+     outranked @layer utilities, which silently killed `p-4`, `mt-3`,
+     `px-3` and every other spacing utility in the app. */
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
   html {
     scroll-behavior: smooth;
     scroll-padding-top: var(--navbar-height, 90px);
