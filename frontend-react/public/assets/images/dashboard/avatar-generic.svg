@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Default profile">
+  <defs>
+    <clipPath id="generic-avatar-clip">
+      <circle cx="32" cy="32" r="32"/>
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="32" fill="#ffe5ed"/>
+  <g clip-path="url(#generic-avatar-clip)" fill="#ff8fab">
+    <circle cx="32" cy="25" r="11"/>
+    <path d="M32 40c-11.6 0-21 8.5-21 19v5h42v-5c0-10.5-9.4-19-21-19z"/>
+  </g>
+</svg>
