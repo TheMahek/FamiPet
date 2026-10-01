@@ -13,7 +13,10 @@ const logger = require('./utils/logger');
 const multerErrorMessage = (err) => {
   if (!err || err.name !== 'MulterError') return null;
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return 'File too large. Maximum allowed size is 5MB.';
+    // No size here: the limit is per-upload (the pet/avatar upload and the
+    // transient breed-AI upload differ), and the router's own message is
+    // the one that knows which.
+    return 'File too large.';
   }
   return err.message || 'File upload failed.';
 };

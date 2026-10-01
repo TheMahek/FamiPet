@@ -190,6 +190,12 @@ export function apiPost<T>(path: string, data?: unknown, opts?: RequestOptions):
   return apiRequest<T>(path, Object.assign({ method: 'POST', body: data }, opts))
 }
 
+// FormData body. apiRequest already detects FormData and omits the JSON
+// Content-Type so the browser sets the multipart boundary itself.
+export function apiPostForm<T>(path: string, formData: FormData, opts?: RequestOptions): Promise<T> {
+  return apiRequest<T>(path, Object.assign({ method: 'POST', body: formData }, opts))
+}
+
 export function apiPut<T>(path: string, data?: unknown, opts?: RequestOptions): Promise<T> {
   return apiRequest<T>(path, Object.assign({ method: 'PUT', body: data }, opts))
 }

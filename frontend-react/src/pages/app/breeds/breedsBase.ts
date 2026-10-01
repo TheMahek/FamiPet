@@ -34,3 +34,32 @@ export function breedImage(b: Breed): string {
 export function breedSearchText(b: Breed): string {
   return `${b.name} ${b.origin || ''}`.toLowerCase()
 }
+
+// Backend `reason` -> a sentence the UI can show. The backend already sends a
+// `message` for every non-result case; this is the last-resort text so an
+// unexpected reason never renders as a blank box (AGENTS §11 empty states).
+const REASON_MESSAGES: Record<string, string> = {
+  ml_not_configured: 'Breed identification is not enabled on this deployment.',
+  ml_unavailable: 'Breed identification is temporarily unavailable. Please try again.',
+  ml_bad_response: 'The identification service replied in an unexpected way. Please try again.',
+  unsupported_animal: 'No supported breed was found in this image.',
+  low_confidence: 'The image was recognised with low confidence. Try a clearer photo of a single animal.',
+  enrich_disabled: 'This breed is not in FamiPet yet.',
+  enrich_unavailable: 'This breed is not in FamiPet yet and breed information could not be generated.',
+  enrich_rejected: 'This breed is not in FamiPet yet.',
+}
+
+export function breedAiMessage(res: {
+  message?: string
+  reason?: string
+}): string {
+  if (res.message) return res.message
+  if (res.reason && REASON_MESSAGES[res.reason]) return REASON_MESSAGES[res.reason]
+  return 'We could not identify a supported breed from that photo.'
+}
+
+// An AI-written breed is not human-checked. The badge must say so wherever a
+// breed is shown (AGENTS §5/§9 — no fabricated verified-looking content).
+export function isAiUnverified(b: Breed): boolean {
+  return b.source === 'ai' && b.verificationStatus !== 'verified'
+}

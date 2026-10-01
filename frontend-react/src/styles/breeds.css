@@ -964,8 +964,252 @@ body.dark-theme .breeds-page .breed-toggle-btn:hover {
 .breeds-page .retry-btn:focus-visible,
 .breeds-page .breed-toggle-btn:focus-visible,
 .breeds-page .breed-full-link:focus-visible,
+.breeds-page .breeds-ai-file:focus-visible,
+.breeds-page .breeds-ai-actions button:focus-visible,
 .breed-details-page .back-link:focus-visible,
 .breed-details-page .notification-btn:focus-visible {
     outline: 3px solid rgba(255, 77, 109, 0.25);
     outline-offset: 3px;
+}
+/* =========================================================
+   IDENTIFY A BREED (POST /api/breeds/analyze)
+   Optional panel: hidden entirely when the deployment has no
+   ML service, so it is never shown broken.
+   ========================================================= */
+
+.breeds-page .breeds-ai {
+    background: linear-gradient(135deg, #fff5f8 0%, #fdf2ff 100%);
+    border: 1px solid #ffe0e7;
+    border-radius: 18px;
+    padding: 1.2rem;
+    margin: 0 0 1.3rem;
+}
+
+.breeds-page .breeds-ai-head h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d2a3e;
+    margin: 0;
+}
+
+.breeds-page .breeds-ai-head p {
+    margin: 0.3rem 0 0.9rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.breeds-page .breeds-ai-body {
+    display: grid;
+    grid-template-columns: minmax(240px, 320px) 1fr;
+    gap: 1.1rem;
+    align-items: start;
+}
+
+.breeds-page .breeds-ai-input {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.breeds-page .breeds-ai-preview {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 1px solid #ffe0e7;
+    background: #fff;
+}
+
+.breeds-page .breeds-ai-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    aspect-ratio: 4 / 3;
+    border: 2px dashed #fbd0dc;
+    border-radius: 14px;
+    background: #fff;
+    color: #a0aec0;
+}
+
+.breeds-page .breeds-ai-drop p {
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.breeds-page .breeds-ai-file {
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.breeds-page .breeds-ai-file::file-selector-button {
+    margin-right: 0.6rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #ffe0e7;
+    border-radius: 50px;
+    background: #fff;
+    color: #ff4d6d;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.breeds-page .breeds-ai-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.breeds-page .breeds-ai-actions .primary-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 50px;
+    background: #ff4d6d;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.breeds-page .breeds-ai-actions .primary-btn:hover:not(:disabled) {
+    background: #ff5c8a;
+}
+
+.breeds-page .breeds-ai-actions .primary-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.breeds-page .breeds-ai-error {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: #d6336c;
+}
+
+.breeds-page .breeds-ai-result {
+    min-height: 120px;
+}
+
+.breeds-page .breeds-ai-state {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #f1eff5;
+    border-radius: 14px;
+    color: #64748b;
+}
+
+.breeds-page .breeds-ai-state h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2d2a3e;
+}
+
+.breeds-page .breeds-ai-state p {
+    margin: 0;
+    font-size: 0.84rem;
+}
+
+.breeds-page .breeds-ai-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.breeds-page .breeds-ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: 50px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.breeds-page .breeds-ai-badge.matched {
+    background: #e6f9f0;
+    color: #1b7f5a;
+}
+
+.breeds-page .breeds-ai-badge.created {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+/* An AI-written record is not human-checked; the badge must say so. */
+.breeds-page .breeds-ai-badge.unverified {
+    background: #fff4e0;
+    color: #b45309;
+}
+
+.breeds-page .breeds-ai-species {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.breeds-page .breeds-ai-species em {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    font-style: normal;
+}
+
+.breeds-page .breeds-ai-candidates {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+body.dark-theme .breeds-page .breeds-ai {
+    background: #211e30;
+    border-color: #332e45;
+}
+
+body.dark-theme .breeds-page .breeds-ai-head h2,
+body.dark-theme .breeds-page .breeds-ai-state h3 {
+    color: #f3f0fa;
+}
+
+body.dark-theme .breeds-page .breeds-ai-head p,
+body.dark-theme .breeds-page .breeds-ai-state {
+    color: #b7b0c9;
+}
+
+body.dark-theme .breeds-page .breeds-ai-drop,
+body.dark-theme .breeds-page .breeds-ai-preview,
+body.dark-theme .breeds-page .breeds-ai-file::file-selector-button,
+body.dark-theme .breeds-page .breeds-ai-state {
+    background: #2a2640;
+    border-color: #332e45;
+}
+
+@media (max-width: 768px) {
+    .breeds-page .breeds-ai-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .breeds-page .breeds-ai {
+        padding: 0.9rem;
+    }
+
+    .breeds-page .breeds-ai-actions .primary-btn {
+        flex: 1;
+        justify-content: center;
+    }
 }
