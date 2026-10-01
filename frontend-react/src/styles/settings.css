@@ -520,30 +520,6 @@ body:has(.settings-page) .main-content {
 }
 
 /* =========================================================
-   SELECT
-   ========================================================= */
-
-.settings-page .select-wrapper {
-    position: relative;
-}
-
-.settings-page .select-wrapper select {
-    appearance: none;
-    padding-right: 35px;
-}
-
-.settings-page .select-wrapper svg {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    width: 13px;
-    height: 13px;
-    color: #7e879a;
-    pointer-events: none;
-    transform: translateY(-50%);
-}
-
-/* =========================================================
    PREFERENCES / TOGGLES
    ========================================================= */
 
@@ -774,49 +750,6 @@ body:has(.settings-page) .main-content {
     background: #ffeaf1;
 }
 
-.settings-page .app-info-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.settings-page .app-info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.settings-page .app-info-row span,
-.settings-page .info-link {
-    color: #68758e;
-    font-size: 12px;
-}
-
-.settings-page .app-info-row strong {
-    color: #53627c;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.settings-page .info-link {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0;
-    border: none;
-    background: transparent;
-    text-align: left;
-    font-family: inherit;
-    cursor: pointer;
-}
-
-.settings-page .info-link svg {
-    width: 12px;
-    height: 12px;
-    color: #8b91a1;
-}
-
 /* =========================================================
    STATE (loading / error / empty)
    ========================================================= */
@@ -996,8 +929,6 @@ body.dark-theme .settings-page .summary-row span,
 body.dark-theme .settings-page .summary-row strong,
 body.dark-theme .settings-page .pet-summary-info span,
 body.dark-theme .settings-page .pet-summary-info small,
-body.dark-theme .settings-page .app-info-row span,
-body.dark-theme .settings-page .info-link,
 body.dark-theme .settings-page .preference-content span,
 body.dark-theme .settings-page .notification-item p,
 body.dark-theme .settings-page .notification-empty {
@@ -1061,8 +992,7 @@ body.dark-theme .settings-page .form-group select:focus {
     box-shadow: 0 0 0 3px rgba(139, 97, 216, 0.18);
 }
 
-body.dark-theme .settings-page .password-eye,
-body.dark-theme .settings-page .select-wrapper svg {
+body.dark-theme .settings-page .password-eye {
     color: #a89fc0;
 }
 
@@ -1118,7 +1048,6 @@ body.dark-theme .settings-page .settings-footer strong {
 .settings-page .change-photo-btn:focus-visible,
 .settings-page .password-eye:focus-visible,
 .settings-page .manage-pets-btn:focus-visible,
-.settings-page .info-link:focus-visible,
 .settings-page .toggle-slider:focus-visible {
     outline: 3px solid rgba(139, 97, 216, 0.35);
     outline-offset: 2px;

@@ -43,15 +43,13 @@ import { useTheme } from '../../../hooks/useTheme'
 import { Icon } from '../../../components/shared/Icon'
 import { ageText, breedName, petImage } from '../../../lib/formatters'
 import { getErrorMessage } from '../../../lib/errors'
+import { GENERIC_AVATAR, isGenericAvatar } from '../../../lib/image'
 
-const DEFAULT_AVATAR = '/assets/images/dashboard/user-profile.svg'
-
-// A real avatar can be a server URL or a data URL; the bundled placeholder SVG
-// is never a user's actual avatar (thinking of the Vanilla bug that stored the
-// placeholder in the DB for every account that saved without a photo).
+// A real avatar can be a server URL or a data URL; the bundled generic
+// placeholder is never a user's actual avatar.
 function realAvatar(value: string | null | undefined): string {
-  if (value && !String(value).includes('user-profile.svg')) return value
-  return DEFAULT_AVATAR
+  if (isGenericAvatar(value)) return GENERIC_AVATAR
+  return String(value)
 }
 
 export function SettingsPage() {
@@ -79,7 +77,7 @@ export function SettingsPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [location, setLocation] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR)
+  const [avatarUrl, setAvatarUrl] = useState(GENERIC_AVATAR)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
@@ -250,8 +248,7 @@ export function SettingsPage() {
       }
       // The default placeholder must never be persisted as the user's avatar
       // (Vanilla bug) — only real uploaded/server avatars are saved.
-      const persistedAvatar =
-        avatar.startsWith('data:') || avatar.includes('user-profile.svg') ? '' : avatar
+      const persistedAvatar = isGenericAvatar(avatar) ? '' : avatar
       const res = await updateProfile({
         name: trimmedName,
         phone: phone.trim(),
@@ -473,8 +470,8 @@ export function SettingsPage() {
                     alt="Profile picture"
                     onError={(e) => {
                       const img = e.currentTarget
-                      if (img.src !== window.location.origin + DEFAULT_AVATAR) {
-                        img.src = DEFAULT_AVATAR
+                      if (img.src !== window.location.origin + GENERIC_AVATAR) {
+                        img.src = GENERIC_AVATAR
                       }
                     }}
                   />
@@ -688,31 +685,6 @@ export function SettingsPage() {
             </div>
           </section>
 
-          {/* --- LANGUAGE & REGION --- */}
-          <section className="settings-card">
-            {cardTitle('globe', 'Language & Region', 'Choose your preferred language and region.')}
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="language">Language</label>
-                <div className="select-wrapper">
-                  <select id="language" name="language" value="english" disabled>
-                    <option value="english">English</option>
-                  </select>
-                  <Icon name="chevron-down" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="country">Region</label>
-                <div className="select-wrapper">
-                  <select id="country" name="country" value="india" disabled>
-                    <option value="india">India</option>
-                  </select>
-                  <Icon name="chevron-down" />
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
 
         {/* ================= RIGHT COLUMN ================= */}
@@ -778,30 +750,6 @@ export function SettingsPage() {
               <Icon name="paw" />
               Manage Pets
             </Link>
-          </section>
-
-          {/* --- APP INFORMATION --- */}
-          <section className="settings-card">
-            {smallCardHeading('info', 'App Information')}
-
-            <div className="app-info-list">
-              <div className="app-info-row">
-                <span>App Version</span>
-                <strong>v1.0.0</strong>
-              </div>
-              <button type="button" className="info-link">
-                Terms of Service
-                <Icon name="chevron-right" />
-              </button>
-              <button type="button" className="info-link">
-                Privacy Policy
-                <Icon name="chevron-right" />
-              </button>
-              <button type="button" className="info-link">
-                Help &amp; Support
-                <Icon name="chevron-right" />
-              </button>
-            </div>
           </section>
         </aside>
       </div>
