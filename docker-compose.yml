@@ -171,16 +171,12 @@ services:
   # configured in the Cloudflare Zero Trust dashboard for the named
   # tunnel; this container only runs it. The TOKEN is injected at runtime
   # from a gitignored .env and is never baked into an image. Gated behind
-  # profile "tunnel" so a plain `up` cannot start it with an empty token:
-  #   docker compose --profile tunnel up -d cloudflared
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     init: true
     security_opt:
       - no-new-privileges:true
-    profiles:
-      - tunnel
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
