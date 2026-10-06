@@ -1,9 +1,32 @@
-const mongoose = require("mongoose");
 const Appointment = require("../models/Appointment");
 const Pet = require("../models/Pet");
 const Veterinarian = require("../models/Veterinarian");
-const Notification = require("../models/Notification");
-const Reminder = require("../models/Reminder");
+const notificationService = require("../services/notification.service");
+const reminderService = require("../services/reminder.service");
+const {
+  isValidObjectId,
+  APPOINTMENT_TYPES,
+} = require("../utils/validation");
+
+// Phase 12: booking/rescheduling a past slot is rejected. A short grace
+// absorbs clock-skew / rounding at the minute boundary so a slot starting
+// moments-from-now does not produce a flaky 400.
+const PAST_SLOT_GRACE_MS = 5 * 60 * 1000;
+
+// Builds the wall-clock slot (epoch ms) from the SAME date value the model
+// stores plus the HH:mm clock time the UI sends, keeping the past-check
+// consistent with how the appointment's date/time are persisted.
+function appointmentSlotMs(dateValue, timeValue) {
+  const dateMs = new Date(dateValue).getTime();
+  if (Number.isNaN(dateMs)) return NaN;
+  const parts = String(timeValue || "").split(":");
+  const hours = parts.length > 0 ? Number(parts[0]) : NaN;
+  const minutes = parts.length > 1 ? Number(parts[1]) : NaN;
+  const clockMs =
+    (Number.isFinite(hours) ? hours * 60 * 60 * 1000 : 0) +
+    (Number.isFinite(minutes) ? minutes * 60 * 1000 : 0);
+  return dateMs + clockMs;
+}
 
 exports.getAppointments = async (req, res) => {
   try {
@@ -14,7 +37,7 @@ exports.getAppointments = async (req, res) => {
 
     res.json({ success: true, count: appointments.length, appointments });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -29,12 +52,29 @@ exports.createAppointment = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(pet) ||
-        !mongoose.Types.ObjectId.isValid(veterinarian)) {
+    if (!isValidObjectId(pet) || !isValidObjectId(veterinarian)) {
       return res.status(400).json({
         success: false,
         message: "Invalid pet or veterinarian ID.",
       });
+    }
+
+    if (typeof time !== "string" || time.trim().length > 10) {
+      return res.status(400).json({ success: false, message: "Invalid time." });
+    }
+
+    if (type !== undefined && type !== null && type !== "") {
+      if (typeof type !== "string" || !APPOINTMENT_TYPES.includes(String(type).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment type." });
+      }
+    }
+
+    if (symptoms !== undefined && (typeof symptoms !== "string" || symptoms.length > 1000)) {
+      return res.status(400).json({ success: false, message: "Invalid symptoms." });
+    }
+
+    if (notes !== undefined && (typeof notes !== "string" || notes.length > 1000)) {
+      return res.status(400).json({ success: false, message: "Invalid notes." });
     }
 
     const [petExists, veterinarianExists] = await Promise.all([
@@ -61,6 +101,14 @@ exports.createAppointment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid appointment date." });
     }
 
+    const slotMs = appointmentSlotMs(date, time);
+    if (Number.isFinite(slotMs) && slotMs < Date.now() - PAST_SLOT_GRACE_MS) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment date and time must be in the future.",
+      });
+    }
+
     const existing = await Appointment.findOne({
       veterinarian,
       date: appointmentDate,
@@ -80,50 +128,41 @@ exports.createAppointment = async (req, res) => {
       pet,
       veterinarian,
       date: appointmentDate,
-      time,
-      type: type || "checkup",
+      time: time.trim(),
+      type: type ? String(type).toLowerCase() : "checkup",
       symptoms: symptoms || "",
       notes: notes || "",
     });
 
-    await Notification.create({
+    await notificationService.createNotification({
       user: req.user._id,
+      type: "appointment",
+      category: "appointment",
       title: "Appointment Booked",
       message: `Your appointment is booked for ${appointmentDate.toDateString()} at ${time}.`,
-      type: "appointment",
-    });
-
-    // -------------------------------------------------
-    // AUTO-CREATE REMINDER
-    // -------------------------------------------------
-
-    const reminderTitle = type
-      ? `Appointment - ${String(type).charAt(0).toUpperCase()}${String(type).slice(1)}`
-      : "Appointment";
-
-    const existingReminder = await Reminder.findOne({
-      user: req.user._id,
-      pet,
-      title: reminderTitle,
-      date: appointmentDate,
-      time,
-      type: "appointment",
-      isActive: true,
-    });
-
-    if (!existingReminder) {
-      await Reminder.create({
-        user: req.user._id,
+      priority: "normal",
+      referenceType: "appointment",
+      referenceId: appointment._id,
+      metadata: {
         pet,
-        title: reminderTitle,
-        type: "appointment",
-        description: notes || `Scheduled ${type || "checkup"} appointment.`,
-        date: appointmentDate,
+        veterinarian,
+        date: appointmentDate.toISOString(),
         time,
-        frequency: "once",
-        isActive: true,
-        isCompleted: false,
-      });
+        type: type ? String(type).toLowerCase() : "checkup",
+      },
+      dedupKey: `appointment-booked-${appointment._id}`,
+    });
+
+    // -------------------------------------------------
+    // AUTO-CREATE REMINDER (Phase 7: precise source linkage
+    // via the shared reminder service — one reminder per
+    // appointment, never matched fuzzily by title+slot)
+    // -------------------------------------------------
+
+    try {
+      await reminderService.upsertAppointmentReminder({ user: req.user, appointment });
+    } catch (reminderErr) {
+      console.error("Appointment reminder create failed (non-blocking):", reminderErr.message);
     }
 
     res.status(201).json({
@@ -132,12 +171,16 @@ exports.createAppointment = async (req, res) => {
       appointment,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.updateAppointment = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid appointment ID." });
+    }
+
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -147,43 +190,113 @@ exports.updateAppointment = async (req, res) => {
       return res.status(404).json({ success: false, message: "Appointment not found." });
     }
 
-    const originalDate = appointment.date;
-    const originalTime = appointment.time;
-
     const allowed = ["date", "time", "type", "symptoms", "notes"];
-    allowed.forEach((field) => {
-      if (req.body[field] !== undefined) appointment[field] = req.body[field];
-    });
+
+    const updates = {};
+    for (const field of allowed) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "Nothing to update." });
+    }
+
+    if (updates.date !== undefined) {
+      const d = new Date(updates.date);
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment date." });
+      }
+      updates.date = d;
+    }
+
+    if (updates.time !== undefined) {
+      if (typeof updates.time !== "string" || updates.time.trim().length > 10) {
+        return res.status(400).json({ success: false, message: "Invalid time." });
+      }
+      updates.time = updates.time.trim();
+    }
+
+    if (updates.date !== undefined || updates.time !== undefined) {
+      const effectiveDate = updates.date !== undefined ? updates.date : appointment.date;
+      const effectiveTime = updates.time !== undefined ? updates.time : appointment.time;
+      const slotMs = appointmentSlotMs(effectiveDate, effectiveTime);
+      if (Number.isFinite(slotMs) && slotMs < Date.now() - PAST_SLOT_GRACE_MS) {
+        return res.status(400).json({
+          success: false,
+          message: "Appointment date and time must be in the future.",
+        });
+      }
+    }
+
+    if (updates.type !== undefined) {
+      if (typeof updates.type !== "string" || !APPOINTMENT_TYPES.includes(String(updates.type).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment type." });
+      }
+      updates.type = String(updates.type).toLowerCase();
+    }
+
+    for (const field of ["symptoms", "notes"]) {
+      if (updates[field] !== undefined) {
+        if (typeof updates[field] !== "string" || updates[field].length > 1000) {
+          return res.status(400).json({ success: false, message: `Invalid ${field}.` });
+        }
+      }
+    }
+
+    const prevDate = appointment.date;
+    const prevTime = appointment.time;
+
+    Object.assign(appointment, updates);
 
     await appointment.save();
 
-    // ------------------------------------------------
-    // SYNC THE AUTO-CREATED REMINDER WHEN RESCHEDULED
-    // (only for THIS appointment's slot, not every
-    // reminder sharing the same title)
-    // ------------------------------------------------
+    // -------------------------------------------------
+    // RESYNC THE AUTO-CREATED REMINDER WHEN RESCHEDULED
+    // (Phase 7: targeted via source+sourceId — the old
+    // fuzzy title+slot updateMany could touch the wrong
+    // reminder)
+    // -------------------------------------------------
 
-    const reminderTitle = appointment.type
-      ? `Appointment - ${String(appointment.type).charAt(0).toUpperCase()}${String(appointment.type).slice(1)}`
-      : "Appointment";
+    try {
+      await reminderService.rescheduleAppointmentReminder({ user: req.user, appointment });
+    } catch (reminderErr) {
+      console.error("Appointment reminder resync failed (non-blocking):", reminderErr.message);
+    }
 
-    await Reminder.updateMany(
-      {
+    // -------------------------------------------------
+    // RESCHEDULE NOTIFICATION (Phase 8 events): only a real
+    // date/time move is user-noticeable; symptom/note edits
+    // (the user's own ongoing entry) do not notify.
+    // -------------------------------------------------
+
+    const rescheduled =
+      (updates.date !== undefined &&
+        prevDate &&
+        updates.date.getTime() !== prevDate.getTime()) ||
+      (updates.time !== undefined &&
+        prevTime &&
+        String(updates.time) !== String(prevTime));
+
+    if (rescheduled) {
+      await notificationService.createNotification({
         user: req.user._id,
-        pet: appointment.pet,
-        title: reminderTitle,
         type: "appointment",
-        date: originalDate,
-        time: originalTime,
-        isActive: true,
-      },
-      {
-        $set: {
-          date: appointment.date,
+        category: "appointment",
+        title: "Appointment Rescheduled",
+        message: `Your appointment was rescheduled to ${appointment.date.toDateString()} at ${appointment.time}.`,
+        priority: "normal",
+        referenceType: "appointment",
+        referenceId: appointment._id,
+        metadata: {
+          pet: appointment.pet,
+          date: appointment.date.toISOString(),
           time: appointment.time,
         },
-      }
-    );
+        dedupKey: `appointment-rescheduled-${appointment._id}`,
+      });
+    }
 
     res.json({
       success: true,
@@ -191,12 +304,16 @@ exports.updateAppointment = async (req, res) => {
       appointment,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 exports.deleteAppointment = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid appointment ID." });
+    }
+
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -211,30 +328,41 @@ exports.deleteAppointment = async (req, res) => {
 
     // ------------------------------------------------
     // DEACTIVATE THE AUTO-CREATED REMINDER FOR THIS
-    // APPOINTMENT so cancelled visits do not leave
-    // stale active reminders (GET /reminders only
-    // returns isActive: true).
+    // APPOINTMENT (Phase 7: targeted via source+sourceId)
     // ------------------------------------------------
 
-    await Reminder.updateMany(
-      {
-        user: req.user._id,
+    try {
+      await reminderService.cancelAppointmentReminder({ user: req.user, appointment });
+    } catch (reminderErr) {
+      console.error("Appointment reminder cancel failed (non-blocking):", reminderErr.message);
+    }
+
+    // ------------------------------------------------
+    // CANCELLATION NOTIFICATION (Phase 8 events)
+    // ------------------------------------------------
+
+    await notificationService.createNotification({
+      user: req.user._id,
+      type: "appointment",
+      category: "appointment",
+      title: "Appointment Cancelled",
+      message: `Your appointment for ${appointment.date.toDateString()} at ${appointment.time} was cancelled.`,
+      priority: "normal",
+      referenceType: "appointment",
+      referenceId: appointment._id,
+      metadata: {
         pet: appointment.pet,
-        date: appointment.date,
+        date: appointment.date.toISOString(),
         time: appointment.time,
-        type: "appointment",
-        isActive: true,
       },
-      {
-        $set: { isActive: false },
-      }
-    );
+      dedupKey: `appointment-cancelled-${appointment._id}`,
+    });
 
     res.json({
       success: true,
       message: "Appointment cancelled successfully.",
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: "Internal Server Error" });
   }
 };

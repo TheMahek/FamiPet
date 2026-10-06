@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const wrap =
         document.getElementById("breedDetailContent");
 
+    const notificationBtn =
+        document.getElementById("notificationBtn");
+
 
     function escapeHTML(value) {
 
@@ -27,6 +30,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+    const BREED_IMAGE_OVERRIDES = {
+
+        "Golden Retriever":
+            "../assets/images/dashboard/golden-retriever.png"
+    };
+
+
     function breedImage(breed) {
 
         if (
@@ -36,6 +46,14 @@ document.addEventListener("DOMContentLoaded", () => {
         ) {
 
             return breed.images[0];
+        }
+
+        const override =
+            BREED_IMAGE_OVERRIDES[breed.name];
+
+        if (override) {
+
+            return override;
         }
 
         if (breed.species === "cat") {
@@ -48,7 +66,15 @@ document.addEventListener("DOMContentLoaded", () => {
             return "../assets/images/my-pet/pet-tip.png";
         }
 
-        return "../assets/images/my-pet/dog1.png";
+        const seed =
+            String(breed.name || "")
+                .split("")
+                .reduce((sum, ch) =>
+                    sum + ch.charCodeAt(0), 0);
+
+        return seed % 2 === 0
+            ? "../assets/images/my-pet/dog.png"
+            : "../assets/images/my-pet/dog1.png";
     }
 
 
@@ -265,5 +291,278 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     loadBreed();
+
+
+    /* =====================================================
+       NOTIFICATIONS (LIVE)
+    ===================================================== */
+
+    async function refreshNotificationBadge() {
+
+        const badge =
+            document.getElementById(
+                "notificationCount"
+            );
+
+        if (!badge) return;
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/notifications/unread"
+                );
+
+            const count =
+                Number(data && data.count) || 0;
+
+            if (count > 0) {
+
+                badge.textContent =
+                    String(count);
+
+                badge.style.display =
+                    "";
+
+            } else {
+
+                badge.style.display =
+                    "none";
+
+            }
+
+        }
+        catch (error) {
+
+            badge.style.display =
+                "none";
+
+        }
+
+    }
+
+
+    function formatTime(value) {
+
+        if (!value) return "";
+
+        const parsed =
+            new Date(value);
+
+        if (
+            Number.isNaN(
+                parsed.getTime()
+            )
+        ) {
+            return "";
+        }
+
+        return parsed.toLocaleTimeString(
+            [],
+            {
+                hour: "numeric",
+                minute: "2-digit"
+            }
+        );
+
+    }
+
+
+    function renderNotificationItems(panel) {
+
+        const body =
+            panel.querySelector(
+                "#notifPanelBody"
+            );
+
+        FamiPetAPI.get(
+            "/notifications"
+        ).then((data) => {
+
+            const notifications =
+                (data && data.notifications) || [];
+
+            if (!notifications.length) {
+
+                body.innerHTML =
+                    '<div class="notif-empty">No new notifications.</div>';
+
+                return;
+
+            }
+
+            body.innerHTML =
+                notifications
+                    .slice(0, 10)
+                    .map(n => {
+
+                        const icon =
+                            n.type === "reminder"
+                                ? "fa-bell"
+                                : n.type === "appointment"
+                                    ? "fa-calendar-check"
+                                    : n.type === "community"
+                                        ? "fa-users"
+                                        : "fa-paw";
+
+                        return `
+                            <div class="notification-item" data-id="${n._id}" data-read="${n.isRead ? "1" : "0"}">
+
+                                <i class="fa-solid ${icon}"></i>
+
+                                <div>
+                                    <strong>${escapeHTML(n.title || "Notification")}</strong>
+                                    <p>${escapeHTML(n.message || "")}</p>
+                                    <span class="notif-time">${escapeHTML(formatTime(n.createdAt))}</span>
+                                </div>
+
+                            </div>
+                        `;
+
+                    })
+                    .join("");
+
+            body.querySelectorAll(".notification-item[data-id]").forEach((el) => {
+
+                el.addEventListener("click", async () => {
+
+                    const id =
+                        el.getAttribute("data-id");
+
+                    if (
+                        !id ||
+                        el.getAttribute("data-read") === "1"
+                    ) {
+                        return;
+                    }
+
+                    try {
+
+                        await FamiPetAPI.put(
+                            "/notifications/" +
+                            encodeURIComponent(id) +
+                            "/read",
+                            {}
+                        );
+
+                        el.setAttribute("data-read", "1");
+
+                        refreshNotificationBadge();
+
+                    }
+                    catch (error) {
+                        /* keep current state on failure */
+                    }
+
+                });
+
+            });
+
+        }).catch(() => {
+
+            body.innerHTML =
+                '<div class="notif-empty">Could not load notifications.</div>';
+
+        });
+
+    }
+
+
+    function closeNotificationOutside(event) {
+
+        const panel =
+            document.querySelector(
+                ".notification-panel"
+            );
+
+        if (!panel) return;
+
+        if (
+            !panel.contains(event.target) &&
+            !notificationBtn.contains(event.target)
+        ) {
+
+            panel.remove();
+
+        }
+
+    }
+
+
+    if (notificationBtn) {
+
+        notificationBtn.addEventListener(
+            "click",
+            event => {
+
+                event.stopPropagation();
+
+                const existing =
+                    document.querySelector(
+                        ".notification-panel"
+                    );
+
+                if (existing) {
+
+                    existing.remove();
+
+                    return;
+
+                }
+
+                const panel =
+                    document.createElement("div");
+
+                panel.className =
+                    "notification-panel";
+
+                panel.innerHTML =
+                    '<div class="notification-head"><strong>Notifications</strong><button class="notif-close-btn" id="closeNotificationPanel" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><div class="notif-body" id="notifPanelBody">Loading...</div>';
+
+                document.body.appendChild(panel);
+
+                panel.querySelector(
+                    "#closeNotificationPanel"
+                ).addEventListener(
+                    "click",
+                    () => panel.remove()
+                );
+
+                document.addEventListener(
+                    "keydown",
+                    function handler(event) {
+
+                        if (event.key !== "Escape") return;
+
+                        document.removeEventListener(
+                            "keydown",
+                            handler
+                        );
+
+                        panel.remove();
+
+                    }
+                );
+
+                setTimeout(() => {
+
+                    document.addEventListener(
+                        "click",
+                        closeNotificationOutside,
+                        {
+                            once: true
+                        }
+                    );
+
+                }, 0);
+
+                renderNotificationItems(panel);
+
+            }
+        );
+
+        refreshNotificationBadge();
+
+    }
 
 });

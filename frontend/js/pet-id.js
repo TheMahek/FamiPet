@@ -28,6 +28,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const downloadBtn =
         document.getElementById("downloadIdBtn");
 
+    const notificationBtn =
+        document.getElementById("notificationBtn");
+
     const idPlaceholder =
         document.getElementById("idPlaceholder");
 
@@ -188,8 +191,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!pets.length) {
 
-            section.querySelector(".dashboard-card");
-
             const container =
                 document.getElementById("petIdSection");
 
@@ -267,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    function downloadIdCard() {
+    async function downloadIdCard() {
 
         if (!currentPet) return;
 
@@ -280,6 +281,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const cardClone =
                 idCard.cloneNode(true);
+
+            const imgs =
+                Array.from(
+                    cardClone.querySelectorAll("img")
+                );
+
+            await Promise.all(
+                imgs.map(img => {
+
+                    if (
+                        !img.src ||
+                        img.src.startsWith("data:")
+                    ) {
+                        return Promise.resolve();
+                    }
+
+                    return fetch(img.src)
+                        .then(res => res.blob())
+                        .then(blob => {
+
+                            return new Promise(resolve => {
+
+                                const reader =
+                                    new FileReader();
+
+                                reader.onload = () => {
+
+                                    img.src =
+                                        String(reader.result);
+
+                                    resolve();
+
+                                };
+
+                                reader.readAsDataURL(blob);
+
+                            });
+
+                        })
+                        .catch(() => {});
+                })
+            );
 
             const canvas =
                 document.createElement("canvas");
@@ -351,6 +394,279 @@ document.addEventListener("DOMContentLoaded", () => {
         "click",
         downloadIdCard
     );
+
+
+    /* =====================================================
+       NOTIFICATIONS (LIVE)
+    ===================================================== */
+
+    async function refreshNotificationBadge() {
+
+        const badge =
+            document.getElementById(
+                "notificationCount"
+            );
+
+        if (!badge) return;
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/notifications/unread"
+                );
+
+            const count =
+                Number(data && data.count) || 0;
+
+            if (count > 0) {
+
+                badge.textContent =
+                    String(count);
+
+                badge.style.display =
+                    "";
+
+            } else {
+
+                badge.style.display =
+                    "none";
+
+            }
+
+        }
+        catch (error) {
+
+            badge.style.display =
+                "none";
+
+        }
+
+    }
+
+
+    function formatTime(value) {
+
+        if (!value) return "";
+
+        const parsed =
+            new Date(value);
+
+        if (
+            Number.isNaN(
+                parsed.getTime()
+            )
+        ) {
+            return "";
+        }
+
+        return parsed.toLocaleTimeString(
+            [],
+            {
+                hour: "numeric",
+                minute: "2-digit"
+            }
+        );
+
+    }
+
+
+    function renderNotificationItems(panel) {
+
+        const body =
+            panel.querySelector(
+                "#notifPanelBody"
+            );
+
+        FamiPetAPI.get(
+            "/notifications"
+        ).then((data) => {
+
+            const notifications =
+                (data && data.notifications) || [];
+
+            if (!notifications.length) {
+
+                body.innerHTML =
+                    '<div class="notif-empty">No new notifications.</div>';
+
+                return;
+
+            }
+
+            body.innerHTML =
+                notifications
+                    .slice(0, 10)
+                    .map(n => {
+
+                        const icon =
+                            n.type === "reminder"
+                                ? "fa-bell"
+                                : n.type === "appointment"
+                                    ? "fa-calendar-check"
+                                    : n.type === "community"
+                                        ? "fa-users"
+                                        : "fa-paw";
+
+                        return `
+                            <div class="notification-item" data-id="${n._id}" data-read="${n.isRead ? "1" : "0"}">
+
+                                <i class="fa-solid ${icon}"></i>
+
+                                <div>
+                                    <strong>${escapeHTML(n.title || "Notification")}</strong>
+                                    <p>${escapeHTML(n.message || "")}</p>
+                                    <span class="notif-time">${escapeHTML(formatTime(n.createdAt))}</span>
+                                </div>
+
+                            </div>
+                        `;
+
+                    })
+                    .join("");
+
+            body.querySelectorAll(".notification-item[data-id]").forEach((el) => {
+
+                el.addEventListener("click", async () => {
+
+                    const id =
+                        el.getAttribute("data-id");
+
+                    if (
+                        !id ||
+                        el.getAttribute("data-read") === "1"
+                    ) {
+                        return;
+                    }
+
+                    try {
+
+                        await FamiPetAPI.put(
+                            "/notifications/" +
+                            encodeURIComponent(id) +
+                            "/read",
+                            {}
+                        );
+
+                        el.setAttribute("data-read", "1");
+
+                        refreshNotificationBadge();
+
+                    }
+                    catch (error) {
+                        /* keep current state on failure */
+                    }
+
+                });
+
+            });
+
+        }).catch(() => {
+
+            body.innerHTML =
+                '<div class="notif-empty">Could not load notifications.</div>';
+
+        });
+
+    }
+
+
+    function closeNotificationOutside(event) {
+
+        const panel =
+            document.querySelector(
+                ".notification-panel"
+            );
+
+        if (!panel) return;
+
+        if (
+            !panel.contains(event.target) &&
+            !notificationBtn.contains(event.target)
+        ) {
+
+            panel.remove();
+
+        }
+
+    }
+
+
+    if (notificationBtn) {
+
+        notificationBtn.addEventListener(
+            "click",
+            event => {
+
+                event.stopPropagation();
+
+                const existing =
+                    document.querySelector(
+                        ".notification-panel"
+                    );
+
+                if (existing) {
+
+                    existing.remove();
+
+                    return;
+
+                }
+
+                const panel =
+                    document.createElement("div");
+
+                panel.className =
+                    "notification-panel";
+
+                panel.innerHTML =
+                    '<div class="notification-head"><strong>Notifications</strong><button class="notif-close-btn" id="closeNotificationPanel" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><div class="notif-body" id="notifPanelBody">Loading...</div>';
+
+                document.body.appendChild(panel);
+
+                panel.querySelector(
+                    "#closeNotificationPanel"
+                ).addEventListener(
+                    "click",
+                    () => panel.remove()
+                );
+
+                document.addEventListener(
+                    "keydown",
+                    function handler(event) {
+
+                        if (event.key !== "Escape") return;
+
+                        document.removeEventListener(
+                            "keydown",
+                            handler
+                        );
+
+                        panel.remove();
+
+                    }
+                );
+
+                setTimeout(() => {
+
+                    document.addEventListener(
+                        "click",
+                        closeNotificationOutside,
+                        {
+                            once: true
+                        }
+                    );
+
+                }, 0);
+
+                renderNotificationItems(panel);
+
+            }
+        );
+
+        refreshNotificationBadge();
+
+    }
 
 
     loadPets();

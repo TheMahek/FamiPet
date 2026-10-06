@@ -1,0 +1,23 @@
+# =========================================================
+# FAMIPET - ROOT GITIGNORE
+# Protects local TLS private keys and environment secrets.
+# =========================================================
+
+# Local TLS certificates (mkcert) - private keys must never be committed.
+certs/
+
+# Environment files - values are never committed.
+.env
+.env.*
+!.env.example
+
+# Node dependencies
+node_modules/
+
+# Build / runtime artifacts
+*.log
+*.err
+npm-debug.log*
+
+# Stale backup files
+*.bak*

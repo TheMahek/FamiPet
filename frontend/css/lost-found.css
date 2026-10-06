@@ -2002,6 +2002,65 @@ img {
 }
 
 
+.notif-close-btn {
+
+    background: none;
+
+    border: none;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    padding: 2px 4px;
+
+}
+
+
+.notif-close-btn:hover {
+
+    color: var(--pink);
+
+}
+
+
+.notif-body {
+
+    max-height: 300px;
+
+    overflow-y: auto;
+
+}
+
+
+.notif-empty {
+
+    padding: 14px 10px;
+
+    text-align: center;
+
+    color: var(--muted);
+
+    font-size: 10px;
+
+}
+
+
+.notif-time {
+
+    display: block;
+
+    margin-top: 2px;
+
+    color: var(--muted);
+
+    font-size: 8px;
+
+}
+
+
 /* =========================================================
    TOAST
 ========================================================= */

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
- <link rel="stylesheet" href="../css/adoption.css" />
+ <link rel="stylesheet" href="../css/adoption.css?v=2" />
 <link rel="stylesheet" href="../css/sidebar.css" />
 
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -44,11 +44,30 @@
           <button class="action-btn filter-btn" id="filterModalBtn">
             <i class="fa-solid fa-sliders"></i>
             <span>Filters</span>
+
+            <div class="filter-panel" id="filterPanel" role="menu">
+              <p class="filter-panel-title">Filter pets</p>
+
+              <label class="filter-opt">
+                <input type="checkbox" data-filter="vaccinated" />
+                Vaccinated only
+              </label>
+
+              <label class="filter-opt">
+                <input type="checkbox" data-filter="healthy" />
+                Healthy only
+              </label>
+
+            </div>
           </button>
 
-          <button class="notification-btn" aria-label="Notifications">
+          <button class="notification-btn" id="notifBtn" aria-label="Notifications">
             <i class="fa-regular fa-bell"></i>
-            <span class="badge">3</span>
+            <span class="badge" id="notifBadge">3</span>
+
+            <div class="notif-panel" id="notifPanel">
+              <div class="notif-panel-body"></div>
+            </div>
           </button>
 
           <button class="add-pet-btn" id="addPetBtn">
@@ -69,7 +88,7 @@
             <p>Every pet deserves a loving home.<br />Every home deserves a companion.</p>
             
             <div class="hero-cta-group">
-              <button class="hero-btn">Adopt Now <i class="fa-solid fa-paw"></i></button>
+              <button class="hero-btn" id="heroAdoptBtn">Adopt Now <i class="fa-solid fa-paw"></i></button>
               
 <div class="social-proof">
   <!-- <i class="fa-solid fa-heart"></i> -->
@@ -179,7 +198,7 @@
   </div>
 
   <script src="../js/api.js"></script>
-  <script src="../js/adoption.js"></script>
+  <script src="../js/adoption.js?v=2"></script>
     <script src="../js/sidebar.js"></script>
   <script src="../js/theme.js"></script>
 </body>

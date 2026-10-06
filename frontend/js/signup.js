@@ -212,6 +212,7 @@ signupForm.addEventListener("submit", async (e) => {
             email: email.value.trim(),
             password: password.value,
             phone: phone.value.trim(),
+            role: (document.querySelector('input[name="role"]:checked') || {}).value || "user",
         });
 
         successToast.classList.add("show");

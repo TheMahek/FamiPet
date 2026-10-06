@@ -3,7 +3,17 @@ const Pet = require("../models/Pet");
 const Adoption = require("../models/Adoption");
 const LostFound = require("../models/LostFound");
 const CommunityPost = require("../models/CommunityPost");
-const mongoose = require("mongoose");
+const PushSubscription = require("../models/PushSubscription");
+const Reminder = require("../models/Reminder");
+const notificationService = require("../services/notification.service");
+const {
+  isValidObjectId,
+  LOST_FOUND_TYPES,
+  LOST_FOUND_STATUSES,
+} = require("../utils/validation");
+
+const ADMIN_USER_FIELDS =
+  "-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken -emailVerificationExpire";
 
 // ==========================
 // Admin Dashboard Statistics
@@ -53,7 +63,7 @@ exports.getDashboardStats = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken")
+      .select(ADMIN_USER_FIELDS)
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -76,6 +86,10 @@ exports.getAllUsers = async (req, res) => {
 // ==========================
 exports.toggleUserBlock = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID." });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -88,6 +102,27 @@ exports.toggleUserBlock = async (req, res) => {
     user.isBlocked = !user.isBlocked;
 
     await user.save();
+
+    // ------------------------------------------------
+    // ACCOUNT BLOCK/UNBLOCK NOTIFICATION (Phase 8 events):
+    // sent to the affected user themselves; blocking is
+    // urgent, unblocking is informational.
+    // ------------------------------------------------
+
+    await notificationService.createNotification({
+      user: user._id,
+      type: "system",
+      category: "system",
+      title: user.isBlocked ? "Account Blocked" : "Account Unblocked",
+      message: user.isBlocked
+        ? "Your account has been blocked by an administrator. Please contact support for assistance."
+        : "Your account has been unblocked and is fully active again.",
+      priority: user.isBlocked ? "urgent" : "normal",
+      metadata: {
+        blocked: user.isBlocked,
+      },
+      dedupKey: `user-block-${user._id}-${user.isBlocked}`,
+    });
 
     res.status(200).json({
       success: true,
@@ -116,6 +151,10 @@ exports.toggleUserBlock = async (req, res) => {
 // ==========================
 exports.deleteUser = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID." });
+    }
+
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
@@ -123,6 +162,28 @@ exports.deleteUser = async (req, res) => {
         success: false,
         message: "User not found.",
       });
+    }
+
+    // Phase 6: never keep dead push subscriptions (device rows) for a removed
+    // account — otherwise the user's old devices could spuriously be pushed.
+    try {
+      await PushSubscription.deleteMany({ user: user._id });
+    } catch (pushCleanupErr) {
+      console.error(
+        "Push subscription cleanup failed (user deletion):",
+        pushCleanupErr.message
+      );
+    }
+
+    // Phase 7: remove the user's reminders too (scheduler state is derived
+    // data — a deleted account must not leave orphan schedules behind).
+    try {
+      await Reminder.deleteMany({ user: user._id });
+    } catch (reminderCleanupErr) {
+      console.error(
+        "Reminder cleanup failed (user deletion):",
+        reminderCleanupErr.message
+      );
     }
 
     res.status(200).json({
@@ -184,6 +245,10 @@ exports.getAllPets = async (req, res) => {
 // ==========================
 exports.deletePet = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
     const pet = await Pet.findByIdAndDelete(req.params.id);
 
     if (!pet) {
@@ -213,7 +278,7 @@ exports.deletePet = async (req, res) => {
 exports.getRecentUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken")
+      .select(ADMIN_USER_FIELDS)
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -239,8 +304,18 @@ exports.getAllLostFoundReports = async (req, res) => {
     const { type, status } = req.query;
 
     const query = {};
-    if (type) query.type = type;
-    if (status) query.status = status;
+    if (type !== undefined && type !== null && type !== "") {
+      if (!LOST_FOUND_TYPES.includes(String(type).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid type." });
+      }
+      query.type = String(type).toLowerCase();
+    }
+    if (status !== undefined && status !== null && status !== "") {
+      if (!LOST_FOUND_STATUSES.includes(String(status).toLowerCase())) {
+        return res.status(400).json({ success: false, message: "Invalid status." });
+      }
+      query.status = String(status).toLowerCase();
+    }
 
     const reports = await LostFound.find(query)
       .populate("user", "name email phone")
@@ -266,7 +341,7 @@ exports.getAllLostFoundReports = async (req, res) => {
 // ==========================
 exports.updateLostFoundStatus = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid report ID." });
     }
 
@@ -292,6 +367,32 @@ exports.updateLostFoundStatus = async (req, res) => {
       });
     }
 
+    // ------------------------------------------------
+    // LOST & FOUND STATUS CHANGE NOTIFICATION
+    // (Phase 8 events): informs the original reporter
+    // (orphan reports with a deleted user skip silently).
+    // ------------------------------------------------
+
+    if (report.user && report.user._id) {
+      await notificationService.createNotification({
+        user: report.user._id,
+        type: "lost_found",
+        category: "lost_found",
+        title: `Report Marked ${status[0].toUpperCase() + status.slice(1)}`,
+        message: `Your ${report.type} report for ${report.petName} is now marked as ${status}.`,
+        priority: status === "resolved" ? "high" : "normal",
+        referenceType: "lost_found",
+        referenceId: report._id,
+        metadata: {
+          reportId: String(report._id),
+          reportType: report.type,
+          petName: report.petName,
+          status,
+        },
+        dedupKey: `lostfound-status-${report._id}-${status}`,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Report status updated successfully.",
@@ -312,7 +413,7 @@ exports.updateLostFoundStatus = async (req, res) => {
 // ==========================
 exports.deleteLostFoundReport = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid report ID." });
     }
 
@@ -368,7 +469,7 @@ exports.getAllCommunityPosts = async (req, res) => {
 // ==========================
 exports.updateCommunityPostStatus = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid post ID." });
     }
 
@@ -394,6 +495,31 @@ exports.updateCommunityPostStatus = async (req, res) => {
       });
     }
 
+    // ------------------------------------------------
+    // POST MODERATION NOTIFICATION (Phase 8 events):
+    // tells the author their post was hidden or restored.
+    // ------------------------------------------------
+
+    if (post.user && post.user._id) {
+      await notificationService.createNotification({
+        user: post.user._id,
+        type: "community",
+        category: "community",
+        title: isActive ? "Post Restored" : "Post Hidden",
+        message: isActive
+          ? "Your community post is visible again."
+          : "Your community post was hidden by a moderator.",
+        priority: isActive ? "normal" : "high",
+        referenceType: "community",
+        referenceId: post._id,
+        metadata: {
+          postId: String(post._id),
+          isActive,
+        },
+        dedupKey: `community-post-status-${post._id}-${isActive}`,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Post status updated successfully.",
@@ -414,7 +540,7 @@ exports.updateCommunityPostStatus = async (req, res) => {
 // ==========================
 exports.deleteCommunityPost = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid post ID." });
     }
 

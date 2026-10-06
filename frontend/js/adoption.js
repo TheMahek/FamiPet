@@ -190,6 +190,7 @@ let petsData = [];
 let selectedCategory = "all";
 let searchQuery = "";
 let sortBy = "newest";
+let filterState = { vaccinated: false, healthy: false };
 
 
 /* =========================================================
@@ -210,6 +211,31 @@ const categoryCards =
 
 const sortSelect =
   document.getElementById("sortSelect");
+
+const filterModalBtn =
+  document.getElementById("filterModalBtn");
+
+const filterPanel =
+  document.getElementById("filterPanel");
+
+
+const notifBtn =
+  document.getElementById("notifBtn");
+
+const notifPanel =
+  document.getElementById("notifPanel");
+
+const notifBadge =
+  document.getElementById("notifBadge");
+
+const heroAdoptBtn =
+  document.getElementById("heroAdoptBtn");
+
+const gridViewBtn =
+  document.getElementById("gridViewBtn");
+
+const listViewBtn =
+  document.getElementById("listViewBtn");
 
 
 /* =========================================================
@@ -270,6 +296,65 @@ function adoptionType(s) {
 }
 
 
+function ageToYears(v) {
+  if (v == null) return Number.MAX_SAFE_INTEGER;
+  if (typeof v === "number") return v;
+  const n = parseFloat(String(v).replace(/[^\d.]/g, ""));
+  return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
+}
+
+
+function timeAgo(ts) {
+  if (!ts) return "";
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return mins + "m ago";
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + "h ago";
+  const days = Math.floor(hrs / 24);
+  return days + "d ago";
+}
+
+
+function petHealthLabel(pet) {
+
+  const text =
+    String(pet.description || "")
+      .toLowerCase();
+
+  const match =
+    text.match(/health:\s*([^|\n]+)/);
+
+  return match
+    ? match[1].trim()
+    : String(pet.health || "").trim();
+
+}
+
+
+function isHealthyPet(pet) {
+
+  const label =
+    petHealthLabel(pet);
+
+  if (pet.healthy === false) return false;
+  if (pet.healthy === true) return true;
+
+  if (/needs|sick|poor|checkup|unwell|injur|critical/.test(label)) {
+    return false;
+  }
+
+  if (/healthy|good|excellent|fit/.test(label)) {
+    return true;
+  }
+
+  /* No health info -> assume healthy */
+  return true;
+
+}
+
+
 function toFrontendPet(p, favs) {
 
   const favSet =
@@ -320,7 +405,11 @@ function toFrontendPet(p, favs) {
     vaccinated:
       !!p.vaccinated,
 
-    healthy: true,
+    healthy:
+      isHealthyPet(p),
+
+    description:
+      String(p.description || ""),
 
     liked:
       favSet.has(p._id),
@@ -441,7 +530,12 @@ function renderPetCards() {
       const matchesSearch =
         searchableText.includes(searchQuery);
 
-      return matchesCat && matchesSearch;
+
+      const matchesFilters =
+        (!filterState.vaccinated || pet.vaccinated === true) &&
+        (!filterState.healthy   || isHealthyPet(pet));
+
+      return matchesCat && matchesSearch && matchesFilters;
 
     });
 
@@ -453,6 +547,13 @@ function renderPetCards() {
     filtered.sort(
       (a, b) =>
         a.name.localeCompare(b.name)
+    );
+
+  } else if (sortBy === "age") {
+
+    filtered.sort(
+      (a, b) =>
+        ageToYears(a.age) - ageToYears(b.age)
     );
 
   } else if (sortBy === "oldest") {
@@ -594,7 +695,7 @@ card.dataset.petId =
 
 
           ${
-            pet.healthy
+            isHealthyPet(pet)
               ? `
                 <span class="badge-tag badge-healthy">
                   <i class="fa-regular fa-heart"></i>
@@ -606,6 +707,17 @@ card.dataset.petId =
 
         </div>
 
+
+<div class="card-actions">
+
+<button
+    class="adopt-now-btn"
+    onclick="applyAdoption('${pet.id}')"
+    type="button"
+>
+    <i class="fa-solid fa-paw"></i>
+    Adopt Now
+</button>
 
 <button
     class="view-details-btn"
@@ -624,6 +736,8 @@ card.dataset.petId =
     <i class="fa-regular fa-trash-can"></i>
     Delete Pet
 </button>
+
+      </div>
 
       </div>
 
@@ -792,6 +906,22 @@ window.deletePet = function(id) {
 
             }
         );
+
+};
+
+
+/* =========================================================
+   APPLY FOR ADOPTION (from card button)
+   ========================================================= */
+
+window.applyAdoption = function(id) {
+
+  const pet =
+    petsData.find(
+      item => item.id === id
+    );
+
+  if (pet) openAdoptionForm(pet);
 
 };
 
@@ -1026,23 +1156,11 @@ function createModal() {
 
 
     /* =====================================================
-       CLOSE BUTTON
-       ===================================================== */
-
-    const closeButton =
-        sheet.querySelector(
-            ".dynamic-modal-close"
-        );
-
-
-    closeButton.addEventListener(
-        "click",
-        close
-    );
-
-
-    /* =====================================================
-       CLICK OUTSIDE MODAL
+       CLOSE (X) BUTTON + CLICK OUTSIDE MODAL
+       Delegated on the overlay so the close button keeps
+       working even after openAddPetForm() rebuilds the
+       sheet content via innerHTML, which destroys any
+       listener bound directly to the button node.
        ===================================================== */
 
     overlay.addEventListener(
@@ -1050,7 +1168,8 @@ function createModal() {
         event => {
 
             if (
-                event.target === overlay
+                event.target === overlay ||
+                event.target.closest(".dynamic-modal-close")
             ) {
 
                 close();
@@ -2427,7 +2546,315 @@ sortSelect.addEventListener(
 
 
 /* =========================================================
+   GRID / LIST VIEW TOGGLE (icons beside sort)
+   ========================================================= */
+
+gridViewBtn.addEventListener(
+  "click",
+  () => {
+
+    petsGrid.classList.remove("list-view");
+    gridViewBtn.classList.add("active");
+    listViewBtn.classList.remove("active");
+
+  }
+);
+
+listViewBtn.addEventListener(
+  "click",
+  () => {
+
+    petsGrid.classList.add("list-view");
+    listViewBtn.classList.add("active");
+    gridViewBtn.classList.remove("active");
+
+  }
+);
+
+
+/* =========================================================
+   FILTERS DROPDOWN
+   ========================================================= */
+
+function clampPanelInViewport(panel) {
+
+  const rect =
+    panel.getBoundingClientRect();
+
+  if (
+    rect.left < 0 ||
+    rect.right > window.innerWidth
+  ) {
+
+    const base =
+      parseFloat(panel.style.left) || 0;
+
+    let delta = 0;
+
+    const margin = 12;
+
+    if (rect.left < 0) {
+      delta = -rect.left + margin;
+    }
+
+    if (rect.right > window.innerWidth) {
+      const overflow =
+        rect.right - window.innerWidth;
+      delta = delta - overflow - margin;
+    }
+
+    panel.style.left =
+      Math.round(base + delta) + "px";
+
+  }
+
+}
+
+filterModalBtn.addEventListener(
+  "click",
+  (event) => {
+
+    event.stopPropagation();
+
+    const show =
+      !filterPanel.classList.contains("open");
+
+    filterPanel.classList.toggle("open", show);
+
+    if (show) {
+      notifPanel.classList.remove("open");
+      clampPanelInViewport(filterPanel);
+    }
+
+  }
+);
+
+filterPanel.addEventListener(
+  "click",
+  (event) => event.stopPropagation()
+);
+
+filterPanel.querySelectorAll(
+  "input[type=checkbox]"
+)
+  .forEach(
+    (box) => {
+
+      box.addEventListener(
+        "change",
+        () => {
+
+          filterState[box.dataset.filter] =
+            box.checked;
+
+          renderPetCards();
+
+        }
+      );
+
+    }
+  );
+
+
+
+/* =========================================================
+   NOTIFICATIONS (live)
+   ========================================================= */
+
+async function refreshNotificationBadge() {
+
+  try {
+
+    const data =
+      await FamiPetAPI.get("/notifications/unread");
+
+    const count =
+      Number(data && data.count) || 0;
+
+    notifBadge.textContent =
+      String(count);
+
+    notifBadge.style.display =
+      count ? "flex" : "none";
+
+  } catch (err) {
+    /* keep current badge on failure */
+  }
+
+}
+
+window.refreshNotificationBadge =
+  refreshNotificationBadge;
+
+async function openNotifications() {
+
+  notifPanel.classList.add("open");
+
+  const body =
+    notifPanel.querySelector(
+      ".notif-panel-body"
+    );
+
+  body.innerHTML =
+    '<div class="notif-panel-empty">Loading notifications…</div>';
+
+  try {
+
+    const data =
+      await FamiPetAPI.get("/notifications");
+
+    const list =
+      (data && data.notifications) || [];
+
+    const unread =
+      list.filter((n) => !n.isRead).length;
+
+    notifBadge.textContent =
+      String(unread);
+
+    notifBadge.style.display =
+      unread ? "flex" : "none";
+
+    body.innerHTML =
+      list.length
+        ? list.slice(0, 8)
+            .map(
+              (n) => `
+                <div class="notif-item ${n.isRead ? "" : "unread"}" data-id="${n._id}">
+                  <div class="notif-title">${escapeHTML(n.title)}</div>
+                  <div class="notif-msg">${escapeHTML(n.message || "")}</div>
+                  <div class="notif-time">${timeAgo(n.createdAt)}</div>
+                </div>
+              `
+            )
+            .join("")
+        : '<div class="notif-panel-empty">You\'re all caught up 🎉</div>';
+
+    body.querySelectorAll(".notif-item[data-id]").forEach((el) => {
+
+      el.addEventListener("click", async () => {
+
+        const id = el.dataset.id;
+
+        if (!id || !el.classList.contains("unread")) return;
+
+        try {
+
+          await FamiPetAPI.put(
+            "/notifications/" + encodeURIComponent(id) + "/read",
+            {}
+          );
+
+          el.classList.remove("unread");
+
+          refreshNotificationBadge();
+
+        } catch (err) {
+          /* keep current state on failure */
+        }
+
+      });
+
+    });
+
+  } catch (err) {
+
+    body.innerHTML =
+      '<div class="notif-panel-empty">Could not load notifications.</div>';
+
+  }
+
+}
+
+window.openNotifications =
+  openNotifications;
+
+notifBtn.addEventListener(
+  "click",
+  (event) => {
+
+    event.stopPropagation();
+
+    const open =
+      notifPanel.classList.contains("open");
+
+    notifPanel.classList.toggle("open", !open);
+
+    filterPanel.classList.remove("open");
+
+    if (!open) {
+      openNotifications();
+      clampPanelInViewport(notifPanel);
+    }
+
+  }
+);
+
+notifPanel.addEventListener(
+  "click",
+  (event) => event.stopPropagation()
+);
+
+
+/* Close dropdowns on outside click / Escape */
+
+document.addEventListener(
+  "click",
+  (event) => {
+
+    if (
+      !event.target.closest("#filterPanel") &&
+      !event.target.closest("#filterModalBtn")
+    ) {
+      filterPanel.classList.remove("open");
+    }
+
+    if (
+      !event.target.closest("#notifPanel") &&
+      !event.target.closest("#notifBtn")
+    ) {
+      notifPanel.classList.remove("open");
+    }
+
+  }
+);
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (event.key === "Escape") {
+
+      filterPanel.classList.remove("open");
+      notifPanel.classList.remove("open");
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   HERO ADOPT NOW -> scroll to pets
+   ========================================================= */
+
+heroAdoptBtn.addEventListener(
+  "click",
+  () => {
+
+    petsGrid.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  }
+);
+
+
+/* =========================================================
    INITIAL RENDER
    ========================================================= */
+
+refreshNotificationBadge();
 
 fetchAdoptablePets();

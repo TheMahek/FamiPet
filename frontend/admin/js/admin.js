@@ -164,10 +164,51 @@ document.addEventListener("DOMContentLoaded", () => {
             user.name || "Admin";
     }
 
-    if (chipImage && user.avatar) {
+    /* -----------------------------------------------------
+       ADMIN AVATAR
+       Show the uploaded photo when there is one; otherwise
+       show the initials empty state. Never a default photo.
+    ----------------------------------------------------- */
 
-        chipImage.src =
-            user.avatar;
+    const isRealAvatar =
+        (value) =>
+            typeof value === "string" &&
+            value.trim() !== "" &&
+            !value.includes("user-profile.svg");
+
+    const getInitials =
+        (name) =>
+            String(name || "Admin")
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((w) => w[0].toUpperCase())
+                .join("") || "AD";
+
+    if (chipImage) {
+
+        if (isRealAvatar(user.avatar)) {
+
+            chipImage.removeAttribute("hidden");
+            chipImage.src = user.avatar;
+
+        } else {
+
+            const initialsSpan =
+                document.createElement("span");
+
+            initialsSpan.className =
+                "admin-chip-initials";
+
+            initialsSpan.textContent =
+                getInitials(user.name);
+
+            chipImage.replaceWith(
+                initialsSpan
+            );
+
+        }
     }
 
 });

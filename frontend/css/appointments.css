@@ -518,7 +518,7 @@ body {
 .appointment-main-grid {
     display: grid;
 
-    grid-template-columns: 1.45fr 0.85fr;
+    grid-template-columns: 1fr;
 
     gap: 1rem;
 

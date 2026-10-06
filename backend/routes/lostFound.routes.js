@@ -5,6 +5,7 @@ const router = express.Router();
 const lostFoundController = require("../controllers/lostFound.controller");
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const { uploadLimiter } = require("../middleware/upload");
 
 // =====================================================
 // PUBLIC ROUTES
@@ -24,11 +25,11 @@ router.get("/:id", lostFoundController.getReportById);
 
 // Create Lost / Found report
 // POST /api/lost-found
-router.post("/", protect, upload.single("image"), lostFoundController.createReport);
+router.post("/", protect, uploadLimiter, upload.single("image"), lostFoundController.createReport);
 
 // Update own report
 // PUT /api/lost-found/:id
-router.put("/:id", protect, upload.single("image"), lostFoundController.updateReport);
+router.put("/:id", protect, uploadLimiter, upload.single("image"), lostFoundController.updateReport);
 
 // Delete own report or admin report
 // DELETE /api/lost-found/:id

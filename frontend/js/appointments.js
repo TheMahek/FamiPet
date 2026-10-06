@@ -299,9 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
        ELEMENTS
     ===================================================== */
 
-    const upcomingList =
-        document.getElementById("upcomingList");
-
     const historyList =
         document.getElementById("historyList");
 
@@ -377,6 +374,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+    function toLocalDateInput(date = new Date()) {
+
+        const y = date.getFullYear();
+
+        const m = String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+        const d = String(
+            date.getDate()
+        ).padStart(2, "0");
+
+        return `${y}-${m}-${d}`;
+
+    }
+
 
     /* =====================================================
        RENDER STATS
@@ -433,135 +446,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
-
-    /* =====================================================
-       UPCOMING APPOINTMENTS
-    ===================================================== */
-
-    function renderUpcoming(list = appointments) {
-
-        const upcoming =
-            list.filter(
-                item => item.status === "upcoming"
-            );
-
-        upcomingList.innerHTML = "";
-
-
-        if (!upcoming.length) {
-
-            upcomingList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fa-regular fa-calendar-xmark"></i>
-                    <br><br>
-                    No upcoming appointments found.
-                </div>
-            `;
-
-            return;
-        }
-
-
-        upcoming.forEach(item => {
-
-            const appointment =
-                document.createElement("div");
-
-            appointment.className =
-                "appointment-item";
-
-            appointment.dataset.id =
-                item.id;
-
-
-            appointment.innerHTML = `
-
-                <div class="pet-photo">
-
-                    <img
-                        src="${item.image}"
-                        alt="${item.pet}"
-                    >
-
-                </div>
-
-
-                <div class="appointment-info">
-
-                    <h3>${item.pet}</h3>
-
-                    <div class="appointment-type">
-
-                        <i class="fa-solid fa-stethoscope"></i>
-
-                        ${item.type}
-
-                    </div>
-
-
-                    <div class="appointment-details">
-
-                        <span>
-                            <i class="fa-solid fa-user-doctor"></i>
-                            ${item.doctor}
-                        </span>
-
-                        <span>
-                            <i class="fa-regular fa-calendar"></i>
-                            ${formatDate(item.date)} • ${item.time}
-                        </span>
-
-                        <span>
-                            <i class="fa-solid fa-location-dot"></i>
-                            ${item.clinic}
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="status-column">
-
-                    <span class="status-badge">
-                        Upcoming
-                    </span>
-
-
-                    <div class="appointment-actions">
-
-                        <button
-                            class="reschedule-btn"
-                            data-action="reschedule"
-                            data-id="${item.id}"
-                        >
-                            Reschedule
-                        </button>
-
-                        <button
-                            class="more-btn"
-                            data-action="cancel"
-                            data-id="${item.id}"
-                            title="Cancel appointment"
-                        >
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-
-                    </div>
-
-                </div>
-
-            `;
-
-
-            upcomingList.appendChild(appointment);
-
-        });
-
-    }
-
-
-    /* =====================================================
+/* =====================================================
        HISTORY
     ===================================================== */
 
@@ -682,8 +567,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-            renderUpcoming(filtered);
-
             renderHistory(filtered);
 
         }
@@ -694,74 +577,242 @@ document.addEventListener("DOMContentLoaded", () => {
        RESCHEDULE
     ===================================================== */
 
-    upcomingList.addEventListener(
-        "click",
-        event => {
+    /* =====================================================
+       DAY APPOINTMENTS (calendar day click)
+    ===================================================== */
 
-            const button =
-                event.target.closest("button");
+    function showDayAppointments(currentDate, appointmentsOnDay) {
 
-            if (!button) return;
+        const existing =
+            document.getElementById(
+                "dayAppointmentsModal"
+            );
+
+        if (existing) existing.remove();
+
+        const modal =
+            document.createElement("div");
+
+        modal.className =
+            "appointment-modal";
+
+        modal.id =
+            "dayAppointmentsModal";
+
+        modal.innerHTML = `
+
+            <div class="modal-box">
+
+                <div class="modal-header">
+
+                    <div>
+                        <span class="section-label">
+                            DAY
+                        </span>
+
+                        <h2>
+                            ${formatDate(currentDate)}
+                        </h2>
+                    </div>
+
+                    <button
+                        class="close-modal"
+                        id="closeDayModal"
+                        type="button"
+                    >
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+
+                </div>
 
 
-            const id =
-                String(button.dataset.id);
+                <div class="day-appointments-list">
 
-            const appointment =
-                appointments.find(
-                    item => item.id === id
-                );
+                    ${appointmentsOnDay.map(item => `
 
-            if (!appointment) return;
+                        <div class="appointment-item">
 
-if (
-    button.dataset.action ===
-    "reschedule"
-) {
-    openRescheduleModal(appointment);
-}
+                            <div class="pet-photo">
+
+                                <img
+                                    src="${item.image}"
+                                    alt="${item.pet}"
+                                >
+
+                            </div>
 
 
-            if (
-                button.dataset.action ===
-                "cancel"
-            ) {
+                            <div class="appointment-info">
 
-                const confirmCancel =
-                    confirm(
-                        `Cancel ${appointment.pet}'s appointment?`
-                    );
+                                <h3>${item.pet}</h3>
+
+                                <div class="appointment-type">
+
+                                    <i class="fa-solid fa-stethoscope"></i>
+
+                                    ${item.type}
+
+                                </div>
 
 
-                if (!confirmCancel) return;
+                                <div class="appointment-details">
+
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        ${formatDate(item.date)} • ${item.time}
+                                    </span>
+
+                                    <span>
+                                        <i class="fa-solid fa-location-dot"></i>
+                                        ${item.clinic}
+                                    </span>
+
+                                </div>
+
+                            </div>
 
 
-                FamiPetAPI.del(
-                    `/appointments/${id}`
-                )
-                .then(() => {
+                            <div class="status-column">
 
-                    addNotification(
-                        "Appointment cancelled",
-                        `${appointment.pet}'s appointment has been cancelled.`
-                    );
+                                <span class="status-badge">
+                                    ${item.status === "upcoming" ? "Upcoming" : item.status}
+                                </span>
 
-                    return loadAppointments();
 
-                })
-                .catch(error => {
+                                <div class="appointment-actions">
 
-                    alert(
-                        error.message ||
-                        "Failed to cancel appointment."
-                    );
+                                    ${
+                                        item.status === "upcoming"
+                                        ? `
+                                            <button
+                                                class="reschedule-btn"
+                                                data-action="reschedule"
+                                                data-id="${item.id}"
+                                                type="button"
+                                            >
+                                                Reschedule
+                                            </button>
 
-                });
+                                            <button
+                                                class="more-btn"
+                                                data-action="cancel"
+                                                data-id="${item.id}"
+                                                title="Cancel appointment"
+                                                type="button"
+                                            >
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        `
+                                        : ""
+                                    }
 
-            }
+                                </div>
 
-        }
-    );
+                            </div>
+
+                        </div>
+
+                    `).join("")}
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        document.body.appendChild(modal);
+
+
+        requestAnimationFrame(() => {
+            modal.classList.add("open");
+        });
+
+
+        document
+            .getElementById("closeDayModal")
+            .addEventListener(
+                "click",
+                () => {
+
+                    modal.classList.remove("open");
+
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 200);
+
+                }
+            );
+
+
+        modal
+            .querySelector(".day-appointments-list")
+            .addEventListener(
+                "click",
+                event => {
+
+                    const button =
+                        event.target.closest("button");
+
+                    if (!button) return;
+
+                    const id =
+                        String(button.dataset.id);
+
+                    const appointment =
+                        appointments.find(
+                            item => item.id === id
+                        );
+
+                    if (!appointment) return;
+
+                    if (
+                        button.dataset.action ===
+                        "reschedule"
+                    ) {
+                        openRescheduleModal(appointment);
+                    }
+
+                    if (
+                        button.dataset.action ===
+                        "cancel"
+                    ) {
+
+                        const confirmCancel =
+                            confirm(
+                                `Cancel ${appointment.pet}'s appointment?`
+                            );
+
+                        if (!confirmCancel) return;
+
+                        FamiPetAPI.del(
+                            `/appointments/${id}`
+                        )
+                        .then(() => {
+
+                            addNotification(
+                                "Appointment cancelled",
+                                `${appointment.pet}'s appointment has been cancelled.`
+                            );
+
+                            return loadAppointments();
+
+                        })
+                        .catch(error => {
+
+                            alert(
+                                error.message ||
+                                "Failed to cancel appointment."
+                            );
+
+                        });
+
+                    }
+
+                }
+            );
+
+    }
 
 
     /* =====================================================
@@ -807,6 +858,46 @@ if (
     /* =====================================================
        NOTIFICATIONS
     ===================================================== */
+
+    async function loadNotifications() {
+
+        try {
+
+            const data =
+                await FamiPetAPI.get(
+                    "/notifications"
+                );
+
+            const dbNotifications =
+                (data && data.notifications) || [];
+
+            const localNotifications =
+                notifications.filter(
+                    n => !/^[0-9a-fA-F]{24}$/.test(
+                        String(n.id)
+                    )
+                );
+
+            notifications =
+                dbNotifications
+                    .map(n => ({
+                        id: n._id,
+                        title: n.title || "",
+                        message: n.message || "",
+                        read: Boolean(n.isRead),
+                        db: true
+                    }))
+                    .concat(localNotifications)
+                    .slice(0, 12);
+
+            renderNotifications();
+
+        }
+        catch (e) {
+            /* keep existing notifications on failure */
+        }
+
+    }
 
     function renderNotifications() {
 
@@ -855,6 +946,11 @@ if (
                     item.read ? "read" : ""
                 }`;
 
+            notification.setAttribute(
+                "data-id",
+                item.id || ""
+            );
+
 
             notification.innerHTML = `
 
@@ -877,6 +973,36 @@ if (
 
             notificationList.appendChild(
                 notification
+            );
+
+            notification.addEventListener(
+                "click",
+                async () => {
+
+                    if (item.read) return;
+
+                    const id =
+                        String(item.id);
+
+                    if (!/^[0-9a-fA-F]{24}$/.test(id)) return;
+
+                    try {
+
+                        await FamiPetAPI.put(
+                            "/notifications/" +
+                            encodeURIComponent(id) +
+                            "/read",
+                            {}
+                        );
+
+                        item.read = true;
+
+                        renderNotifications();
+
+                    }
+                    catch (e) { /* keep state */ }
+
+                }
             );
 
         });
@@ -947,7 +1073,21 @@ if (
 
     markNotificationsRead.addEventListener(
         "click",
-        () => {
+        async () => {
+
+            try {
+
+                await FamiPetAPI.put(
+                    "/notifications/read-all",
+                    {}
+                );
+
+            }
+            catch (e) {
+
+                return;
+
+            }
 
             notifications.forEach(
                 item => {
@@ -1075,6 +1215,7 @@ if (
                     <input
                         type="date"
                         id="modalDate"
+                        min="${toLocalDateInput()}"
                     >
 
                 </div>
@@ -1433,6 +1574,7 @@ function openRescheduleModal(appointment) {
                     type="date"
                     id="rescheduleDate"
                     value="${appointment.date}"
+                    min="${toLocalDateInput()}"
                 >
 
             </div>
@@ -1716,24 +1858,8 @@ function showAppointmentMessage(message) {
 
 
     /* =====================================================
-       VIEW ALL
+       VIEW ALL HISTORY
     ===================================================== */
-
-    document
-        .getElementById("viewAllUpcoming")
-        .addEventListener(
-            "click",
-            () => {
-
-                searchInput.value = "";
-
-                renderUpcoming(
-                    appointments
-                );
-
-            }
-        );
-
 
     document
         .getElementById("viewAllHistory")
@@ -1894,17 +2020,9 @@ function showAppointmentMessage(message) {
                         appointmentsOnDay.length
                     ) {
 
-                        const details =
+                        showDayAppointments(
+                            currentDate,
                             appointmentsOnDay
-                                .map(
-                                    item =>
-                                        `${item.pet} - ${item.type}`
-                                )
-                                .join("\n");
-
-
-                        alert(
-                            `${formatDate(currentDate)}\n\n${details}`
                         );
 
                     }
@@ -1989,8 +2107,6 @@ function showAppointmentMessage(message) {
 
         renderStats();
 
-        renderUpcoming();
-
         renderHistory();
 
         renderNotifications();
@@ -2003,5 +2119,7 @@ function showAppointmentMessage(message) {
     loadPetsAndVets();
 
     loadAppointments();
+
+    loadNotifications();
 
 });

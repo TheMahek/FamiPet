@@ -122,6 +122,20 @@
         /* Update icon */
         updateIcons(isDark);
 
+
+        /* Sync dashboard light/dark segment state */
+        const lightModeBtn =
+            document.getElementById("lightModeBtn");
+
+        if (lightModeBtn) {
+
+            lightModeBtn.classList.toggle(
+                "active",
+                !isDark
+            );
+
+        }
+
     }
 
 
@@ -165,6 +179,27 @@
 
                     event.preventDefault();
                     event.stopPropagation();
+
+
+                    /* Dashboard segmented control:
+                       Light button = force light
+                       Dark button = force dark
+                       (selector semantics, not toggle)
+                    =============================================== */
+
+                    if (button.id === "lightModeBtn") {
+
+                        applyTheme(false);
+                        return;
+
+                    }
+
+                    if (button.id === "darkModeBtn") {
+
+                        applyTheme(true);
+                        return;
+
+                    }
 
 
                     const currentlyDark =

@@ -35,6 +35,12 @@ const lostFoundSchema = new mongoose.Schema(
       trim: true,
     },
 
+    age: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     gender: {
       type: String,
       enum: ["male", "female", "unknown"],
@@ -53,11 +59,13 @@ const lostFoundSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // Last seen / found location
+    // Last seen / found location — OPTIONAL since Phase 12. Kept in the
+    // schema (without `required`) so existing records with a location are
+    // preserved intact; new submissions may omit it entirely.
     location: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
 
     // Date when pet was lost/found

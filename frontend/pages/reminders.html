@@ -154,7 +154,7 @@
 
                         <span>Completed</span>
 
-                        <strong>
+                        <strong id="completedCount">
                             12
                         </strong>
 
@@ -179,7 +179,7 @@
 
                         <span>Overdue</span>
 
-                        <strong>
+                        <strong id="overdueCount">
                             1
                         </strong>
 
@@ -234,8 +234,39 @@
                         <div>
 
                             <h2>
-                                Upcoming Reminders
+                                Reminders
                             </h2>
+
+                        </div>
+
+                        <div
+                            class="reminder-filter-tabs"
+                            id="reminderFilterTabs"
+                        >
+
+                            <button
+                                type="button"
+                                class="filter-tab active"
+                                data-filter="pending"
+                            >
+                                Pending
+                            </button>
+
+                            <button
+                                type="button"
+                                class="filter-tab"
+                                data-filter="completed"
+                            >
+                                Completed
+                            </button>
+
+                            <button
+                                type="button"
+                                class="filter-tab"
+                                data-filter="inactive"
+                            >
+                                Inactive
+                            </button>
 
                         </div>
 
