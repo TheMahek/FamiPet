@@ -118,6 +118,11 @@ PETGPT_OPENAI_API_KEY=dummy-key
 PETGPT_OPENAI_MODEL=free-chat
 ```
 
+These three variables live in the environment file matching the run mode:
+the root `.env` for the normal Compose deployment (documented in
+`.env.example`), or `backend/.env` for a standalone backend run (documented
+in `backend/.env.example`).
+
 Rules for anyone changing this:
 
 * OmniRoute is a **host-local** service. `localhost` is correct and must not
@@ -126,7 +131,8 @@ Rules for anyone changing this:
   repo, so nothing about it is hardcoded in tracked files.
 * `dummy-key` is a **placeholder, not a secret**. OmniRoute accepts any
   non-empty bearer value on `/v1/chat/completions`. Never commit a real
-  provider key; a real key belongs only in the gitignored `backend/.env`.
+  provider key; a real key belongs only in a gitignored env file - the root
+  `.env` (Compose deployment) or `backend/.env` (standalone run).
 * The adapter is vendor-agnostic and stays that way. Keep the three
   variables as the only provider configuration - no vendor SDK, no vendor
   name, no hardcoded model or URL in application code.
@@ -134,9 +140,9 @@ Rules for anyone changing this:
   work. Reachability is a deployment concern, fixed on the FamiPet side.
 * Inside a container, `localhost` is the container itself. When the backend
   runs under Docker and the provider is host-local, reachability is resolved
-  by the deployment (see `backend/.env.example` and the notes in
-  `docker-compose.yml`) - never by changing tracked configuration to suit
-  one machine.
+  by the deployment (see the root `.env.example`, `backend/.env.example`
+  and the notes in `docker-compose.yml`) - never by changing tracked
+  configuration to suit one machine.
 
 ---
 
