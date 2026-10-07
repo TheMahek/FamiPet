@@ -110,13 +110,14 @@ backend:5000 -> <OpenAI-compatible PetGPT endpoint> (deployment-provided)
   the backend reaches it, by service name, over a private network.
 * **Reverse proxy** — nginx serves the SPA, proxies `/api` and `/uploads` to the
   backend, and joins both Compose networks. The backend is never exposed directly.
-* **Docker Compose** — the canonical root `docker-compose.yml` builds and runs
-  `frontend`, `backend`, `mongodb` and `nginx`; `cloudflared` sits behind the optional
-  `tunnel` profile. The reviewed image definitions live in `docker-final/` and are the
+* **Docker Compose** — the canonical root `docker-compose.yml` (the only Compose file in
+  the repository) builds and runs `frontend`, `backend`, `mongodb`, `nginx` and
+  `cloudflared`. The reviewed image definitions live in `docker-final/` and are the
   single source of truth for the Dockerfiles.
-* **Cloudflare tunnel (optional)** — the `tunnel` profile runs an outbound-only
-  `cloudflared` container for a public HTTPS hostname. The hostname → `http://nginx:80`
-  mapping lives in the Cloudflare Zero Trust dashboard, not in this repository.
+* **Cloudflare tunnel** — an outbound-only `cloudflared` container starts with the
+  normal stack and needs `TUNNEL_TOKEN` in the root `.env`. The hostname →
+  `http://nginx:80` mapping lives in the Cloudflare Zero Trust dashboard, not in this
+  repository.
 * **PetGPT provider** — an OpenAI-compatible chat-completions endpoint supplied by the
   deployment (default: FamiPet's own OmniRoute gateway, which is host-local and is
   never modified or reconfigured from this repository). No vendor SDK and no
@@ -171,7 +172,7 @@ AGENTS.md                agent rules for this repository
 Configuration is split in two, and **no secret is ever committed**:
 
 * root `.env` (gitignored) — the Compose stack: `APP_PORT`, `VITE_API_URL`,
-  `CLIENT_URL`, `FRONTEND_URL`, `TUNNEL_TOKEN`. Copy from `.env.example`.
+  `CLIENT_URL`, `TUNNEL_TOKEN`. Copy from `.env.example`.
 * `backend/.env` (gitignored) — everything the API reads at runtime, injected into the
   container through `env_file`. Copy from `backend/.env.example`.
 
@@ -182,7 +183,7 @@ Key backend variables:
 | `PORT` | API port inside the container (5000). |
 | `MONGODB_URI` | The only source of the database URL. Inside Compose it is `mongodb://mongodb:27017/petDB`; there is deliberately no localhost fallback. |
 | `JWT_SECRET`, `JWT_EXPIRE` | Session signing key and lifetime. |
-| `CLIENT_URL` / `FRONTEND_URL` | Public origin(s) used for emailed deep links and the CORS allow list. Every origin the app is served from must be listed, or writes fail while reads keep working. |
+| `CLIENT_URL` | Public origin(s) used for emailed deep links and the CORS allow list. Every origin the app is served from must be listed, or writes fail while reads keep working. |
 | `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_SERVICE` | SMTP transport for verification and reset mail. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Optional image hosting; local uploads are used when unset. |
 | `PETGPT_OPENAI_BASE_URL` | Chat-completions **root** of the provider (the adapter appends `/chat/completions`); no trailing slash. |
@@ -241,22 +242,21 @@ same-origin through nginx.
 ## Docker Deployment
 
 ```bash
-cp .env.example .env                 # root Compose config
+cp .env.example .env                 # root Compose config (set TUNNEL_TOKEN for the tunnel)
 cp backend/.env.example backend/.env # backend runtime config, including real secrets
 docker compose up -d --build         # app at http://localhost:${APP_PORT:-8080}
-docker compose --profile tunnel up -d cloudflared   # optional public HTTPS
 docker compose down -v               # stop and drop volumes
 ```
 
 Services: `frontend` (built SPA behind its own nginx, internal only), `backend`
 (read-only root filesystem, all capabilities dropped, non-root, memory and CPU
 limited), `mongodb` (no published port, health-gated, persistent volume), `nginx`
-(the single published entry point) and `cloudflared` (profile `tunnel`). Only nginx
-publishes a port. The frontend is health-gated on nginx, the backend on MongoDB, so
-the stack starts in order.
+(the single published entry point) and `cloudflared` (Cloudflare tunnel, outbound
+only; needs `TUNNEL_TOKEN`). Only nginx publishes a port. The frontend is
+health-gated on nginx, the backend on MongoDB, so the stack starts in order.
 
-`docker-compose.production.yml` inside `docker-final/` is kept unchanged for
-reference and rollback; the root file is canonical.
+`docker-compose.yml` at the repository root is the only Compose file; `docker-final/`
+holds the Dockerfiles it builds from.
 
 ## PetGPT
 
@@ -391,6 +391,6 @@ Commit messages follow `<type>: <summary>` (`feat`, `fix`, `refactor`, `docs`, `
   only, so one user cannot reach another user's pets, records or notifications. The
   adoption catalogue (`GET /api/pets`, `/api/pets/featured`) is intentionally public
   and returns listing data plus owner contact details for adoptable pets.
-* **Tunnels are optional and outbound-only.** The `tunnel` profile keeps `cloudflared`
-  out of a plain `up`, and the public hostname mapping is configured in the Cloudflare
-  dashboard rather than in tracked files.
+* **Tunnels are outbound-only.** `cloudflared` starts with the normal `up` and needs
+  `TUNNEL_TOKEN` in the root `.env`; the public hostname mapping is configured in the
+  Cloudflare dashboard rather than in tracked files.

@@ -1888,6 +1888,13 @@ Backend observation, left untouched: public `GET /users/:id` leaks favorites/pet
 (`tsc -b && vite build`) clean.
 
 ### Phase 28 — Docker / Nginx integration
+
+> **Phase 2 status:** `frontend-react/docker-compose.yml`,
+> `frontend-react/.env.example` and `frontend-react/Dockerfile` were removed during
+> deployment consolidation; `frontend-react/nginx.conf` and `.dockerignore` remain
+> (the root compose builds this app). The only Compose file is the root
+> `docker-compose.yml` — see the canonical section below.
+
 - **Objective:** productionize the React app: multi-stage build (`node:*-alpine` build →
   `nginx:*-alpine` static), SPA `try_files … /index.html`, `/api` + `/uploads` proxied to
   the backend container; backend image unchanged.
@@ -1977,6 +1984,13 @@ upload → `/uploads` fetch chain verified end-to-end; isolated stack torn down
 
 ### Final Dockerization — production-ready frontend + backend (post Phase 28)
 
+> **Phase 2 status:** `docker-final/docker-compose.production.yml`,
+> `docker-final/.env.example`, `docker-final/.gitignore` and
+> `docker-final/frontend/nginx.conf` (never referenced by any build — the frontend
+> build context is `frontend-react/`) were removed during deployment consolidation;
+> `docker-final/` now holds only the Dockerfiles and `nginx/nginx.conf` the root
+> `docker-compose.yml` builds from. The only Compose file is the root one.
+
 Concise close-out of the production Docker work. The existing Phase-28 artifacts
 (`frontend-react/Dockerfile|nginx.conf|.dockerignore|docker-compose.yml|.env.example`)
 and every previously built image remain **as-is**, kept for reference/rollback.
@@ -1994,7 +2008,7 @@ and every previously built image remain **as-is**, kept for reference/rollback.
 | `backend/.dockerignore` | excludes `.env`, node_modules, uploads, logs from the backend build context |
 
 **Architecture (identical to the live deployment, self-contained in this repo):**
-cloudflared (optional profile) → `nginx` (single published entry) → `frontend` (React, :5502)
+cloudflared (needs TUNNEL_TOKEN) → `nginx` (single published entry) → `frontend` (React, :5502)
 + `backend` (:5000) → `mongodb` (mongo:8, internal). Networks `famipet-frontend-net` +
 `famipet-backend-net`; volumes `mongodb_data`, `backend_uploads`; backend hardened
 (non-root, `cap_drop: ALL`, `read_only`, `tmpfs /tmp`, tini). Backend env comes from the
@@ -2034,9 +2048,14 @@ not exercised from here). (5) Health checks reuse existing app endpoints only.
 The section above validated `docker-final/` **before** the merge of
 `origin/backend-audit` and `feature/petgpt-enhancement`. The merge changed the
 backend, so that stack was re-audited and the canonical entry point moved to a
-plain root `docker-compose.yml`. Nothing was deleted: `docker-final/` and the
-Phase-28 `frontend-react/` artifacts remain exactly as they were, for reference
-and rollback.
+plain root `docker-compose.yml`. **Phase 2 (deployment consolidation)** later removed
+the duplicate stacks and their templates — `docker-final/docker-compose.production.yml`,
+`frontend-react/docker-compose.yml`, the `docker-final/` and `frontend-react/` compose
+`.env.example` files, the superseded Phase-28 `frontend-react/Dockerfile` and the
+never-referenced `docker-final/frontend/nginx.conf` — so the root `docker-compose.yml`
+is now the only Compose file and `docker-final/` holds only the Dockerfiles it builds
+from. `backend/.env.example` remains the backend runtime template (it also feeds
+local, non-Docker runs).
 
 **Canonical artifacts**
 
@@ -2102,13 +2121,12 @@ a hardcoded container IP because those are not stable.
 docker compose up -d --build                 # app at http://localhost:8080
 docker compose exec backend node utils/seedData.js   # optional real seed data
 docker compose down -v                       # stop, drop containers+volumes
-docker compose --profile tunnel up -d cloudflared   # optional Cloudflare tunnel
 ```
 
 **Final topology**
 
 ```text
-Internet -> Cloudflare / cloudflared (profile "tunnel", optional)
+Internet -> Cloudflare / cloudflared (needs TUNNEL_TOKEN)
          -> nginx :80                    (only published app port, APP_PORT)
               |-- /api/*     -> backend:5000   (private)
               |-- /uploads/* -> backend:5000   (private)
@@ -2125,7 +2143,7 @@ Internet -> Cloudflare / cloudflared (profile "tunnel", optional)
 | Networks | `famipet_frontend-net` (frontend + tunnel), `famipet_backend-net` (backend + mongo); nginx and (with the override) the backend join both as needed |
 | Volumes | `famipet_mongodb_data`, `famipet_backend_uploads` |
 | Ports | nginx `8080:80` (override with `APP_PORT`); frontend 5502, backend 5000, mongo 27017 are `expose`-only |
-| Env | backend = gitignored `backend/.env` via `env_file`; only `MONGODB_URI` (service name), `SERVE_FRONTEND_FALLBACK`, and the public origins are overridden |
+| Env | backend = gitignored `backend/.env` via `env_file`; only `MONGODB_URI` (service name) and the public origins are overridden |
 | Hardening | backend: non-root, `cap_drop: ALL`, `read_only`, tmpfs `/tmp`, tini. mongo: no published port. nginx: no TLS (Cloudflare edge) |
 
 **Validation (isolated project `famipet`; the co-located stack was not
@@ -2149,10 +2167,9 @@ env, no `.env` in any image, `test/`+`.git` excluded, production bundle carries
 `/api` with no dev host. Stack then torn down with `down -v`.
 
 **Known limitations.** (1) `POST /api/auth/register` fails end-to-end without
-SMTP configured — an application dependency, not a Docker one. (2)
-`SERVE_FRONTEND_FALLBACK=false` is still a no-op in this repo's `server.js`.
-(3) The Cloudflare tunnel itself is not exercised from here
-(dashboard-configured). (4) `npm run lint` still reports 30 pre-existing
+SMTP configured — an application dependency, not a Docker one. (2) The Cloudflare
+tunnel itself is not exercised from here
+(dashboard-configured). (3) `npm run lint` still reports 30 pre-existing
 `no-console` errors in the PetGPT application code (`ai/`,
 `jobs/generation.worker.js`, the PetGPT controllers); the 14 test suites are
 exempt because `console` is their reporting channel. This is style debt

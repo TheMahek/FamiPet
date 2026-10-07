@@ -6,7 +6,7 @@
 #
 #   Internet
 #      |
-#   Cloudflare / cloudflared (optional, profile "tunnel")
+#   Cloudflare / cloudflared (starts with the stack; needs TUNNEL_TOKEN)
 #      |
 #   nginx :80  <-- the ONLY published application port
 #      |
@@ -17,8 +17,7 @@
 #   backend:5000 -> mongodb:27017 (private, named volume)
 #
 # Reuses the reviewed build definitions in docker-final/ (single source
-# of truth for the images). docker-final/docker-compose.production.yml
-# is kept unchanged for reference/rollback.
+# of truth for the Dockerfiles). This file is the ONLY Compose file.
 #
 # RUN:
 #   docker compose up -d --build              # app at http://localhost:8080
@@ -94,11 +93,8 @@ services:
       # Inside the Compose network the database resolves by service name
       # (environment entries override env_file values).
       - MONGODB_URI=mongodb://mongodb:27017/petDB
-      # nginx serves the frontend, so the backend must not also try to.
-      - SERVE_FRONTEND_FALLBACK=false
       # Public origin used for emailed deep links (verify/reset) + CORS.
       - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
     expose:
       - "5000"
     volumes:
@@ -166,11 +162,13 @@ services:
     mem_limit: 128m
     cpus: 0.5
 
-  # -------- CLOUDFLARED (Cloudflare Tunnel, optional public HTTPS) --------
+  # -------- CLOUDFLARED (Cloudflare Tunnel -> public HTTPS) --------
   # Outbound-only. The public hostname -> http://nginx:80 mapping is
   # configured in the Cloudflare Zero Trust dashboard for the named
   # tunnel; this container only runs it. The TOKEN is injected at runtime
-  # from a gitignored .env and is never baked into an image. Gated behind
+  # from the gitignored root .env and is never baked into an image. It
+  # starts with a plain `docker compose up` and keeps restarting until
+  # TUNNEL_TOKEN is set.
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
