@@ -31,7 +31,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # 2) Copy the backend source (no .env, no secrets - see backend/.dockerignore
-#    and the backend image build; secrets arrive at runtime via env_file).
+#    and the backend image build; runtime configuration arrives via the
+#    root .env through docker-compose.yml's explicit `environment:` mapping).
 COPY config ./config
 COPY controllers ./controllers
 COPY middleware ./middleware

@@ -24,9 +24,13 @@
 #   docker compose up -d --build              # app at http://localhost:8080
 #   docker compose down -v                    # stop + drop volumes
 #
-# SECRETS: none are baked into any image. The backend reads its real
-# configuration (JWT, Mongo, SMTP, Cloudinary, every PETGPT_* var) at
-# runtime from the gitignored ./backend/.env via env_file.
+# ENVIRONMENT: docker compose interpolates the root .env (the tracked
+# template is .env.example - the complete deployment contract) and passes
+# each service EXACTLY the variables it needs via `environment:` below.
+# No service-local .env file is read here; those exist only for running a
+# single service standalone (see backend/.env.example, ai/.env.example).
+# SECRETS: none are baked into any image; everything secret arrives at
+# runtime from the gitignored root .env.
 # =========================================================
 
 # Isolated project namespace: containers/volumes/networks are prefixed
@@ -76,10 +80,62 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    # Real configuration + every PetGPT_* variable, from the
-    # gitignored backend/.env. Nothing secret is baked into the image.
-    env_file:
-      - ./backend/.env
+    # EXPLICIT configuration, interpolated from the root .env (the
+    # deployment source of truth - see .env.example). Only variables this
+    # service needs are passed; no service-local .env file is involved and
+    # the rest of the root .env never enters this container.
+    # `${VAR:?...}` fails fast when a required value is missing; every
+    # `:-default` matches the corresponding default in the backend code.
+    environment:
+      # Inside the Compose network the database resolves by service name.
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017/petDB}
+      # REQUIRED - session signing; Compose refuses to resolve without it.
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in the root .env}
+      - JWT_EXPIRE=${JWT_EXPIRE:-30d}
+      # Public origin used for emailed deep links (verify/reset) + CORS.
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Breed AI (the ML service in ai/) by internal Compose service name.
+      # Same pattern as MONGODB_URI: the stack points at its own service, so
+      # it never depends on a Python process running on the host.
+      - PET_BREED_AI_URL=${PET_BREED_AI_URL:-http://ai:8000}
+      - PET_BREED_AI_TIMEOUT_MS=${PET_BREED_AI_TIMEOUT_MS:-20000}
+      - PET_BREED_MAX_UPLOAD_BYTES=${PET_BREED_MAX_UPLOAD_BYTES:-8388608}
+      - PET_BREED_AI_TOP_K=${PET_BREED_AI_TOP_K:-5}
+      - PET_BREED_MIN_CONFIDENCE=${PET_BREED_MIN_CONFIDENCE:-0.35}
+      - PET_BREED_MIN_CONFIDENCE_GENERIC=${PET_BREED_MIN_CONFIDENCE_GENERIC:-0.55}
+      - PET_BREED_AI_ENRICH=${PET_BREED_AI_ENRICH:-true}
+      # PetGPT: the deployment-provided EXTERNAL OpenAI-compatible endpoint.
+      # All three unset/empty = PetGPT reports "no provider" and the rest of
+      # the app is unaffected. An endpoint on the host is reached through the
+      # host.docker.internal alias mapped below (a 172.x container IP is
+      # never used - it changes on every recreate).
+      - PETGPT_OPENAI_BASE_URL=${PETGPT_OPENAI_BASE_URL:-}
+      - PETGPT_OPENAI_API_KEY=${PETGPT_OPENAI_API_KEY:-}
+      - PETGPT_OPENAI_MODEL=${PETGPT_OPENAI_MODEL:-}
+      - PETGPT_TIMEOUT_MS=${PETGPT_TIMEOUT_MS:-25000}
+      - PETGPT_MAX_QUESTION_LENGTH=${PETGPT_MAX_QUESTION_LENGTH:-2000}
+      - PETGPT_MAX_HISTORY_MESSAGES=${PETGPT_MAX_HISTORY_MESSAGES:-20}
+      - PETGPT_WORKER_POLL_MS=${PETGPT_WORKER_POLL_MS:-300}
+      - PETGPT_WORKER_STALE_MS=${PETGPT_WORKER_STALE_MS:-60000}
+      - PETGPT_MAX_JOB_ATTEMPTS=${PETGPT_MAX_JOB_ATTEMPTS:-2}
+      - PETGPT_MAX_TOOL_ITERATIONS=${PETGPT_MAX_TOOL_ITERATIONS:-3}
+      - PETGPT_TOOL_MAX_RESULTS=${PETGPT_TOOL_MAX_RESULTS:-10}
+      - PETGPT_CONTEXT_MAX_PETS=${PETGPT_CONTEXT_MAX_PETS:-5}
+      - PETGPT_RATE_LIMIT_MAX=${PETGPT_RATE_LIMIT_MAX:-30}
+      - PETGPT_RATE_LIMIT_WINDOW_MS=${PETGPT_RATE_LIMIT_WINDOW_MS:-60000}
+      # Optional email transport; empty = mail is not delivered (app runs).
+      - EMAIL_SERVICE=${EMAIL_SERVICE:-}
+      - EMAIL_USER=${EMAIL_USER:-}
+      - EMAIL_PASS=${EMAIL_PASS:-}
+      # Optional image hosting; empty = local uploads fallback.
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      # Browser push; empty = push fails closed (app fully usable).
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@famipet.app}
     # PetGPT calls an EXTERNAL OpenAI-compatible endpoint that the
     # deployment provides. When that endpoint lives on the host, a
     # container cannot reach the host's loopback address directly, so
@@ -90,16 +146,6 @@ services:
     # This mapping is inert when no host-local endpoint is used.
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    environment:
-      # Inside the Compose network the database resolves by service name
-      # (environment entries override env_file values).
-      - MONGODB_URI=mongodb://mongodb:27017/petDB
-      # Public origin used for emailed deep links (verify/reset) + CORS.
-      - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
-      # Breed AI (the ML service in ai/) by internal Compose service name.
-      # Same pattern as MONGODB_URI: the stack points at its own service, so
-      # it never depends on a Python process running on the host.
-      - PET_BREED_AI_URL=http://ai:8000
     expose:
       - "5000"
     volumes:
@@ -136,6 +182,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # Optional tuning from the root .env; the defaults match ai/main.py, so
+    # a normal deployment needs nothing set here.
+    environment:
+      - AI_MAX_UPLOAD_BYTES=${AI_MAX_UPLOAD_BYTES:-8388608}
+      - AI_TOP_K=${AI_TOP_K:-5}
+      - AI_INFERENCE_TIMEOUT_S=${AI_INFERENCE_TIMEOUT_S:-20}
     expose:
       - "8000"
     networks:

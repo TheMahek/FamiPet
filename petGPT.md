@@ -21,7 +21,8 @@ server) is the deployment's business. FamiPet works with any of them by
 changing environment variables only.
 
 **Configuration — application-level, no user-owned providers.** Three variables
-in `backend/.env`, snapshotted at boot by `backend/config/ai.js` into
+in the process environment (root `.env` under Compose, `backend/.env` for a
+standalone backend run), snapshotted at boot by `backend/config/ai.js` into
 `AI_CONFIG.openai`:
 
 | Variable | Meaning |
@@ -98,7 +99,6 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 - **Stack**: Express 4 + Mongoose 8 (MongoDB), vanilla Node backend in `backend/`; vanilla HTML/CSS/JS frontend in `frontend/` (served statically either by Live Server or by the backend's own fallback listener on `CLIENT_URL`/5502).
 - **No TypeScript, no build step, no test suite, no linter** for the backend. Only npm scripts: `start`, `dev`, `seed`, `test` (assert-based provider-layer checks, no framework).
 - Entry: `backend/server.js` mounts helmet (with `crossOriginResourcePolicy: cross-origin` for image embedding), compression, CORS (dev-origin allowlist incl. LAN private ranges), `express.json({limit:'50mb'})`, morgan, static `/uploads`, a health route (`GET /api/status`), all route modules under `/api/...` (incl. `/api/ai`), an inline error handler, and a 404 handler.
-- `backend/middleware/errorHandler.js` exists but is **not wired into `server.js`** (dead code; `server.js` has its own inline handler).
 - Data: `mongodb://localhost:27017/animal_planet` by default. No `.env` present locally (only tracked `backend/.env.example`; `backend/.gitignore` ignores `.env`, `node_modules/`, `uploads/`).
 - PetGPT is a controller pair (`ai.controller.js` + `conversation.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), a single generic OpenAI-compatible adapter (`backend/ai/openai.js` — see §0), persistent `Conversation`/`Message` models (Phase 2), a durable `GenerationJob` + in-process worker (Phase 4), and (Phase 5) a pet-aware context builder + a registered/schema-validated/ownership-scoped read-tool layer with a bounded calling loop. No SSE/streaming yet.
 
@@ -252,7 +252,7 @@ Available in the DB but **not** used by the AI:
 | 7 | Fallback can reference wrong species | Open (rich context, Phase 5) |
 | 8 | Full user doc attached to `req.user` | Open — app-wide pattern |
 | 9 | Frontend duplicates canned answers | Open (frontend out of scope on this branch) |
-| 10 | `errorHandler.js` never mounted | Open (backend-wide, not PetGPT-specific) |
+| 10 | `errorHandler.js` never mounted | **Fixed in Phase 4 (cleanup)** — dead module deleted; `server.js` inline handler is authoritative |
 | 11 | No in-flight guard on Send | Open (frontend out of scope) |
 
 ## 12. Architecture Roadmap (design intent)
