@@ -94,6 +94,7 @@ nginx :80  — the only published application port
   +-- /*         -> frontend:5502  (nginx serving the built React SPA, private)
 
 backend:5000 -> mongodb:27017 (private, named volume)
+backend:5000 -> ai:8000       (private, Breed AI inference)
 backend:5000 -> <OpenAI-compatible PetGPT endpoint> (deployment-provided)
 ```
 
@@ -111,7 +112,7 @@ backend:5000 -> <OpenAI-compatible PetGPT endpoint> (deployment-provided)
 * **Reverse proxy** — nginx serves the SPA, proxies `/api` and `/uploads` to the
   backend, and joins both Compose networks. The backend is never exposed directly.
 * **Docker Compose** — the canonical root `docker-compose.yml` (the only Compose file in
-  the repository) builds and runs `frontend`, `backend`, `mongodb`, `nginx` and
+  the repository) builds and runs `frontend`, `backend`, `ai`, `mongodb`, `nginx` and
   `cloudflared`. The reviewed image definitions live in `docker-final/` and are the
   single source of truth for the Dockerfiles.
 * **Cloudflare tunnel** — an outbound-only `cloudflared` container starts with the
@@ -130,7 +131,7 @@ backend:5000 -> <OpenAI-compatible PetGPT endpoint> (deployment-provided)
 
 ```text
 backend/                 Express API (CommonJS)
-  config/                env-backed config: database, ai, email, cloudinary, push
+  config/                env-backed config: ai, breed-ai, email, cloudinary, push
   controllers/           HTTP handlers, one per domain
   routes/                route tables, mounted in server.js
   services/              shared business logic (appointments, notifications, push)
@@ -149,11 +150,13 @@ frontend-react/          React SPA (deployed)
   src/styles/            global, landing, dashboard, notification styles
   public/sw.js           push service worker
 frontend/                legacy Vanilla JS frontend (parity reference, not deployed)
-docker-final/            reviewed Dockerfiles (frontend, backend, nginx)
+ai/                      Python Breed AI service (FastAPI, internal on Compose)
+docker-final/            reviewed Dockerfiles (frontend, backend, nginx, ai)
 docs/migration.md        frontend migration plan and phase status
 docker-compose.yml       canonical production Compose stack
-.env.example             root (Compose) configuration template
-backend/.env.example     backend configuration template
+.env.example             root deployment contract (the source of truth for Compose)
+backend/.env.example     standalone backend template (running backend/ alone)
+ai/.env.example          standalone AI service template (running ai/ alone)
 AGENTS.md                agent rules for this repository
 ```
 
@@ -169,38 +172,62 @@ AGENTS.md                agent rules for this repository
 
 ## Environment Configuration
 
-Configuration is split in two, and **no secret is ever committed**:
+There is one source of truth per use case, and **no secret is ever committed**:
 
-* root `.env` (gitignored) — the Compose stack: `APP_PORT`, `VITE_API_URL`,
-  `CLIENT_URL`, `TUNNEL_TOKEN`. Copy from `.env.example`.
-* `backend/.env` (gitignored) — everything the API reads at runtime, injected into the
-  container through `env_file`. Copy from `backend/.env.example`.
+```text
+Normal FamiPet deployment
+        |
+    .env            <- copy of the tracked .env.example; the ONLY place a
+        |              deployment operator changes values
+  docker-compose.yml   maps each variable explicitly into each service
+        |
+  individual services
 
-Key backend variables:
+Running one service alone (development)
+        |
+  <service>/.env.example  ->  developer creates <service>/.env  ->  that service
+```
+
+* **root `.env`** (gitignored, template `.env.example`) — the complete
+  deployment contract: `APP_PORT`, `VITE_API_URL`, `CLIENT_URL`,
+  `TUNNEL_TOKEN`, Mongo/JWT, every `PETGPT_*`, `PET_BREED_*`, VAPID, optional
+  SMTP/Cloudinary and the AI service tuning variables. `docker-compose.yml`
+  interpolates this file and passes each container exactly the variables it
+  needs — it never dumps the whole file into every container, and it reads no
+  service-local env file.
+* **`backend/.env`** (gitignored, template `backend/.env.example`) —
+  development/standalone configuration for running the API alone
+  (`cd backend && npm run dev`). Not read by the Compose stack.
+* **`ai/.env`** (gitignored, template `ai/.env.example`) — standalone
+  configuration for running the Python service alone. Not read by the Compose
+  stack.
+
+Key backend variables (documented with defaults in `.env.example`):
 
 | Variable | Purpose |
 | -------- | ------- |
-| `PORT` | API port inside the container (5000). |
-| `MONGODB_URI` | The only source of the database URL. Inside Compose it is `mongodb://mongodb:27017/petDB`; there is deliberately no localhost fallback. |
-| `JWT_SECRET`, `JWT_EXPIRE` | Session signing key and lifetime. |
+| `MONGODB_URI` | The only source of the database URL. The Compose default is `mongodb://mongodb:27017/petDB`; there is deliberately no localhost fallback in the code. |
+| `JWT_SECRET`, `JWT_EXPIRE` | Session signing key and lifetime. `JWT_SECRET` is required — Compose fails fast without it. |
 | `CLIENT_URL` | Public origin(s) used for emailed deep links and the CORS allow list. Every origin the app is served from must be listed, or writes fail while reads keep working. |
 | `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_SERVICE` | SMTP transport for verification and reset mail. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Optional image hosting; local uploads are used when unset. |
 | `PETGPT_OPENAI_BASE_URL` | Chat-completions **root** of the provider (the adapter appends `/chat/completions`); no trailing slash. |
 | `PETGPT_OPENAI_API_KEY` | Bearer value for the provider. |
 | `PETGPT_OPENAI_MODEL` | Model name/alias to request. |
+| `PET_BREED_AI_URL` | Backend address of the Breed AI service; Compose default `http://ai:8000`. |
 | `VAPID_PUBLIC_KEY` | Browser push public key, published to authenticated clients. |
 | `VAPID_PRIVATE_KEY` | Browser push private key. |
 | `VAPID_SUBJECT` | `mailto:` or `https:` contact for this deployment's push keys. |
 
 Additional `PETGPT_*` tuning variables (timeouts, rate limits, worker poll interval,
 job retries, tool-call limits) have working defaults; see `backend/config/ai.js` and
-`backend/.env.example`.
+`backend/.env.example`. They are mapped into the Compose backend too, so setting
+them in the root `.env` changes the deployment.
 
-**Secrets belong in the local/deployment env files only.** `backend/.env`, the root
-`.env`, and any real provider key, JWT secret, SMTP password, Cloudinary key or VAPID
-private key must never be written into a tracked file — including the `.example`
-templates, which stay fully commented out.
+**Secrets belong in the local/deployment env files only.** The root `.env`,
+`backend/.env`, and any real provider key, JWT secret, SMTP password, Cloudinary
+key or VAPID private key must never be written into a tracked file — including
+the `.example` templates, which stay placeholder-only.
 
 **Docker networking.** Inside a container, `localhost` is the container itself. When
 the backend runs under Compose and the OpenAI-compatible provider is host-local,
@@ -221,6 +248,7 @@ change tracked configuration or the provider service to suit one machine.
 # API — install, then run against a reachable mongod
 cd backend
 npm install
+cp .env.example .env                 # standalone config (gitignored), then edit
 MONGODB_URI=mongodb://localhost:27017/petDB npm run dev     # nodemon
 MONGODB_URI=mongodb://localhost:27017/petDB npm start       # plain node
 MONGODB_URI=mongodb://localhost:27017/petDB npm run seed    # seed reference data
@@ -230,10 +258,15 @@ npm run lint                                                   # eslint
 # React SPA
 cd frontend-react
 npm install
-npm run dev        # Vite dev server
+npm run dev        # Vite dev server (no .env needed: API base defaults to http://localhost:5000/api)
 npm run build      # tsc -b && vite build
 npm run lint       # oxlint
 npm run preview    # serve the production build
+
+# Breed AI service (standalone)
+cd ai
+set -a; . ./.env.example; set +a   # or copy to ai/.env first
+uvicorn main:app --port 8000       # needs pip install -r requirements.txt
 ```
 
 `VITE_API_URL` selects the API base the bundle uses; the default `/api` is
@@ -242,16 +275,21 @@ same-origin through nginx.
 ## Docker Deployment
 
 ```bash
-cp .env.example .env                 # root Compose config (set TUNNEL_TOKEN for the tunnel)
-cp backend/.env.example backend/.env # backend runtime config, including real secrets
+cp .env.example .env                 # fill real values: JWT_SECRET, TUNNEL_TOKEN, ...
 docker compose up -d --build         # app at http://localhost:${APP_PORT:-8080}
 docker compose down -v               # stop and drop volumes
 ```
 
+That is the whole deployment: the root `.env` is the only file an operator
+edits, and `docker-compose.yml` maps its variables explicitly into each
+service. `backend/.env` is **not** part of the deployment — it exists only for
+running the API standalone (see [Environment Configuration](#environment-configuration)).
+
 Services: `frontend` (built SPA behind its own nginx, internal only), `backend`
 (read-only root filesystem, all capabilities dropped, non-root, memory and CPU
-limited), `mongodb` (no published port, health-gated, persistent volume), `nginx`
-(the single published entry point) and `cloudflared` (Cloudflare tunnel, outbound
+limited), `ai` (Breed AI inference, internal, no published port), `mongodb`
+(no published port, health-gated, persistent volume), `nginx` (the single
+published entry point) and `cloudflared` (Cloudflare tunnel, outbound
 only; needs `TUNNEL_TOKEN`). Only nginx publishes a port. The frontend is
 health-gated on nginx, the backend on MongoDB, so the stack starts in order.
 
@@ -305,8 +343,9 @@ Browser push is **delivery only**, and is off unless configured:
 npx web-push generate-vapid-keys     # once per deployment
 ```
 
-Put the pair in `backend/.env` as `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`, and set
-`VAPID_SUBJECT` to a `mailto:` or `https:` contact. With the keys unset — or a
+Put the pair in the root `.env` (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`, or
+`backend/.env` for a standalone backend run) and set `VAPID_SUBJECT` to a
+`mailto:` or `https:` contact. With the keys unset — or a
 malformed pair — push fails closed: the application is fully usable, the key endpoint
 reports `configured: false`, and the Settings toggle says push is not configured.
 Nothing throws at startup, and the private key is never logged, echoed in an error, or
