@@ -15,6 +15,7 @@
 #      +-- /*         -> frontend:5502 (private, React SPA)
 #                          |
 #   backend:5000 -> mongodb:27017 (private, named volume)
+#                 -> ai:8000       (private, Breed AI inference)
 #
 # Reuses the reviewed build definitions in docker-final/ (single source
 # of truth for the Dockerfiles). This file is the ONLY Compose file.
@@ -95,6 +96,10 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/petDB
       # Public origin used for emailed deep links (verify/reset) + CORS.
       - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
+      # Breed AI (the ML service in ai/) by internal Compose service name.
+      # Same pattern as MONGODB_URI: the stack points at its own service, so
+      # it never depends on a Python process running on the host.
+      - PET_BREED_AI_URL=http://ai:8000
     expose:
       - "5000"
     volumes:
@@ -107,6 +112,35 @@ services:
       mongodb:
         condition: service_healthy
     mem_limit: 1g
+    cpus: 1.0
+
+  # -------- BREED AI (Python FastAPI + MobileNetV2, :8000, internal only) --------
+  # The EXISTING service in ai/ (GET /health, POST /predict), built from the
+  # reviewed Dockerfile in docker-final/. Private on the backend network and
+  # never published: only the backend talks to it, at http://ai:8000 (see the
+  # backend's `environment` above). The backend treats it as optional - if it
+  # is unhealthy the breed feature reports itself unavailable and the rest of
+  # FamiPet is unaffected - so nothing depends_on it.
+  #
+  # First start downloads the ~14 MB ImageNet weights into the container's
+  # ~/.keras; the Dockerfile healthcheck's start_period covers that, and a
+  # failed download leaves /health reporting `degraded` instead of crashing.
+  ai:
+    build:
+      context: ./ai
+      dockerfile: ../docker-final/ai/Dockerfile
+    image: famipet-ai:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    expose:
+      - "8000"
+    networks:
+      - famipet-backend-net
+    mem_limit: 2g
     cpus: 1.0
 
   # -------- MONGODB (internal only, persistent) --------
