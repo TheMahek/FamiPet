@@ -15,7 +15,7 @@
 //   exactly like Vanilla.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { deletePet, getMyPets } from '../../../api/pets'
+import { deletePet, getMyPets, setPetAdoptionStatus } from '../../../api/pets'
 import { useTheme } from '../../../hooks/useTheme'
 import { Icon } from '../../../components/shared/Icon'
 import { genderIcon, toPetView, type PetView } from './petBase'
@@ -50,6 +50,7 @@ export function MyPetsPage() {
   const [deleteTarget, setDeleteTarget] = useState<PetView | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [listing, setListing] = useState(false)
 
   const topSearchRef = useRef<HTMLInputElement>(null)
   const petSearchRef = useRef<HTMLInputElement>(null)
@@ -137,6 +138,23 @@ export function MyPetsPage() {
       alert('Could not delete pet: ' + ((err as Error).message || 'Unknown error'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  // List / unlist a pet in the public adoption gallery (owner action).
+  const toggleAdoptionListing = async (pet: PetView) => {
+    setListing(true)
+    try {
+      const next = pet.status === 'available' ? 'inactive' : 'available'
+      const res = await setPetAdoptionStatus(pet.id, next)
+      const savedStatus = res.pet?.status || next
+      setPets((list) =>
+        (list || []).map((p) => (p.id === pet.id ? { ...p, status: savedStatus } : p)),
+      )
+    } catch (err) {
+      alert('Could not update adoption listing: ' + ((err as Error).message || 'Unknown error'))
+    } finally {
+      setListing(false)
     }
   }
 
@@ -372,6 +390,12 @@ export function MyPetsPage() {
             <Icon name="pen" />
             <span>Edit Pet</span>
           </button>
+          {menu.pet.status !== 'adopted' && (
+            <button type="button" disabled={listing} onClick={() => toggleAdoptionListing(menu.pet)}>
+              <Icon name="heart" />
+              <span>{menu.pet.status === 'available' ? 'Unlist from Adoption' : 'List for Adoption'}</span>
+            </button>
+          )}
           <div className="menu-divider" />
           <button type="button" className="delete-action" onClick={() => setDeleteTarget(menu.pet)}>
             <Icon name="trash-can" />

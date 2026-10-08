@@ -41,6 +41,10 @@ router.get("/:id", protect, petController.getPetById);
 // PUT /api/pets/:id
 router.put("/:id", protect, petController.updatePet);
 
+// List / unlist own pet for adoption
+// PUT /api/pets/:id/status
+router.put("/:id/status", protect, petController.updatePetStatus);
+
 // Delete pet
 // DELETE /api/pets/:id
 router.delete("/:id", protect, petController.deletePet);
