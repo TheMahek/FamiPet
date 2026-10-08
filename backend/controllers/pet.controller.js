@@ -355,6 +355,73 @@ exports.updatePet = async (req, res) => {
 };
 
 // ==========================
+// Update Pet Adoption Listing
+// ==========================
+// The owner's explicit "list for adoption" / "unlist" action. Only the two
+// listing states are settable here: "adopted" is owned by the adoption
+// approval flow and "lost" by Lost & Found, so they can never be forged
+// through this endpoint.
+exports.updatePetStatus = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
+    const { status } = req.body;
+    if (!["available", "inactive"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be available or inactive.",
+      });
+    }
+
+    const pet = await Pet.findById(req.params.id);
+
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        message: "Pet not found",
+      });
+    }
+
+    if (pet.owner.toString() !== req.user.id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to change this pet's adoption listing.",
+      });
+    }
+
+    if (pet.adopted || pet.status === "adopted") {
+      return res.status(400).json({
+        success: false,
+        message: "An adopted pet cannot be re-listed for adoption.",
+      });
+    }
+
+    pet.status = status;
+    await pet.save();
+
+    res.status(200).json({
+      success: true,
+      message: status === "available"
+        ? "Pet is now listed for adoption."
+        : "Pet is no longer listed for adoption.",
+      pet,
+    });
+  } catch (error) {
+    logger.error("Update Pet Status Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================
 // Delete Pet
 // ==========================
 exports.deletePet = async (req, res) => {

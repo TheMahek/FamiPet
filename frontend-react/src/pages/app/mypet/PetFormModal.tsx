@@ -49,6 +49,12 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
       : '',
   )
   const [gender, setGender] = useState(editing?.gender || '')
+  // The photo the user actually picked in this session (a data URL). Kept
+  // separate from `photo` so the preview can fall back to the existing image
+  // while only a genuinely new upload is persisted (Vanilla mypet.js:
+  // createPetOnBackend/updatePetOnBackend send `images: [imageData]` only when
+  // a file was selected).
+  const [newPhoto, setNewPhoto] = useState<string | null>(null)
   const [age, setAge] = useState(editing?.age.replace(/\s*(Year|Years|yr|yrs)?$/i, '').trim() || '')
   const [weight, setWeight] = useState(editing?.weight.replace(/\s*kg$/i, '').trim() || '')
   const [vaccinated, setVaccinated] = useState(editing ? (editing.vaccinated ? 'Yes' : 'No') : '')
@@ -85,7 +91,11 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
   const readPhoto = (file: File | undefined) => {
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => setPhoto(String(reader.result))
+    reader.onload = () => {
+      const dataUrl = String(reader.result)
+      setNewPhoto(dataUrl)
+      setPhoto(dataUrl)
+    }
     reader.readAsDataURL(file)
   }
 
@@ -109,6 +119,7 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
         vaccinated: vaccinated === 'Yes',
         notes,
       })
+      if (newPhoto) payload.images = [newPhoto]
       if (isEditing && editing) {
         await updatePet(editing.id, payload)
       } else {
