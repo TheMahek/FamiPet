@@ -17,6 +17,10 @@ router.get("/", petController.getAllPets);
 // GET /api/pets/featured
 router.get("/featured", petController.getFeaturedPets);
 
+// Public Pet Details by digital pet ID (QR lookup) — no auth, deliberate.
+// GET /api/pets/public/:petUid
+router.get("/public/:petUid", petController.getPublicPetByUid);
+
 // =====================================================
 // PROTECTED USER ROUTES
 // =====================================================

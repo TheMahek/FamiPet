@@ -47,8 +47,23 @@ const adoptionSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "Approved", "Rejected"],
+      enum: ["Pending", "Approved", "Rejected", "Withdrawn"],
       default: "Pending",
+    },
+
+    // Filled by the admin when the request is rejected (mandatory reason).
+    rejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // Message sent to the applicant on approval. Defaults to a generic
+    // acceptance message when the admin provides none.
+    acceptanceMessage: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   {

@@ -135,6 +135,18 @@ const noContact = (person, name) => {
   noContact(postDetail.data.post.user, "post-detail.user");
   ok("F-04: anonymous community detail exposes no author email");
 
+  // ---- public Pet Details (QR petUid lookup) stays PII-safe ----
+  assert.ok(pet.data.pet.petUid, "created pet carries a stable petUid");
+  const qrDetail = await api(base, "GET", `/api/pets/public/${pet.data.pet.petUid}`);
+  assert.strictEqual(qrDetail.status, 200, "anonymous QR lookup resolves without auth");
+  assert.strictEqual(qrDetail.data.pet.name, "PiiDog", "QR lookup returns the pet's details");
+  noContact(qrDetail.data.pet.owner, "qr.pet.owner");
+  assert.strictEqual(qrDetail.data.pet.petUid, pet.data.pet.petUid, "QR lookup returns the same stable id");
+  ok("F-04: anonymous QR petUid lookup exposes no owner email/phone");
+
+  const unknownUid = await api(base, "GET", "/api/pets/public/definitely-not-a-real-uid");
+  assert.strictEqual(unknownUid.status, 404, "an unknown petUid 404s");
+
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
   server.close();
