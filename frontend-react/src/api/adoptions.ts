@@ -5,7 +5,7 @@
 
 import { apiDelete, apiGet, apiPost, apiPut } from './client'
 
-export type AdoptionStatus = 'Pending' | 'Approved' | 'Rejected'
+export type AdoptionStatus = 'Pending' | 'Approved' | 'Rejected' | 'Withdrawn'
 
 export interface Adoption {
   _id: string
@@ -17,7 +17,9 @@ export interface Adoption {
   occupation?: string
   experienceWithPets?: string
   reasonForAdoption?: string
-  pet?: { name?: string } | null
+  rejectionReason?: string
+  acceptanceMessage?: string
+  pet?: { name?: string; images?: string[]; species?: string } | null
   user?: { _id?: string; name?: string; email?: string; phone?: string } | string
 }
 
@@ -54,9 +56,15 @@ export function getAllAdoptions(): Promise<AdoptionsResponse> {
 
 export function updateAdoptionStatus(
   id: string,
-  status: AdoptionStatus,
-): Promise<{ success?: boolean; message?: string }> {
-  return apiPut<{ success?: boolean; message?: string }>(`/adoptions/${id}`, { status })
+  status: 'Approved' | 'Rejected',
+  messageOrReason?: string,
+): Promise<{ success?: boolean; message?: string; adoption?: Adoption }> {
+  // Approve carries an optional `message` (backend substitutes a generic
+  // acceptance message when blank); Reject requires `reason`.
+  return apiPut<{ success?: boolean; message?: string; adoption?: Adoption }>(
+    `/adoptions/${id}`,
+    status === 'Approved' ? { status, message: messageOrReason } : { status, reason: messageOrReason },
+  )
 }
 export function withdrawAdoption(id: string): Promise<{ success?: boolean; message?: string }> {
   return apiDelete<{ success?: boolean; message?: string }>(`/adoptions/my/${id}`)

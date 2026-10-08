@@ -262,3 +262,22 @@ body.dark-theme .petid-page .petid-empty i,
 body.dark-theme .petid-page .petid-loading i {
     color: #ff5c8a;
 }
+
+.petid-page .petid-error {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    background: #ffe4e6;
+    border: 1px solid #fecdd3;
+    color: #be123c;
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.82rem;
+}
+
+body.dark-theme .petid-page .petid-error {
+    background: #3a2030;
+    border-color: #5c2f41;
+    color: #ff9fb4;
+}
