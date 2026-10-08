@@ -231,6 +231,8 @@ function startFrontendFallback() {
   });
 }
 
-startFrontendFallback();
+if (process.env.NODE_ENV !== 'production') {
+  startFrontendFallback();
+}
 
 module.exports = app;

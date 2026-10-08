@@ -19,7 +19,7 @@
 // fired and I want to know".
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { getNotifications, markAllNotificationsRead, type AppNotification } from '../api/notifications'
+import { getNotifications, markAllNotificationsRead, markNotificationRead, type AppNotification } from '../api/notifications'
 import { NotificationContext } from './notification'
 
 const POLL_MS = 60_000
@@ -68,14 +68,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAllNotificationsRead().catch(() => {})
   }, [])
 
+  const markOneRead = useCallback((id: string) => {
+    setNotifications((list) => (list || []).map((n) => (n._id === id && !n.isRead ? { ...n, isRead: true } : n)))
+    markNotificationRead(id).catch(() => {})
+  }, [])
+
   const value = useMemo(
     () => ({
       notifications,
       unreadCount: (notifications || []).filter((n) => !n.isRead).length,
       refresh: load,
       markAllRead,
+      markOneRead,
     }),
-    [notifications, load, markAllRead],
+    [notifications, load, markAllRead, markOneRead],
   )
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>
