@@ -58,3 +58,6 @@ export function updateAdoptionStatus(
 ): Promise<{ success?: boolean; message?: string }> {
   return apiPut<{ success?: boolean; message?: string }>(`/adoptions/${id}`, { status })
 }
+export function withdrawAdoption(id: string): Promise<{ success?: boolean; message?: string }> {
+  return apiDelete<{ success?: boolean; message?: string }>(`/adoptions/my/${id}`)
+}

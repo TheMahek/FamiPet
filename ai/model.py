@@ -53,22 +53,26 @@ def _load():
     return model
 
 
-def load_model():
+def load_model(max_retries=3, initial_delay=2.0):
     """Load the model, recording (not raising) the failure.
-
-    Returns True on success. On failure the reason is kept in
-    `load_error()` and /health reports `degraded` while
-    /predict answers 503 — the rest of FamiPet is unaffected
-    because this service is optional.
+    Implements retry with exponential backoff for network interruptions during weight download.
     """
     global _load_error
-    try:
-        _load()
-        _load_error = None
-        return True
-    except Exception as exc:  # noqa: BLE001 - any failure is "degraded"
-        _load_error = "%s: %s" % (type(exc).__name__, exc)
-        return False
+    import time
+    delay = initial_delay
+    for attempt in range(max_retries + 1):
+        try:
+            _load()
+            _load_error = None
+            return True
+        except Exception as exc:  # noqa: BLE001
+            _load_error = "%s: %s" % (type(exc).__name__, exc)
+            if attempt < max_retries:
+                time.sleep(delay)
+                delay *= 2.0
+            else:
+                return False
+    return False
 
 
 def load_error():

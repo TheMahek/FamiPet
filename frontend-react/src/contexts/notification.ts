@@ -8,6 +8,7 @@ export interface NotificationContextValue {
   /** Re-fetch now (used on mount, on an interval and on window focus). */
   refresh: () => void
   markAllRead: () => void
+  markOneRead: (id: string) => void
 }
 
 export const NotificationContext = createContext<NotificationContextValue | null>(null)

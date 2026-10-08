@@ -16,7 +16,7 @@ import { useNotifications } from '../../hooks/useNotifications'
 import { Icon } from './Icon'
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAllRead } = useNotifications()
+  const { notifications, unreadCount, markAllRead, markOneRead } = useNotifications()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -79,7 +79,7 @@ export function NotificationBell() {
             <div className="app-notif-empty">You&apos;re all caught up!</div>
           ) : (
             notifications.map((n) => (
-              <div className={`app-notif-item${n.isRead ? ' read' : ''}`} key={n._id}>
+              <div className={`app-notif-item${n.isRead ? ' read' : ''}`} key={n._id} onClick={() => !n.isRead && markOneRead(n._id)} style={{ cursor: !n.isRead ? 'pointer' : 'default' }} title={!n.isRead ? 'Mark as read' : 'Already read'}>
                 <span className="app-notif-dot" />
                 <div>
                   <strong>{n.title || ''}</strong>

@@ -52,7 +52,14 @@ async def lifespan(_app):
     # Failure is recorded, not raised: the process stays up so
     # /health can explain the problem and Docker's healthcheck has
     # something to talk to.
-    model.load_model()
+    # Retry on startup if needed (network interruption during initial weight download)
+    try:
+        ok = model.load_model(max_retries=5, initial_delay=2.0)
+        if not ok:
+            # keep process up; /health will reflect degraded state
+            pass
+    except Exception:
+        pass
     yield
 
 
