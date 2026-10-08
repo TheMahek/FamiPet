@@ -77,6 +77,7 @@ export interface PetView {
   vaccinated: boolean
   notes: string
   image: string
+  status: string
   petUid: string
   qrCode: string
 }
@@ -95,6 +96,7 @@ export function toPetView(p: Pet): PetView {
     vaccinated: !!p.vaccinated,
     notes: p.description || '',
     image: (p.images && p.images.length && p.images[0]) || speciesImage(species),
+    status: p.status || '',
     petUid: p.petUid || '',
     qrCode: p.qrCode || '',
   }

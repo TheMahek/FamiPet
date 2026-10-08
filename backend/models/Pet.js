@@ -69,7 +69,10 @@ const petSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["available", "adopted", "lost", "inactive"],
-      default: "available",
+      // "available" means "listed in the public adoption gallery", so a
+      // newly created pet must NOT start there. Owners explicitly list a pet
+      // via PUT /pets/:id/status (see pet.controller.updatePetStatus).
+      default: "inactive",
     },
 
     // Pet images
