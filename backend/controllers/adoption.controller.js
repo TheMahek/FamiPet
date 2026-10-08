@@ -4,6 +4,11 @@ const Pet = require("../models/Pet");
 const { createNotification } = require("../services/notification.service");
 const logger = require("../utils/logger");
 
+// Used when an admin approves an application without a message. Kept on the
+// application record and shown to the applicant, never silently discarded.
+const GENERIC_ACCEPTANCE_MESSAGE =
+  "Your adoption application has been approved. Please contact the pet owner for the next steps.";
+
 exports.getAllAdoptions = async (req, res) => {
   try {
     const adoptions = await Adoption.find()
@@ -133,6 +138,18 @@ exports.updateAdoptionStatus = async (req, res) => {
       });
     }
 
+    // A rejected application always carries the admin's reason. Refusing to
+    // accept a reason here stops an approval/rejection from silently
+    // discarding the message the reviewer meant to send.
+    const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+    const message = typeof req.body.message === "string" ? req.body.message.trim() : "";
+    if (status === "Rejected" && !reason) {
+      return res.status(400).json({
+        success: false,
+        message: "A rejection reason is required.",
+      });
+    }
+
     const adoption = await Adoption.findById(req.params.id)
       .populate("pet", "name status adopted owner");
 
@@ -165,6 +182,7 @@ exports.updateAdoptionStatus = async (req, res) => {
       }
 
       adoption.status = status;
+      adoption.acceptanceMessage = message || GENERIC_ACCEPTANCE_MESSAGE;
       await adoption.save();
 
       await Pet.findByIdAndUpdate(pet._id, {
@@ -184,13 +202,21 @@ exports.updateAdoptionStatus = async (req, res) => {
       );
     } else {
       adoption.status = status;
+      adoption.rejectionReason = reason;
       await adoption.save();
     }
+
+    const statusMessage =
+      status === "Approved"
+        ? (adoption.acceptanceMessage || GENERIC_ACCEPTANCE_MESSAGE)
+        : `Your adoption request for ${pet ? pet.name : "this pet"} is now ${status.toLowerCase()}.${
+            reason ? ` Reason: ${reason}` : ""
+          }`;
 
     await createNotification({
       user: adoption.user,
       title: `Adoption Request ${status}`,
-      message: `Your adoption request for ${pet ? pet.name : "this pet"} is now ${status.toLowerCase()}.`,
+      message: statusMessage,
       type: "adoption",
       url: "/app/adoption",
     });
@@ -254,7 +280,11 @@ exports.withdrawOwnAdoption = async (req, res) => {
       });
     }
 
-    await Adoption.deleteOne({ _id: adoption._id });
+    // Withdrawal is a terminal state, not a deletion: the applicant keeps a
+    // visible "Withdrawn" record, and can re-apply for the same pet because
+    // duplicate protection only blocks other "Pending" requests.
+    adoption.status = "Withdrawn";
+    await adoption.save();
 
     res.json({
       success: true,

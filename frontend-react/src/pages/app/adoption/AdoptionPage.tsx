@@ -27,6 +27,7 @@ import { useFavorites } from '../../../hooks/useFavorites'
 import { AdoptionCard } from './AdoptionCard'
 import { AdoptionModal } from './AdoptionModal'
 import { FilterChips } from './FilterChips'
+import { MyApplications } from './MyApplications'
 import { SearchBar } from './SearchBar'
 import {
   petSearchText,
@@ -49,6 +50,7 @@ export function AdoptionPage() {
 
   const [selected, setSelected] = useState<AdoptionPetView | null>(null)
   const [toast, setToast] = useState('')
+  const [myAppsReload, setMyAppsReload] = useState(0)
 
   const load = () => {
     setLoadFailed(false)
@@ -215,6 +217,9 @@ export function AdoptionPage() {
         </div>
       )}
 
+      {/* ================= MY APPLICATIONS ================= */}
+      <MyApplications reloadKey={myAppsReload} />
+
       {/* ================= TOAST ================= */}
       {toast && (
         <div className="adoption-toast">
@@ -227,7 +232,10 @@ export function AdoptionPage() {
         <AdoptionModal
           pet={selected}
           onClose={() => setSelected(null)}
-          onSubmitted={(petName) => setToast(`${petName} adoption application submitted.`)}
+          onSubmitted={(petName) => {
+            setToast(`${petName} adoption application submitted.`)
+            setMyAppsReload((k) => k + 1)
+          }}
         />
       )}
     </div>

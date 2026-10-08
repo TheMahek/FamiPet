@@ -209,6 +209,11 @@ async function api(method, path, token, body) {
   const withdraw = await api("DELETE", `/api/adoptions/my/${applicationId}`, bobTok);
   assert.strictEqual(withdraw.status, 200, "applicant can withdraw their pending application");
 
+  const myAfterWithdraw = await api("GET", "/api/adoptions/my", bobTok);
+  const withdrawnRecord = (myAfterWithdraw.data.adoptions || []).find((a) => a._id === applicationId);
+  assert.ok(withdrawnRecord, "withdrawn application stays on the applicant's list");
+  assert.strictEqual(withdrawnRecord.status, "Withdrawn", "withdrawal sets the status to Withdrawn");
+
   const withdrawnAgain = await api("DELETE", `/api/adoptions/my/${applicationId}`, bobTok);
   assert.strictEqual(withdrawnAgain.status, 404, "a withdrawn application cannot be withdrawn twice");
 
@@ -217,7 +222,19 @@ async function api(method, path, token, body) {
     (galleryStill.data.pets || []).some((p) => p._id === noImage.data.pet._id),
     "pet stays listed after the application was withdrawn",
   );
-  ok("withdrawal works and leaves the pet available");
+
+  const reApply = await api("POST", "/api/adoptions", bobTok, {
+    pet: noImage.data.pet._id,
+    fullName: "Bob",
+    phone: "222",
+    address: "Bob's Home",
+    reasonForAdoption: "After withdrawing, I want to re-apply",
+  });
+  assert.strictEqual(reApply.status, 201, "a user can re-apply after withdrawing");
+  const reApplyId = reApply.data.adoption._id;
+  const reApplyWithdraw = await api("DELETE", `/api/adoptions/my/${reApplyId}`, bobTok);
+  assert.strictEqual(reApplyWithdraw.status, 200, "re-applied pending request can be withdrawn again");
+  ok("withdrawal becomes Withdrawn, keeps the pet available and allows re-apply");
 
   /* ---------------- MULTIPLE APPLICATIONS ---------------- */
 
@@ -254,6 +271,19 @@ async function api(method, path, token, body) {
     status: "Approved",
   });
   assert.strictEqual(approve.status, 200, "admin can approve");
+  assert.strictEqual(
+    approve.data.adoption.acceptanceMessage,
+    "Your adoption application has been approved. Please contact the pet owner for the next steps.",
+    "an approval without a message stores the generic acceptance message",
+  );
+
+  const approvedRecord = await require("../models/Adoption").findById(bobApp2.data.adoption._id);
+  assert.strictEqual(
+    approvedRecord.acceptanceMessage,
+    "Your adoption application has been approved. Please contact the pet owner for the next steps.",
+    "generic acceptance message persisted in the DB",
+  );
+  assert.strictEqual(approvedRecord.rejectionReason || "", "", "approval carries no rejection reason");
 
   const adoptedPet = await Pet.findById(noImage.data.pet._id).select("status adopted");
   assert.strictEqual(adoptedPet.status, "adopted", "approved pet becomes adopted");
@@ -297,10 +327,29 @@ async function api(method, path, token, body) {
   });
   assert.strictEqual(carolApp2.status, 201, "application for the second pet succeeds");
 
-  const reject = await api("PUT", `/api/adoptions/${carolApp2.data.adoption._id}`, adminTok, {
+  const rejectNoReason = await api("PUT", `/api/adoptions/${carolApp2.data.adoption._id}`, adminTok, {
     status: "Rejected",
   });
-  assert.strictEqual(reject.status, 200, "admin can reject");
+  assert.strictEqual(rejectNoReason.status, 400, "rejection without a reason is refused");
+
+  const reject = await api("PUT", `/api/adoptions/${carolApp2.data.adoption._id}`, adminTok, {
+    status: "Rejected",
+    reason: "Another applicant was a better match for this pet.",
+  });
+  assert.strictEqual(reject.status, 200, "admin can reject with a reason");
+  assert.strictEqual(
+    reject.data.adoption.rejectionReason,
+    "Another applicant was a better match for this pet.",
+    "the rejection reason is returned to the caller",
+  );
+
+  const myRejected = await api("GET", "/api/adoptions/my", carolTok);
+  assert.strictEqual(
+    (myRejected.data.adoptions || []).find((a) => a._id === carolApp2.data.adoption._id).rejectionReason,
+    "Another applicant was a better match for this pet.",
+    "the applicant can read the stored rejection reason",
+  );
+
   const rejectedPet = await Pet.findById(withImage.data.pet._id).select("status owner");
   assert.strictEqual(rejectedPet.status, "available", "rejected pet remains available");
   assert.strictEqual(
@@ -308,7 +357,38 @@ async function api(method, path, token, body) {
     alice._id.toString(),
     "rejection does not transfer ownership",
   );
-  ok("rejection keeps the pet available and ownership unchanged");
+  ok("rejection requires + stores a reason; pet stays available and ownership unchanged");
+
+  /* ---------------- APPROVAL WITH A CUSTOM MESSAGE ---------------- */
+
+  const dave = await mk("Dave", "adopt-dave@test.dev");
+  const daveTok = tokenFor(dave._id);
+  const daveApp = await api("POST", "/api/adoptions", daveTok, {
+    pet: withImage.data.pet._id,
+    fullName: "Dave",
+    phone: "444",
+    address: "Dave's Home",
+    reasonForAdoption: "I would love this pet",
+  });
+  assert.strictEqual(daveApp.status, 201, "a new applicant can apply to the still-available pet");
+
+  const customApprove = await api("PUT", `/api/adoptions/${daveApp.data.adoption._id}`, adminTok, {
+    status: "Approved",
+    message: "Welcome! Please call me to arrange picking up your new friend.",
+  });
+  assert.strictEqual(customApprove.status, 200, "admin can approve with a custom message");
+  assert.strictEqual(
+    customApprove.data.adoption.acceptanceMessage,
+    "Welcome! Please call me to arrange picking up your new friend.",
+    "the custom acceptance message is stored and returned",
+  );
+  const customPersisted = await require("../models/Adoption").findById(daveApp.data.adoption._id);
+  assert.strictEqual(
+    customPersisted.acceptanceMessage,
+    "Welcome! Please call me to arrange picking up your new friend.",
+    "custom acceptance message persisted in the DB",
+  );
+  ok("approval stores a custom acceptance message when one is provided");
 
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
