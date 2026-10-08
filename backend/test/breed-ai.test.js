@@ -25,6 +25,7 @@ const mongoose = require("mongoose");
 
 process.env.NODE_ENV = "test";
 process.env.MONGODB_URI = testDbUri("animal_planet_breed_ai_test");
+process.env.JWT_SECRET = process.env.JWT_SECRET || "breed-ai-test-secret";
 
 // ML service address. Unreachable on purpose unless a test stubs
 // global.fetch; `enabled` only depends on the URL being well formed.

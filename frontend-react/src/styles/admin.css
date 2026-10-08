@@ -451,8 +451,160 @@ body.dark-theme .admin-empty i {
 body.dark-theme .admin-toast {
   background: #211e30;
   border-color: #332e45;
-  color: #e8e6f0;
-  box-shadow: none;
+  color: #e2e8f0;
+}
+
+/* ---------------- ADOPTION REVIEW DIALOGS ----------------
+   Replaces the page-level window.confirm() with explicit dialogs so an
+   admin's approval can carry a custom acceptance message and a rejection
+   always records a required reason (backend refuses Rejected without one). */
+
+.admin-wrap .admin-review-note {
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.admin-wrap .admin-review-note strong {
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-bottom: 0.1rem;
+}
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1900;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.admin-modal {
+  background: #fff;
+  border: 1px solid #f1eff5;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  width: 100%;
+  max-width: 460px;
+  padding: 1.4rem;
+}
+
+.admin-modal h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.35rem;
+}
+
+.admin-modal h3 i { color: #6d5ae0; }
+
+.admin-modal-sub {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+
+.admin-modal-field {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+.admin-modal-field span {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.4rem;
+}
+
+.admin-modal-field textarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  resize: vertical;
+}
+
+.admin-modal-field textarea:focus {
+  outline: 3px solid rgba(109, 90, 224, 0.2);
+  border-color: #8b7cf6;
+}
+
+.admin-modal-error {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #ffe4e6;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.admin-modal-actions .admin-btn-sm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body.dark-theme .admin-wrap .admin-review-note {
+  background: #211e30;
+  border-color: #332e45;
+  color: #b7b0c9;
+}
+
+body.dark-theme .admin-wrap .admin-review-note strong {
+  color: #8b8399;
+}
+
+body.dark-theme .admin-modal {
+  background: #1b1828;
+  border-color: #332e45;
+}
+
+body.dark-theme .admin-modal h3 { color: #f5f2ff; }
+
+body.dark-theme .admin-modal-sub { color: #b7b0c9; }
+
+body.dark-theme .admin-modal-field span { color: #d8d2e8; }
+
+body.dark-theme .admin-modal-field textarea {
+  background: #12101c;
+  border-color: #332e45;
+  color: #f5f2ff;
+}
+
+body.dark-theme .admin-modal-error {
+  background: #3a2030;
+  border-color: #5c2f41;
+  color: #ff9fb4;
 }
 
 @media (max-width: 768px) {
