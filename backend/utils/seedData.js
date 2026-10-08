@@ -15,6 +15,19 @@ require('dotenv').config();
 const logger = require('./logger');
 
 const seedData = async () => {
+  // DESTRUCTIVE demo seed: deleteMany() on every collection, then inserts
+  // users whose passwords are the published demo credentials in this file.
+  // It must never run against a real deployment database by accident, so it
+  // refuses without an explicit SEED_CONFIRM=1 (the compose stack never sets
+  // it - seeding is a manual, local-demo action only).
+  if (process.env.SEED_CONFIRM !== '1') {
+    logger.error(
+      'Seed refused: this script DELETES every user, pet, post and record in ' +
+      'the target database and recreates demo accounts with well-known ' +
+      'passwords. Run it only against a local/demo database, with SEED_CONFIRM=1.'
+    );
+    process.exit(1);
+  }
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet');
     logger.info('Connected to MongoDB');
