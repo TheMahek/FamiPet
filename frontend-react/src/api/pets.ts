@@ -85,3 +85,32 @@ export function deletePet(id: string): Promise<{ success?: boolean; message?: st
 export function getPetQr(id: string): Promise<{ success?: boolean; qrCode?: string }> {
   return apiGet(`/pets/${id}/qr`)
 }
+
+// Public Pet Details by digital pet ID (QR lookup). Backend endpoint is
+// deliberately unauthenticated (backend/routes/pet.routes.js GET /public/:petUid)
+// and returns only intentionally public fields — never a JWT, auth credential or
+// owner contact info. Consumed by the public Pet Details page.
+export interface PublicPet {
+  petUid: string
+  name: string
+  species?: string
+  breed?: string
+  gender?: string
+  age?: number
+  weight?: number | string
+  color?: string
+  vaccinated?: boolean
+  description?: string
+  images?: string[]
+  owner?: { name?: string } | null
+}
+
+export interface PublicPetResponse {
+  success?: boolean
+  pet?: PublicPet
+  message?: string
+}
+
+export function getPublicPetByUid(petUid: string): Promise<PublicPetResponse> {
+  return apiGet<PublicPetResponse>(`/pets/public/${encodeURIComponent(petUid)}`)
+}

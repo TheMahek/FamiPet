@@ -23,6 +23,7 @@ export function PetIdPage() {
   const [currentPet, setCurrentPet] = useState<PetView | null>(null)
   const [qr, setQr] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [qrError, setQrError] = useState('')
 
   const idCardRef = useRef<HTMLDivElement>(null)
 
@@ -39,17 +40,19 @@ export function PetIdPage() {
     const pet = (pets || []).find((p) => p.id === id) || null
     setCurrentPet(pet)
     setQr(null)
+    setQrError('')
   }
 
   const generateQr = async () => {
     if (!currentPet) return
     setGenerating(true)
+    setQrError('')
     try {
       const res = await getPetQr(currentPet.id)
       if (res.qrCode) setQr(res.qrCode)
-      else alert('Could not generate the QR code. Please try again.')
+      else setQrError('Could not generate the QR code. Please try again.')
     } catch (err) {
-      alert((err as Error).message || 'Could not generate the QR code. Please try again.')
+      setQrError((err as Error).message || 'Could not generate the QR code. Please try again.')
     } finally {
       setGenerating(false)
     }
@@ -179,6 +182,12 @@ export function PetIdPage() {
             <button className="btn-pink" id="generateQrBtn" type="button" disabled={!currentPet || generating} onClick={generateQr}>
               <Icon name={generating ? 'circle-notch' : 'bolt'} spin={generating} /> {generating ? 'Generating...' : 'Generate QR Code'}
             </button>
+
+            {qrError && (
+              <p className="petid-error">
+                <Icon name="triangle-exclamation" /> {qrError}
+              </p>
+            )}
 
             {qr && (
               <button className="btn-pink" id="downloadIdBtn" type="button" style={{ background: '#1e293b' }} onClick={downloadIdCard}>

@@ -5,7 +5,13 @@
 
 const FamiPetAPI = (function () {
 
-    const API_BASE = "http://localhost:5000/api";
+    // Backend base URL. Preferred override is the deployment-provided global
+    // `window.FAMIPET_API_BASE` (e.g. "/api" behind nginx) so no machine-bound
+    // URI ships. Falls back to the standalone dev default (backend :5000).
+    const API_BASE =
+        typeof window !== "undefined" && window.FAMIPET_API_BASE
+            ? window.FAMIPET_API_BASE
+            : "http://localhost:5000/api";
     const TOKEN_KEY = "famipetToken";
     const USER_KEY = "famipetUser";
 
