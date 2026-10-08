@@ -68,6 +68,16 @@ export function updatePet(id: string, payload: PetPayload): Promise<PetMutationR
   return apiPut<PetMutationResponse>(`/pets/${id}`, payload)
 }
 
+// Owner's explicit adoption listing toggle. Only "available" (list) and
+// "inactive" (unlist) are accepted by the backend; "adopted" belongs to the
+// adoption approval flow.
+export function setPetAdoptionStatus(
+  id: string,
+  status: 'available' | 'inactive',
+): Promise<PetMutationResponse> {
+  return apiPut<PetMutationResponse>(`/pets/${id}/status`, { status })
+}
+
 export function deletePet(id: string): Promise<{ success?: boolean; message?: string }> {
   return apiDelete(`/pets/${id}`)
 }
