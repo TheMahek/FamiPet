@@ -4,6 +4,7 @@ const Breed = require("../models/Breed");
 const QRCode = require("qrcode");
 const logger = require("../utils/logger");
 const { str, strLower, searchStr } = require("../utils/querySafe");
+const { petQrPayloadUrl } = require("../utils/petQr");
 
 // ==========================
 // Get All Pets
@@ -152,6 +153,59 @@ exports.getPetById = async (req, res) => {
 };
 
 // ==========================
+// Public Pet Details (by petUid)
+// ==========================
+// Resolves the stable digital pet ID encoded in a Pet ID QR code. Deliberately
+// NO auth: a scanned QR must render for anyone. Only intentionally public info
+// is returned — pet description data plus the current owner's NAME (matching
+// the anonymous adoption gallery's PII policy). Owner email/phone are never
+// exposed here.
+exports.getPublicPetByUid = async (req, res) => {
+  try {
+    const petUid = String(req.params.petUid || "").trim();
+    if (!petUid) {
+      return res.status(400).json({ success: false, message: "Pet ID is required." });
+    }
+
+    const pet = await Pet.findOne({ petUid })
+      .populate("breed", "name species")
+      .populate("owner", "name");
+
+    if (!pet) {
+      return res.status(404).json({ success: false, message: "Pet not found." });
+    }
+
+    const owner = pet.owner && typeof pet.owner === "object" ? pet.owner : null;
+    const breed = pet.breed && typeof pet.breed === "object" ? pet.breed : null;
+
+    res.status(200).json({
+      success: true,
+      pet: {
+        petUid,
+        name: pet.name,
+        species: pet.species,
+        breed: breed && breed.name ? breed.name : "",
+        gender: pet.gender,
+        age: pet.age,
+        weight: pet.weight,
+        color: pet.color || "",
+        vaccinated: pet.vaccinated,
+        description: pet.description || "",
+        images: pet.images || [],
+        owner: owner ? { name: owner.name || "" } : null,
+      },
+    });
+  } catch (error) {
+    logger.error("Get Public Pet Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================
 // Create Pet
 // ==========================
 exports.createPet = async (req, res) => {
@@ -216,15 +270,8 @@ exports.createPet = async (req, res) => {
 
     try {
       const uniqueId = `${Date.now().toString(36)}-${pet._id.toString().slice(-8)}-${Math.floor(Math.random() * 10000)}`;
-      const qrData = JSON.stringify({
-        petId: pet._id,
-        petUid: uniqueId,
-        name: pet.name,
-        species: pet.species,
-        breed: pet.breed ? pet.breed : "",
-      });
-
-      const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+      // Payload is a stable URL to the public Pet Details page, not raw JSON.
+      const qrCodeDataUrl = await QRCode.toDataURL(petQrPayloadUrl(uniqueId));
 
       pet.qrCode = qrCodeDataUrl;
       pet.petUid = uniqueId;
@@ -499,20 +546,13 @@ exports.generateQRCode = async (req, res) => {
       });
     }
 
-    const qrData = JSON.stringify({
-      petId: pet._id,
-      name: pet.name,
-      species: pet.species,
-      breed: pet.breed ? pet.breed.name : "",
-      owner: pet.owner
-        ? {
-            name: pet.owner.name,
-            phone: pet.owner.phone,
-          }
-        : null,
-    });
+    // Legacy pets seeded before petUid existed have none; backfill one so the
+    // QR always resolves through the stable public petUid lookup.
+    if (!pet.petUid) {
+      pet.petUid = `${Date.now().toString(36)}-${pet._id.toString().slice(-8)}-${Math.floor(Math.random() * 10000)}`;
+    }
 
-    const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+    const qrCodeDataUrl = await QRCode.toDataURL(petQrPayloadUrl(pet.petUid));
 
     pet.qrCode = qrCodeDataUrl;
     await pet.save();

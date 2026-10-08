@@ -1,22 +1,22 @@
 # Graph Report - FamiPet  (2026-10-08)
 
 ## Corpus Check
-- 295 files · ~2,967,548 words
+- 300 files · ~2,972,705 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2560 nodes · 4873 edges · 138 communities (123 shown, 15 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 137 edges (avg confidence: 0.85)
+- 2593 nodes · 4944 edges · 143 communities (125 shown, 18 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 139 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `85a73af6`
+- Built from commit: `0c3767eb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - dependencies
-- apiGet
+- HealthPage.tsx
 - communityBase.ts
 - admin.controller.js
 - devDependencies
@@ -52,7 +52,7 @@
 - reset-password.js
 - auth.js
 - breed-details.js
-- conversation-api.test.js
+- pets.ts
 - pet-id.js
 - login.js
 - admin-lost-found.js
@@ -72,19 +72,19 @@
 - decode_image
 - generation.worker.js
 - favorite.controller.js
-- SettingsPage.tsx
+- DashboardPage.tsx
 - adoption.controller.js
 - tsconfig.json
-- Pet.js
-- Navbar.tsx
-- pets.ts
-- ai.controller.js
+- petgpt-jobs-tools.test.js
+- admin.ts
+- apiGet
+- conversation-api.test.js
 - Migration Execution Protocol
-- User.js
+- Pet.js
 - user.routes.js
 - AdoptionPage.tsx
 - plugins
-- notification.service.js
+- push-notifications.test.js
 - Icon.tsx
 - openai.js
 - reminder.routes.js
@@ -113,7 +113,7 @@
 - vaccination.routes.js
 - 15. Phase 0/1 Implementation Status & Verification
 - 2. Complete Request/Response Flow
-- push.ts
+- SettingsPage.tsx
 - pet.controller.js
 - read-tools.js
 - upload.js
@@ -124,15 +124,15 @@
 - ai-provider.test.js
 - backend/package.json
 - breed-ai.test.js
-- react
-- adoptions.ts
+- App.tsx
+- AdminTopbar.tsx
 - logger.js
-- lostFound.routes.js
-- getMe
+- db.js
+- apiPost
 - multer
 - compression
 - web-push
-- push-notifications.test.js
+- appointment.service.js
 - eslint.config.js
 - mongoose
 - breed/schema.js
@@ -141,21 +141,26 @@
 - service.js
 - FamiPet
 - helmet
-- push.service.js
+- env-validator.test.js
 - test_api.py
 - zod
+- env.js
+- pet-qr-url.test.js
+- CommunityPost.js
+- LostFound.js
+- Reminder.js
 - Phase Status
 - cors
 - system_architecture.py
 
 ## God Nodes (most connected - your core abstractions)
-1. `Icon()` - 67 edges
-2. `react` - 63 edges
-3. `apiGet()` - 46 edges
+1. `Icon()` - 69 edges
+2. `react` - 65 edges
+3. `apiGet()` - 47 edges
 4. `apiPost()` - 35 edges
 5. `11. Phased Plan` - 33 edges
-6. `apiPut()` - 26 edges
-7. `apiDelete()` - 25 edges
+6. `apiPut()` - 28 edges
+7. `apiDelete()` - 27 edges
 8. `PetGPT — Enhancement Working Reference` - 25 edges
 9. `main()` - 23 edges
 10. `SettingsPage()` - 23 edges
@@ -175,19 +180,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (138 total, 15 thin omitted)
+## Communities (143 total, 18 thin omitted)
 
 ### Community 0 - "dependencies"
 Cohesion: 0.13
 Nodes (15): dependencies, bcryptjs, cloudinary, jsonwebtoken, morgan, nodemailer, qrcode, winston (+7 more)
 
-### Community 1 - "apiGet"
-Cohesion: 0.05
-Nodes (73): AdminCommunityPost, AdminDashboardResponse, AdminDashboardStats, AdminLostFoundReport, AdminPet, AdminPetsResponse, AdminPostsResponse, AdminReportsResponse (+65 more)
+### Community 1 - "HealthPage.tsx"
+Cohesion: 0.10
+Nodes (40): apiDelete(), createHealthRecord(), deleteHealthRecord(), getHealthRecords(), HealthRecord, HealthRecordMutationResponse, HealthRecordPayload, HealthRecordsResponse (+32 more)
 
 ### Community 2 - "communityBase.ts"
-Cohesion: 0.10
-Nodes (44): apiOrigin(), addCommunityComment(), CommunityComment, CommunityPost, CommunityResponse, createCommunityPost(), deleteCommunityPost(), getCommunityPosts() (+36 more)
+Cohesion: 0.11
+Nodes (38): addCommunityComment(), CommunityComment, CommunityPost, CommunityResponse, createCommunityPost(), deleteCommunityPost(), getCommunityPosts(), toggleCommunityLike() (+30 more)
 
 ### Community 3 - "admin.controller.js"
 Cohesion: 0.12
@@ -202,12 +207,12 @@ Cohesion: 0.14
 Nodes (31): addComment(), run(), applyFilters(), attachAllInteractions(), attachCommentButton(), attachLikeButton(), attachMoreButton(), attachShareButton() (+23 more)
 
 ### Community 6 - "lostFound.controller.js"
-Cohesion: 0.18
-Nodes (11): getAllBreeds(), getAllReports(), logger, LostFound, mongoose, { str, strLower, searchStr }, getAllPets(), escapeRegex() (+3 more)
+Cohesion: 0.16
+Nodes (12): getAllBreeds(), getAllPosts(), getAllReports(), logger, LostFound, mongoose, { str, strLower, searchStr }, getAllPets() (+4 more)
 
 ### Community 7 - "auth.controller.js"
-Cohesion: 0.07
-Nodes (35): isEmailConfigured(), logger, nodemailer, sendEmail(), transporter, changePassword(), crypto, forgotPassword() (+27 more)
+Cohesion: 0.15
+Nodes (24): isEmailConfigured(), sendEmail(), changePassword(), crypto, forgotPassword(), generateToken(), getClientBase(), getMe() (+16 more)
 
 ### Community 8 - "11. Phased Plan"
 Cohesion: 0.06
@@ -266,20 +271,20 @@ Cohesion: 0.14
 Nodes (26): createReport(), deleteReport(), getReports(), LostFoundReport, LostFoundResponse, updateReport(), buildMailto(), DetailsModal() (+18 more)
 
 ### Community 22 - "seedData.js"
-Cohesion: 0.08
-Nodes (20): adoptionSchema, mongoose, communityPostSchema, mongoose, lostFoundSchema, mongoose, Adoption, Appointment (+12 more)
+Cohesion: 0.09
+Nodes (18): healthRecordSchema, mongoose, mongoose, vaccinationSchema, Adoption, Appointment, Breed, CommunityPost (+10 more)
 
 ### Community 23 - "health.routes.js"
 Cohesion: 0.20
 Nodes (12): createHealthRecord(), deleteHealthRecord(), getHealthRecordById(), getHealthRecords(), HealthRecord, mongoose, Pet, updateHealthRecord() (+4 more)
 
 ### Community 24 - "routeConfig.tsx"
-Cohesion: 0.11
-Nodes (20): AuthSplash(), useAuth(), AdminLayout(), AdminSidebar(), NAV_ITEMS, AppLayout(), AuthLayout(), DEFAULT_PROFILE (+12 more)
+Cohesion: 0.13
+Nodes (18): resendVerification(), AuthSplash(), useAuth(), AdminLayout(), AdminSidebar(), NAV_ITEMS, AppLayout(), AuthLayout() (+10 more)
 
 ### Community 25 - "client.ts"
-Cohesion: 0.11
-Nodes (33): FamiPetAPI, AuthUser, LoginResponse, API_BASE, apiPatch(), apiPostForm(), apiPut(), apiRequest() (+25 more)
+Cohesion: 0.21
+Nodes (18): FamiPetAPI, API_BASE, apiPatch(), apiPostForm(), apiRequest(), apiUrl(), getToken(), getUser() (+10 more)
 
 ### Community 26 - "veterinarian.controller.js"
 Cohesion: 0.18
@@ -294,8 +299,8 @@ Cohesion: 0.33
 Nodes (14): ageText(), breedName(), esc(), fillGreeting(), fmtDate(), fmtTime(), init(), loadActivity() (+6 more)
 
 ### Community 29 - "server.js"
-Cohesion: 0.05
-Nodes (38): allOrNothing(), analyzeEnv(), FEATURE_GROUPS, isSet(), logger, REQUIRED, schema, validateEnvAndExit() (+30 more)
+Cohesion: 0.11
+Nodes (18): allowedOrigins, app, compression, cors, express, FRONTEND_DIR, fs, helmet (+10 more)
 
 ### Community 30 - "breed.controller.js"
 Cohesion: 0.13
@@ -306,8 +311,8 @@ Cohesion: 0.09
 Nodes (40): AppointmentMutationResponse, AppointmentPayload, AppointmentsResponse, ApptPet, ApptVet, createAppointment(), deleteAppointment(), getAppointments() (+32 more)
 
 ### Community 32 - "notification.controller.js"
-Cohesion: 0.08
-Nodes (27): configured, encode(), logger, realTransport(), webpush, deleteNotification(), deletePushSubscription(), getNotifications() (+19 more)
+Cohesion: 0.06
+Nodes (38): configured, encode(), logger, realTransport(), webpush, deleteNotification(), deletePushSubscription(), getNotifications() (+30 more)
 
 ### Community 33 - "petgpt.js"
 Cohesion: 0.42
@@ -318,16 +323,16 @@ Cohesion: 0.18
 Nodes (10): confirmPassword, confirmPasswordError, params, password, passwordError, resetBtn, resetForm, toggleConfirmPassword (+2 more)
 
 ### Community 35 - "auth.js"
-Cohesion: 0.15
-Nodes (12): jwt, logger, protect(), User, express, { getJob }, { protect }, router (+4 more)
+Cohesion: 0.13
+Nodes (14): adminOnly(), jwt, logger, protect(), User, express, lostFoundController, { protect } (+6 more)
 
 ### Community 36 - "breed-details.js"
 Cohesion: 0.47
 Nodes (9): breedImage(), breedTag(), escapeHTML(), loadBreed(), render(), section(), showProblem(), speciesLabel() (+1 more)
 
-### Community 37 - "conversation-api.test.js"
-Cohesion: 0.13
-Nodes (12): { AI_CONFIG, outOfScopeResponse }, api(), assert, awaitJob(), { fallbackAnswer }, GenerationJob, http, jwt (+4 more)
+### Community 37 - "pets.ts"
+Cohesion: 0.12
+Nodes (31): createPet(), deletePet(), getPetQr(), getPublicPetByUid(), PetMutationResponse, PetPayload, PetsResponse, PublicPet (+23 more)
 
 ### Community 38 - "pet-id.js"
 Cohesion: 0.42
@@ -346,8 +351,8 @@ Cohesion: 0.57
 Nodes (6): breedImage(), breedTag(), escapeHTML(), loadBreeds(), renderBreeds(), speciesLabel()
 
 ### Community 42 - "conversation.controller.js"
-Cohesion: 0.08
-Nodes (38): { AI_CONFIG }, buildConversationContext(), { currentUserTurnPrefix }, { loadPetContext }, Message, publicMessage(), updateConversationMetadata(), loadPetContext() (+30 more)
+Cohesion: 0.07
+Nodes (39): publicMessage(), { AI_CONFIG }, enforceGenerationQuota(), GenerationJob, AI_CONFIG, addMessage(), { AI_CONFIG, outOfScopeResponse }, clearConversation() (+31 more)
 
 ### Community 43 - "home.js"
 Cohesion: 0.33
@@ -390,68 +395,64 @@ Cohesion: 0.05
 Nodes (57): decode_image(), InvalidImageError, The upload is not a usable raster image. The message is safe to return to the…, ImageNet class name -> stable lowercase slug., Validate `raw` bytes and return a fully-loaded PIL image. Two passes are…, slugify_label(), health(), predict() (+49 more)
 
 ### Community 56 - "generation.worker.js"
-Cohesion: 0.09
-Nodes (32): logEvent(), { adapter }, { AI_CONFIG, buildSystemPrompt }, {
-  buildConversationContext,
-  buildProviderMessages,
-  updateConversationMetadata,
-}, busyPromise, claimNext(), Conversation, fail() (+24 more)
+Cohesion: 0.08
+Nodes (30): { AI_CONFIG }, buildConversationContext(), { currentUserTurnPrefix }, { loadPetContext }, Message, updateConversationMetadata(), loadPetContext(), { adapter } (+22 more)
 
 ### Community 57 - "favorite.controller.js"
 Cohesion: 0.15
 Nodes (13): addFavorite(), Favorite, getFavorites(), mongoose, Pet, removeFavorite(), User, favoriteSchema (+5 more)
 
-### Community 58 - "SettingsPage.tsx"
-Cohesion: 0.15
-Nodes (25): Adoption, Appointment, deletePushSubscription(), savePushSubscription(), Pet, Reminder, uploadAvatar(), ageText() (+17 more)
+### Community 58 - "DashboardPage.tsx"
+Cohesion: 0.17
+Nodes (20): Adoption, Appointment, Pet, Reminder, ageText(), breedName(), fmtDate(), fmtTime() (+12 more)
 
 ### Community 59 - "adoption.controller.js"
-Cohesion: 0.16
-Nodes (16): Adoption, createAdoption(), { createNotification }, deleteAdoption(), getAllAdoptions(), getMyAdoptions(), logger, mongoose (+8 more)
+Cohesion: 0.13
+Nodes (18): Adoption, createAdoption(), { createNotification }, deleteAdoption(), getAllAdoptions(), getMyAdoptions(), logger, mongoose (+10 more)
 
-### Community 61 - "Pet.js"
-Cohesion: 0.12
-Nodes (15): mongoose, petSchema, assert, Breed, Conversation, GenerationJob, http, jwt (+7 more)
-
-### Community 62 - "Navbar.tsx"
-Cohesion: 0.21
-Nodes (7): BackToTop(), Footer(), SOCIAL_PATHS, Navbar(), navLinks, ThemeToggle(), LandingLayout()
-
-### Community 67 - "pets.ts"
+### Community 61 - "petgpt-jobs-tools.test.js"
 Cohesion: 0.07
-Nodes (58): createPet(), deletePet(), getMyPets(), getPetQr(), PetMutationResponse, PetPayload, PetsResponse, updatePet() (+50 more)
+Nodes (27): stopWorker(), conversationSchema, mongoose, api(), assert, awaitJobTerminal(), jwt, mongoose (+19 more)
 
-### Community 68 - "ai.controller.js"
-Cohesion: 0.10
-Nodes (18): { AI_CONFIG, outOfScopeResponse }, askPetGPT(), fallbackAnswer(), { generatePetGPTResponse }, getPetAdvice(), { loadPetContext }, logger, mongoose (+10 more)
+### Community 62 - "admin.ts"
+Cohesion: 0.12
+Nodes (26): AdminCommunityPost, AdminDashboardResponse, AdminDashboardStats, AdminPet, AdminPetsResponse, AdminPostsResponse, AdminReportsResponse, AdminUser (+18 more)
+
+### Community 67 - "apiGet"
+Cohesion: 0.12
+Nodes (33): apiGet(), getMyPets(), completeReminder(), createReminder(), deleteReminder(), getReminders(), ReminderMutationResponse, ReminderPayload (+25 more)
+
+### Community 68 - "conversation-api.test.js"
+Cohesion: 0.06
+Nodes (32): generatePetGPTResponse(), outOfScopeResponse(), { AI_CONFIG, outOfScopeResponse }, askPetGPT(), fallbackAnswer(), { generatePetGPTResponse }, getPetAdvice(), { loadPetContext } (+24 more)
 
 ### Community 69 - "Migration Execution Protocol"
 Cohesion: 0.17
 Nodes (12): 10. Rollback safety, 1. One phase at a time, 2. Read before implementing, 3. Preserve the existing application, 4. Implement, 5. Verify, 6. Checkpoint report, 7. Commit (+4 more)
 
-### Community 70 - "User.js"
+### Community 70 - "Pet.js"
 Cohesion: 0.05
-Nodes (30): breedSchema, mongoose, bcrypt, mongoose, userSchema, LIVE_PROVIDER_KEYS, scrubLiveProviderKeys(), serverOrigin() (+22 more)
+Nodes (31): breedSchema, mongoose, mongoose, petSchema, bcrypt, mongoose, userSchema, assert (+23 more)
 
 ### Community 71 - "user.routes.js"
 Cohesion: 0.16
 Nodes (13): cloudinary, getAllUsers(), getUserById(), mongoose, Pet, toggleFavorite(), uploadAvatar(), User (+5 more)
 
 ### Community 72 - "AdoptionPage.tsx"
-Cohesion: 0.13
-Nodes (22): createAdoption(), getAvailablePets(), FavoriteButton(), AdoptionPetView, adoptionType(), CATEGORIES, CategoryValue, FALLBACK_IMAGE (+14 more)
+Cohesion: 0.10
+Nodes (29): AdoptionPayload, AdoptionsResponse, AdoptionStatus, createAdoption(), getMyAdoptions(), withdrawAdoption(), getAvailablePets(), FavoriteButton() (+21 more)
 
 ### Community 73 - "plugins"
 Cohesion: 0.22
 Nodes (8): plugins, rules, react/only-export-components, react/rules-of-hooks, $schema, oxc, typescript, warn
 
-### Community 74 - "notification.service.js"
-Cohesion: 0.29
-Nodes (5): mongoose, notificationSchema, logger, Notification, pushService
+### Community 74 - "push-notifications.test.js"
+Cohesion: 0.11
+Nodes (12): mongoose, notificationSchema, logger, Notification, pushService, assert, KEYS, mongoose (+4 more)
 
 ### Community 75 - "Icon.tsx"
-Cohesion: 0.12
-Nodes (31): forgotPassword(), login(), MessageResponse, register(), resendVerification(), resetPassword(), verifyEmail(), apiPost() (+23 more)
+Cohesion: 0.08
+Nodes (38): forgotPassword(), resetPassword(), verifyEmail(), AuthLeftPanel(), AuthLeftPanelProps, Divider(), InputBox(), InputBoxProps (+30 more)
 
 ### Community 76 - "openai.js"
 Cohesion: 0.17
@@ -472,11 +473,11 @@ Cohesion: 0.04
 Nodes (44): 10. DIAGRAM SELECTION, 11. DIAGRAM INTEGRATION, 12. TABLES, 13. SCREENSHOTS, 14. FEATURE EXPLANATION, 15. ARCHITECTURE, 16. DATABASE AND DATA, 17. WORKFLOWS AND SEQUENCES (+36 more)
 
 ### Community 79 - "registry.js"
-Cohesion: 0.11
-Nodes (23): { AI_CONFIG }, {
+Cohesion: 0.12
+Nodes (24): logEvent(), { AI_CONFIG }, {
   listToolDeclarations,
   executeTool,
-}, { logEvent }, MAX_ITERATIONS(), runToolCallingLoop(), toolLogEntry(), confirmationRequired(), crypto (+15 more)
+}, { logEvent }, MAX_ITERATIONS(), runToolCallingLoop(), toolLogEntry(), confirmationRequired() (+16 more)
 
 ### Community 80 - "PetGPTPage.tsx"
 Cohesion: 0.08
@@ -499,28 +500,28 @@ Cohesion: 0.10
 Nodes (19): assert, Breed, Conversation, GenerationJob, http, initAppRouter(), jwt, logs (+11 more)
 
 ### Community 85 - "petgpt-security.test.js"
-Cohesion: 0.10
-Nodes (19): mongoose, mutationRequestSchema, assert, Breed, Conversation, { executeTool, listToolNames }, GenerationJob, http (+11 more)
+Cohesion: 0.09
+Nodes (23): assert, Breed, buildAppRouter(), Conversation, { executeTool, listToolNames }, GenerationJob, http, { isExplicitConfirmation } (+15 more)
 
 ### Community 86 - "BreedsPage.tsx"
 Cohesion: 0.14
 Nodes (29): analyzeBreedImage(), Breed, BreedAiStatus, BreedAnalyzeResponse, BreedPrediction, BreedsResponse, getBreed(), getBreedAiStatus() (+21 more)
 
 ### Community 87 - "community.controller.js"
-Cohesion: 0.15
-Nodes (17): addComment(), CommunityPost, createPost(), deleteComment(), deletePost(), getAllPosts(), getPostById(), logger (+9 more)
+Cohesion: 0.16
+Nodes (16): addComment(), CommunityPost, createPost(), deleteComment(), deletePost(), getPostById(), logger, mongoose (+8 more)
 
 ### Community 88 - "PetGPT — Enhancement Working Reference"
 Cohesion: 0.12
 Nodes (15): 0. FINAL ARCHITECTURE (current — supersedes the phase history below), 10. Current Limitations, 11. Bugs/Issues Status, 13. Important Architectural Constraints, 14. Phased Roadmap, 1. Current Architecture, 3. Relevant Files and Modules, 4. Current Capabilities (+7 more)
 
 ### Community 89 - "petgpt-jobs.test.js"
-Cohesion: 0.05
-Nodes (38): { AI_CONFIG }, GenerationJob, AI_CONFIG, OFF_TOPIC_KEYWORDS, PET_CARE_KEYWORDS, conversationSchema, mongoose, generationJobSchema (+30 more)
+Cohesion: 0.14
+Nodes (13): { AI_CONFIG }, assert, Breed, Conversation, GenerationJob, http, jwt, logs (+5 more)
 
 ### Community 90 - "petgpt-tools.test.js"
-Cohesion: 0.14
-Nodes (18): buildProviderMessages(), generatePetGPTResponse(), buildSystemPrompt(), generateJobAnswer(), assert, Breed, { buildProviderMessages }, { buildSystemPrompt } (+10 more)
+Cohesion: 0.13
+Nodes (19): buildProviderMessages(), buildSystemPrompt(), OFF_TOPIC_KEYWORDS, PET_CARE_KEYWORDS, generateJobAnswer(), assert, Breed, { buildProviderMessages } (+11 more)
 
 ### Community 91 - "3. FINDINGS"
 Cohesion: 0.13
@@ -570,17 +571,17 @@ Nodes (4): 15. Phase 0/1 Implementation Status & Verification, Audit verificatio
 Cohesion: 0.50
 Nodes (4): 2. Complete Request/Response Flow, Persistent conversations (Phase 2) — `/api/ai/conversations` (auth required), `POST /api/ai/advice` (auth required) — `getPetAdvice`, `POST /api/ai/ask` (auth required) — `askPetGPT`
 
-### Community 103 - "push.ts"
-Cohesion: 0.17
-Nodes (19): getVapidPublicKey(), activeRegistration(), disablePushNotifications(), enablePushNotifications(), fetchVapidPublicKey(), getPushState(), isPushSupported(), isSecureContext() (+11 more)
+### Community 103 - "SettingsPage.tsx"
+Cohesion: 0.12
+Nodes (35): apiPut(), AppNotification, deletePushSubscription(), getNotifications(), getVapidPublicKey(), markAllNotificationsRead(), markNotificationRead(), NotificationsResponse (+27 more)
 
 ### Community 104 - "pet.controller.js"
-Cohesion: 0.14
-Nodes (6): Breed, logger, mongoose, Pet, QRCode, { str, strLower, searchStr }
+Cohesion: 0.13
+Nodes (7): Breed, logger, mongoose, Pet, { petQrPayloadUrl }, QRCode, { str, strLower, searchStr }
 
 ### Community 105 - "read-tools.js"
-Cohesion: 0.09
-Nodes (33): { AI_CONFIG }, Appointment, buildPetContext(), HealthRecord, loadPetRecords(), MAX(), mongoose, normalizeAppointment() (+25 more)
+Cohesion: 0.11
+Nodes (28): { AI_CONFIG }, Appointment, buildPetContext(), HealthRecord, loadPetRecords(), MAX(), mongoose, normalizeAppointment() (+20 more)
 
 ### Community 106 - "upload.js"
 Cohesion: 0.17
@@ -591,16 +592,16 @@ Cohesion: 0.13
 Nodes (14): Backend Phase 2 — ESLint Cleanup Report, ESLint Config, ESLint Setup, Files Changed (Phase 2), Final Status, Goal, Initial vs Final Lint State, Logger Implementation (+6 more)
 
 ### Community 108 - "mutation-tools.js"
-Cohesion: 0.16
-Nodes (15): isValidObjectId(), { registerMutationTools }, { registerReadTools }, authorizeOwnedReminder(), {
+Cohesion: 0.17
+Nodes (16): isValidObjectId(), requireOwnedPet(), { registerMutationTools }, { registerReadTools }, authorizeOwnedReminder(), authorizePetMutation(), {
   createAppointmentForUser,
   AppointmentError,
   APPOINTMENT_TYPES,
-}, isValidCalendarDate(), isValidTime(), normalizeCreatedReminder() (+7 more)
+}, isValidCalendarDate() (+8 more)
 
 ### Community 109 - "petgpt-mutation-tools.test.js"
-Cohesion: 0.06
-Nodes (40): AFFIRMATIVES, isExplicitConfirmation(), REMINDER_FREQUENCIES, REMINDER_TYPES, mongoose, mutationEffectSchema, assert, Breed (+32 more)
+Cohesion: 0.05
+Nodes (41): AFFIRMATIVES, isExplicitConfirmation(), REMINDER_FREQUENCIES, REMINDER_TYPES, mongoose, mutationEffectSchema, mongoose, mutationRequestSchema (+33 more)
 
 ### Community 110 - "devDependencies"
 Cohesion: 0.22
@@ -614,29 +615,29 @@ Nodes (11): description, main, name, scripts, dev, lint, lint:fix, seed (+3 more
 Cohesion: 0.12
 Nodes (24): mapImageNetLabel(), mappingSize(), slugify(), SPECIES, TABLE, buildCandidates(), assert, Breed (+16 more)
 
-### Community 114 - "react"
-Cohesion: 0.15
-Nodes (17): AppNotification, getNotifications(), markAllNotificationsRead(), NotificationsResponse, PushSubscriptionKeys, VapidKeyResponse, NotificationBell(), NotificationContext (+9 more)
+### Community 114 - "App.tsx"
+Cohesion: 0.14
+Nodes (13): App(), Theme, ThemeContext, ThemeContextValue, ThemeProvider(), FAMIPET_PROFILE_KEY, FAMIPET_THEME_KEY, FAMIPET_TOKEN_KEY (+5 more)
 
-### Community 115 - "adoptions.ts"
-Cohesion: 0.33
-Nodes (7): AdoptionPayload, AdoptionsResponse, AdoptionStatus, getAllAdoptions(), getMyAdoptions(), updateAdoptionStatus(), AdminAdoptionsPage()
+### Community 115 - "AdminTopbar.tsx"
+Cohesion: 0.19
+Nodes (15): AdminLostFoundReport, deleteLostFoundReport(), getAllLostFoundReports(), updateLostFoundStatus(), getAllAdoptions(), updateAdoptionStatus(), apiOrigin(), assetUrl() (+7 more)
 
 ### Community 116 - "logger.js"
-Cohesion: 0.33
-Nodes (5): fs, logDir, logger, path, winston
+Cohesion: 0.16
+Nodes (10): logger, nodemailer, transporter, logger, { transporter }, fs, logDir, logger (+2 more)
 
-### Community 117 - "lostFound.routes.js"
-Cohesion: 0.33
-Nodes (5): express, lostFoundController, { protect }, router, upload
+### Community 117 - "db.js"
+Cohesion: 0.08
+Nodes (19): assert, email, mongoose, sentMail, { testDbUri }, URI, LIVE_PROVIDER_KEYS, scrubLiveProviderKeys() (+11 more)
 
-### Community 118 - "getMe"
-Cohesion: 0.53
-Nodes (4): getMe(), FavoritesResponse, toggleFavorite(), useFavorites()
+### Community 118 - "apiPost"
+Cohesion: 0.17
+Nodes (16): AuthUser, getMe(), login(), LoginResponse, MessageResponse, register(), apiPost(), StoredUser (+8 more)
 
-### Community 122 - "push-notifications.test.js"
-Cohesion: 0.07
-Nodes (21): appointmentSchema, mongoose, mongoose, reminderSchema, mongoose, veterinarianSchema, Appointment, APPOINTMENT_TYPES (+13 more)
+### Community 122 - "appointment.service.js"
+Cohesion: 0.12
+Nodes (12): appointmentSchema, mongoose, mongoose, veterinarianSchema, Appointment, APPOINTMENT_TYPES, AppointmentError, { createNotification } (+4 more)
 
 ### Community 125 - "breed/schema.js"
 Cohesion: 0.21
@@ -650,9 +651,17 @@ Nodes (16): adapter, { AI_ERROR_CODES, fetchWithTimeout }, analyzeBreedImage(), 
 Cohesion: 0.13
 Nodes (14): Architecture, Current Features, Development, Docker Deployment, Environment Configuration, FamiPet, Git Workflow, Notifications (+6 more)
 
-### Community 131 - "push.service.js"
-Cohesion: 0.22
-Nodes (11): mongoose, pushSubscriptionSchema, buildPayload(), clamp(), deliver(), goneStatus(), logger, pushConfig (+3 more)
+### Community 131 - "env-validator.test.js"
+Cohesion: 0.15
+Nodes (11): { analyzeEnv }, assert, badClient, badPort, good, halfAI, halfEmail, halfPush (+3 more)
+
+### Community 134 - "env.js"
+Cohesion: 0.24
+Nodes (9): allOrNothing(), analyzeEnv(), FEATURE_GROUPS, isSet(), logger, REQUIRED, schema, validateEnvAndExit() (+1 more)
+
+### Community 135 - "pet-qr-url.test.js"
+Cohesion: 0.27
+Nodes (6): createPet(), generateQRCode(), assert, { petQrBaseUrl, petQrPayloadUrl }, petQrBaseUrl(), petQrPayloadUrl()
 
 ### Community 140 - "Phase Status"
 Cohesion: 0.67
@@ -663,24 +672,24 @@ Cohesion: 0.33
 Nodes (4): card(), _icon_path(), White card with provider icon, title and sub-title, coloured border., Absolute path of a diagrams provider icon (no node instance needed).
 
 ## Knowledge Gaps
-- **1099 isolated node(s):** `SPECIES`, `TABLE`, `Breed`, `STRING_FIELDS`, `SHORT_STRING_FIELDS` (+1094 more)
+- **1110 isolated node(s):** `SPECIES`, `TABLE`, `Breed`, `STRING_FIELDS`, `SHORT_STRING_FIELDS` (+1105 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **18 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `apiGet`, `communityBase.ts`, `pets.ts`, `push.ts`, `AdoptionPage.tsx`, `plugins`, `Icon.tsx`, `PetGPTPage.tsx`, `adoptions.ts`, `LostFoundPage.tsx`, `getMe`, `BreedsPage.tsx`, `routeConfig.tsx`, `client.ts`, `SettingsPage.tsx`, `Navbar.tsx`, `AppointmentsPage.tsx`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `testDbUri()` connect `User.js` to `conversation-api.test.js`, `push-notifications.test.js`, `auth.controller.js`, `petgpt-mutation-tools.test.js`, `breed-ai.test.js`, `petgpt-quota-reliability.test.js`, `petgpt-security.test.js`, `petgpt-jobs.test.js`, `petgpt-tools.test.js`, `Pet.js`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `Icon()` connect `Icon.tsx` to `apiGet`, `communityBase.ts`, `pets.ts`, `AdoptionPage.tsx`, `PetGPTPage.tsx`, `react`, `adoptions.ts`, `LostFoundPage.tsx`, `BreedsPage.tsx`, `routeConfig.tsx`, `SettingsPage.tsx`, `Navbar.tsx`, `AppointmentsPage.tsx`?**
+- **Why does `react` connect `Icon.tsx` to `HealthPage.tsx`, `communityBase.ts`, `apiGet`, `pets.ts`, `SettingsPage.tsx`, `AdoptionPage.tsx`, `plugins`, `PetGPTPage.tsx`, `App.tsx`, `AdminTopbar.tsx`, `LostFoundPage.tsx`, `apiPost`, `BreedsPage.tsx`, `routeConfig.tsx`, `client.ts`, `DashboardPage.tsx`, `admin.ts`, `AppointmentsPage.tsx`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `testDbUri()` connect `db.js` to `conversation-api.test.js`, `Pet.js`, `push-notifications.test.js`, `petgpt-mutation-tools.test.js`, `breed-ai.test.js`, `petgpt-quota-reliability.test.js`, `petgpt-security.test.js`, `petgpt-jobs.test.js`, `petgpt-tools.test.js`, `petgpt-jobs-tools.test.js`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `protect()` connect `auth.js` to `notification.controller.js`, `admin.controller.js`, `conversation-api.test.js`, `vaccination.routes.js`, `auth.controller.js`, `user.routes.js`, `adoption.controller.js`, `conversation.controller.js`, `reminder.routes.js`, `health.routes.js`, `community.controller.js`, `favorite.controller.js`, `veterinarian.controller.js`, `appointment.controller.js`, `breed.controller.js`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `SPECIES`, `TABLE`, `Breed` to the rest of the system?**
-  _1099 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1110 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
-- **Should `apiGet` be split into smaller, more focused modules?**
-  _Cohesion score 0.054858934169279 - nodes in this community are weakly interconnected._
+- **Should `HealthPage.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.09948979591836735 - nodes in this community are weakly interconnected._
 - **Should `communityBase.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.09728506787330317 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10741971207087486 - nodes in this community are weakly interconnected._

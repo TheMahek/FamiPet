@@ -23,6 +23,7 @@ import { BreedsPage } from '../pages/app/breeds/BreedsPage'
 import { BreedDetailsPage } from '../pages/app/breedDetails/BreedDetailsPage'
 import { SettingsPage } from '../pages/app/settings/SettingsPage'
 import { PetGPTPage } from '../pages/app/petgpt/PetGPTPage'
+import { PublicPetDetailsPage } from '../pages/public/PublicPetDetailsPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage'
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage'
@@ -39,7 +40,12 @@ export const routes: RouteObject[] = [
   // ── Landing ────────────────────────────────────────────────
   {
     element: <LandingLayout />,
-    children: [{ index: true, element: <LandingPage /> }],
+    children: [
+      { index: true, element: <LandingPage /> },
+      // Public Pet Details (QR destination) — NO auth guard on purpose: a
+      // scanned digital pet ID must resolve for anyone.
+      { path: 'pet/:petUid', element: <PublicPetDetailsPage /> },
+    ],
   },
 
   // ── Auth (includes email deep links) ───────────────────────
