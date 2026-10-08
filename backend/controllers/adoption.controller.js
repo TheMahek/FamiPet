@@ -231,3 +231,36 @@ exports.deleteAdoption = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.withdrawOwnAdoption = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid adoption request ID.",
+      });
+    }
+
+    const adoption = await Adoption.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+      status: "Pending",
+    });
+
+    if (!adoption) {
+      return res.status(404).json({
+        success: false,
+        message: "Adoption request not found or cannot be withdrawn.",
+      });
+    }
+
+    await Adoption.deleteOne({ _id: adoption._id });
+
+    res.json({
+      success: true,
+      message: "Adoption request withdrawn successfully.",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

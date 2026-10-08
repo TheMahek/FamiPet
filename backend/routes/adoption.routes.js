@@ -7,6 +7,7 @@ const {
   createAdoption,
   updateAdoptionStatus,
   deleteAdoption,
+  withdrawOwnAdoption,
 } = require("../controllers/adoption.controller");
 
 const { protect, adminOnly } = require("../middleware/auth");
@@ -22,6 +23,9 @@ router.post("/", protect, createAdoption);
 
 // Admin: Approve / Reject adoption
 router.put("/:id", protect, adminOnly, updateAdoptionStatus);
+
+// User: Withdraw own pending adoption request
+router.delete("/my/:id", protect, withdrawOwnAdoption);
 
 // Admin: Delete adoption request
 router.delete("/:id", protect, adminOnly, deleteAdoption);
