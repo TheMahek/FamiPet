@@ -94,6 +94,9 @@ services:
       - JWT_EXPIRE=${JWT_EXPIRE:-30d}
       # Public origin used for emailed deep links (verify/reset) + CORS.
       - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
+      # Production mode: gates the legacy frontend fallback listener and the
+      # development-only CORS origins (localhost / private LAN ranges).
+      - NODE_ENV=${NODE_ENV:-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       # Breed AI (the ML service in ai/) by internal Compose service name.
       # Same pattern as MONGODB_URI: the stack points at its own service, so
@@ -256,7 +259,9 @@ services:
   # starts with a plain `docker compose up` and keeps restarting until
   # TUNNEL_TOKEN is set.
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # Pinned to the version this deployment was verified with (2026.9.1):
+    # `latest` would silently upgrade the tunnel client on the next recreate.
+    image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
     init: true
     security_opt:
