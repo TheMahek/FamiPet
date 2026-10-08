@@ -3,7 +3,7 @@
 // creates one). Payload mirrors the Vanilla adoption.js adoption form; the
 // backend model stores no email/city so those form fields are not sent.
 
-import { apiGet, apiPost, apiPut } from './client'
+import { apiDelete, apiGet, apiPost, apiPut } from './client'
 
 export type AdoptionStatus = 'Pending' | 'Approved' | 'Rejected'
 
