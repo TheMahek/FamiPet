@@ -195,6 +195,40 @@ const tokenFor = (userId) => jwt.sign({ id: userId.toString() }, process.env.JWT
   assert.strictEqual(adminListUser.status, 403, "normal user cannot reach admin pet list");
   ok("admin pet access still works");
 
+  // ---- F-01: update accepts a BREED NAME (the frontend sends names, the
+  // stored field is an ObjectId reference — a raw name used to explode). ----
+  const breedEdit = await api(base, "PUT", `/api/pets/${petA}`, aliceTok, {
+    name: "PetA3",
+    breed: "BrandNewBreed",
+    species: "dog",
+  });
+  assert.strictEqual(breedEdit.status, 200, "update with a breed NAME succeeds");
+  const petAfterBreed = await Pet.findById(petA).populate("breed", "name");
+  assert.strictEqual(petAfterBreed.name, "PetA3", "name update persists alongside the breed edit");
+  assert.strictEqual(petAfterBreed.breed.name, "BrandNewBreed", "breed name resolved to a populated Breed reference");
+  const newBreedDoc = await Breed.findOne({ name: new RegExp("^BrandNewBreed$", "i") });
+  assert.ok(newBreedDoc, "unknown breed name is materialized in the Breed collection (parity with createPet)");
+  ok("F-01: updatePet resolves a breed NAME to a Breed reference");
+
+  // ...idempotent with an existing breed name, and untouched when omitted
+  const breedRename = await api(base, "PUT", `/api/pets/${petA}`, aliceTok, {
+    breed: breed.name, // existing breed, lowercase-capitalized differently
+  });
+  assert.strictEqual(breedRename.status, 200, "update with an EXISTING breed name succeeds");
+  const petAfterExisting = await Pet.findById(petA).populate("breed", "name");
+  assert.strictEqual(petAfterExisting.breed.name, "TestRetriever", "existing breed name is reused, not duplicated");
+  ok("F-01: updatePet reuses an existing breed instead of duplicating it");
+
+  // ...invalid enum surfaces as a friendly 400, never a raw mongoose error
+  const badGender = await api(base, "PUT", `/api/pets/${petA}`, aliceTok, {
+    gender: "not-a-gender",
+  });
+  assert.strictEqual(badGender.status, 400, "invalid enum maps to 400, not 500");
+  assert.ok(!/validation|cast/i.test(badGender.data.message), "400 message does not leak the raw mongoose error");
+  const afterBadGender = await Pet.findById(petA).select("gender");
+  assert.strictEqual(afterBadGender.gender, "male", "failed validation must not mutate the pet");
+  ok("F-01: mongoose ValidationError surfaces as a friendly 400");
+
   const ownerDelete = await api(base, "DELETE", `/api/pets/${petB}`, bobTok);
   assert.strictEqual(ownerDelete.status, 200, "owner can still delete own pet");
   ok("owner delete intact");

@@ -219,6 +219,13 @@ Key backend variables (documented with defaults in `.env.example`):
 | `VAPID_PRIVATE_KEY` | Browser push private key. |
 | `VAPID_SUBJECT` | `mailto:` or `https:` contact for this deployment's push keys. |
 
+**Boot-time validation.** `backend/config/env.js` validates the process environment on
+startup (zod). `MONGODB_URI` and `JWT_SECRET` are required — if either is missing the
+server exits with a clear message before connecting to anything. Optional feature groups
+are all-or-nothing and print a warning naming the missing variable: Email
+(`EMAIL_SERVICE`/`EMAIL_USER`/`EMAIL_PASS`), PetGPT (`PETGPT_OPENAI_*`), VAPID and
+Cloudinary.
+
 Additional `PETGPT_*` tuning variables (timeouts, rate limits, worker poll interval,
 job retries, tool-call limits) have working defaults; see `backend/config/ai.js` and
 `backend/.env.example`. They are mapped into the Compose backend too, so setting
@@ -381,10 +388,12 @@ MONGODB_URI=mongodb://localhost:27017/petDB npm test
 ```
 
 The suite runs sequentially with `node test/<file>.js` and covers database isolation,
-pet authorization, the AI layer, conversations, PetGPT jobs/tools/mutations/quota/
-security, and push notifications (including ownership isolation, payload safety,
-outage isolation and endpoint pruning). Suites that need a real provider self-skip
-unless `PETGPT_RUN_LIVE_E2E=1`. `npm run lint` runs ESLint.
+pet authorization, auth-email flows (verification/reset links, email-configured vs
+not, no-orphan registration), the env validator, the public-PII boundary, the AI layer,
+conversations, PetGPT jobs/tools/mutations/quota/security, and push notifications
+(including ownership isolation, payload safety, outage isolation and endpoint pruning).
+Suites that need a real provider self-skip unless `PETGPT_RUN_LIVE_E2E=1`. `npm run
+lint` runs ESLint.
 
 Frontend:
 
@@ -423,13 +432,18 @@ Commit messages follow `<type>: <summary>` (`feat`, `fix`, `refactor`, `docs`, `
 * **Only nginx is published.** The API, the database and the SPA container stay on
   private Compose networks; the backend runs as a non-root user, with a read-only root
   filesystem, all capabilities dropped and `no-new-privileges`.
-* **Email and image hosting are deployment concerns.** Without SMTP, verification and
-  reset mail cannot be delivered; without Cloudinary, uploads are stored locally.
+* **Email and image hosting are deployment concerns.** Verification and reset links
+  always point at the SPA routes (`/verify-email/:token`, `/reset-password/:token`).
+  Without SMTP (`EMAIL_SERVICE/USER/PASS` all set) the auth email routes return `503`
+  with a clear message instead of a raw error, and no user is created nor token
+  generated; with SMTP configured they deliver real mail. Without Cloudinary, uploads
+  are stored locally.
 * **Ownership is enforced server-side.** The user is always taken from the authenticated
   session, never from the body; direct pet reads and QR generation are owner/admin
   only, so one user cannot reach another user's pets, records or notifications. The
   adoption catalogue (`GET /api/pets`, `/api/pets/featured`) is intentionally public
-  and returns listing data plus owner contact details for adoptable pets.
+  and returns listing data with a **name-only** owner projection (no email/phone) —
+  full owner contacts exist only on authenticated owner/admin endpoints.
 * **Tunnels are outbound-only.** `cloudflared` starts with the normal `up` and needs
   `TUNNEL_TOKEN` in the root `.env`; the public hostname mapping is configured in the
   Cloudflare dashboard rather than in tracked files.

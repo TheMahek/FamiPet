@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { sendEmail } = require("../config/email");
+const { isEmailConfigured, sendEmail } = require("../config/email");
 const logger = require("../utils/logger");
 
 // =====================================================
@@ -10,8 +10,8 @@ const logger = require("../utils/logger");
 
 const getClientBase = (req) => {
   // Prefer the host the user actually opened the app from (Origin header).
-  // Works on the same machine (http://localhost:5502) and over the LAN
-  // (http://192.168.x.x:5502) so emailed links always point somewhere reachable.
+  // Works on the same machine (http://localhost:8080) and over the LAN
+  // (http://192.168.x.x:8080) so emailed links always point somewhere reachable.
   // Falls back to the configured CLIENT_URL for mail clients that send no URL.
   const origin =
     (req && req.headers && req.headers.origin
@@ -22,9 +22,19 @@ const getClientBase = (req) => {
     return origin.replace(/\/$/, "");
   }
 
-  const envBase = (process.env.CLIENT_URL || "http://localhost:5502").trim();
+  // CLIENT_URL may be a comma-separated list (CORS allow-list); a single
+  // emailed link needs exactly one origin, so take the first entry.
+  const envBase = (process.env.CLIENT_URL || "http://localhost:8080")
+    .split(",")[0]
+    .trim();
   return envBase.replace(/\/$/, "");
 };
+
+// Returned whenever an email-dependent flow (registration verification,
+// resend, password reset) is hit while the SMTP transport is not configured.
+// Intentional and user-safe - never pretend a mail was delivered.
+const EMAIL_NOT_CONFIGURED_MESSAGE =
+  "Email service is not configured on this server. Please try again later or contact the site administrator.";
 
 // =====================================================
 // GENERATE JWT TOKEN
@@ -137,6 +147,20 @@ exports.register = async (req, res) => {
     }
 
     // -------------------------------------------------
+    // EMAIL CONFIGURATION GUARD
+    // -------------------------------------------------
+
+    if (!isEmailConfigured()) {
+      // No SMTP credentials means no verification email can ever be sent.
+      // Fail fast BEFORE creating the account - no orphaned unverified users
+      // - and tell the user why registration cannot complete right now.
+      return res.status(503).json({
+        success: false,
+        message: EMAIL_NOT_CONFIGURED_MESSAGE,
+      });
+    }
+
+    // -------------------------------------------------
     // GENERATE EMAIL VERIFICATION TOKEN
     // -------------------------------------------------
 
@@ -176,7 +200,7 @@ exports.register = async (req, res) => {
     // -------------------------------------------------
 
     const verificationUrl =
-      `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
+      `${getClientBase(req)}/verify-email/${verificationToken}`;
 
     // -------------------------------------------------
     // VERIFICATION EMAIL HTML
@@ -480,6 +504,15 @@ exports.resendVerification = async (
       });
     }
 
+    if (!isEmailConfigured()) {
+      // Honest failure: no SMTP credentials, so no new verification email can
+      // go out. Leave the existing token untouched and say so clearly.
+      return res.status(503).json({
+        success: false,
+        message: EMAIL_NOT_CONFIGURED_MESSAGE,
+      });
+    }
+
     // -------------------------------------------------
     // GENERATE NEW TOKEN
     // -------------------------------------------------
@@ -505,7 +538,7 @@ exports.resendVerification = async (
     // -------------------------------------------------
 
     const verificationUrl =
-      `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
+      `${getClientBase(req)}/verify-email/${verificationToken}`;
 
     // -------------------------------------------------
     // EMAIL
@@ -922,6 +955,20 @@ exports.forgotPassword = async (
       });
     }
 
+    // -------------------------------------------------
+    // EMAIL CONFIGURATION GUARD
+    // -------------------------------------------------
+
+    if (!isEmailConfigured()) {
+      // No SMTP credentials means no reset email can ever be sent. Fail
+      // honestly - do not claim "a reset link has been sent" when nothing
+      // will go out.
+      return res.status(503).json({
+        success: false,
+        message: EMAIL_NOT_CONFIGURED_MESSAGE,
+      });
+    }
+
     logger.info(
       "================================="
     );
@@ -988,7 +1035,7 @@ exports.forgotPassword = async (
     // -------------------------------------------------
 
     const resetUrl =
-      `${getClientBase(req)}/pages/reset-password.html?token=${resetToken}`;
+      `${getClientBase(req)}/reset-password/${resetToken}`;
 
     logger.info(
       "✅ User found:",
