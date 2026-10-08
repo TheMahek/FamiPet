@@ -8,6 +8,12 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 const logger = require('./utils/logger');
+const { validateEnvAndExit } = require('./config/env');
+
+// Fail fast on a broken environment (missing MONGODB_URI/JWT_SECRET, wrong
+// typed vars, half-configured optional services) BEFORE any connection opens,
+// so a misconfigured deployment surfaces at startup, not as a half-working API.
+validateEnvAndExit();
 
 // Map multer errors (no HTTP status attached) to a client-safe message.
 const multerErrorMessage = (err) => {
