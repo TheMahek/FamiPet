@@ -58,3 +58,7 @@ export function deletePushSubscription(
     `/notifications/push-subscription?endpoint=${encodeURIComponent(endpoint)}`,
   )
 }
+
+export function markNotificationRead(id: string): Promise<{ success?: boolean; message?: string }> {
+  return apiPut<{ success?: boolean; message?: string }>(`/notifications/${id}/read`)
+}
