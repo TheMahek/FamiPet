@@ -35,6 +35,16 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 const app = express();
 
+// Behind the nginx reverse proxy (Docker deployment, and the nginx.conf in
+// docker-final/) every request arrives from the proxy, so Express would
+// otherwise see ONE client IP for everybody. That collapses every in-memory
+// rate-limit bucket (auth, breed AI, PetGPT) into a single shared bucket:
+// 10 logins per minute for the whole site, trivially exhausted by anyone.
+// One trusted hop = nginx; the client IP is then the last entry of
+// X-Forwarded-For, which nginx sets (CF-Connecting-IP via the Cloudflare
+// tunnel, else the real socket address).
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet({
   // Uploads (avatars, pet/community/lost-found images) must be embeddable
@@ -44,9 +54,14 @@ app.use(helmet({
 app.use(compression());
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5502').split(',').map(v => v.trim()).filter(Boolean);
 // Allow local development origins including LAN access (phone on same Wi-Fi).
+// Development convenience ONLY: in production (NODE_ENV=production) the only
+// allowed origins are the explicit CLIENT_URL list, so a page served from
+// localhost or a private LAN address can never make credentialed cross-origin
+// calls to the API.
 const isDevOrigin = function (origin) {
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;
+  if (process.env.NODE_ENV === 'production') return false;
   if (/^https?:\/\/localhost(?::\d+)?$/.test(origin)) return true;
   if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin)) return true;
   // Private network ranges used by Live Server / Vite on a LAN.
