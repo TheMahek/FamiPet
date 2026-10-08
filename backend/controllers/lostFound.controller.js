@@ -39,7 +39,7 @@ exports.getAllReports = async (req, res) => {
     }
 
     const reports = await LostFound.find(query)
-      .populate("user", "name email phone")
+      .populate("user", "name")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -72,7 +72,7 @@ exports.getReportById = async (req, res) => {
 
     const report = await LostFound.findById(req.params.id).populate(
       "user",
-      "name email phone"
+      "name"
     );
 
     if (!report) {
