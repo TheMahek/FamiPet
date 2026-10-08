@@ -28,7 +28,7 @@ exports.getAllPosts = async (req, res) => {
     }
 
     const posts = await CommunityPost.find(query)
-      .populate("user", "name email avatar")
+      .populate("user", "name avatar")
       .populate("likes", "name")
       .populate("comments.user", "name avatar")
       .sort({ createdAt: -1 });
@@ -61,7 +61,7 @@ exports.getPostById = async (req, res) => {
     }
 
     const post = await CommunityPost.findById(req.params.id)
-      .populate("user", "name email avatar")
+      .populate("user", "name avatar")
       .populate("likes", "name")
       .populate("comments.user", "name avatar");
 
@@ -115,7 +115,7 @@ exports.createPost = async (req, res) => {
     });
 
     const populatedPost = await CommunityPost.findById(post._id)
-      .populate("user", "name email avatar");
+      .populate("user", "name avatar");
 
     res.status(201).json({
       success: true,
@@ -329,7 +329,7 @@ exports.addComment = async (req, res) => {
     await post.save();
 
     const updatedPost = await CommunityPost.findById(post._id)
-      .populate("user", "name email avatar")
+      .populate("user", "name avatar")
       .populate("comments.user", "name avatar");
 
     res.status(200).json({

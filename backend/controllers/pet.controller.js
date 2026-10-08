@@ -54,7 +54,7 @@ exports.getAllPets = async (req, res) => {
     }
 
     const pets = await Pet.find(query)
-      .populate("owner", "name email phone")
+      .populate("owner", "name")
       .populate("breed", "name species")
       .sort(sortOption);
 
@@ -279,10 +279,11 @@ exports.updatePet = async (req, res) => {
 
     // Whitelist updatable fields. Never allow changing the owner or
     // tampering with adoption/identification fields via this endpoint.
+    // `breed` is handled separately below (it is an ObjectId reference and
+    // the client sends the breed name).
     const updatable = [
       "name",
       "species",
-      "breed",
       "gender",
       "age",
       "weight",
@@ -292,25 +293,26 @@ exports.updatePet = async (req, res) => {
       "images",
     ];
 
-    updatable.forEach((key) => {
-      if (req.body[key] !== undefined) {
-        pet[key] = req.body[key];
-      }
-    });
-
-    // Validate breed if provided (accept either an ObjectId or a breed name used by the legacy frontend)
-    if (pet.breed && typeof pet.breed === "string") {
-      if (mongoose.Types.ObjectId.isValid(pet.breed)) {
-        pet.breed = mongoose.Types.ObjectId(pet.breed);
+    // Resolve the submitted breed first: the field is an ObjectId reference,
+    // but the frontend always sends the breed NAME (see buildPetPayload).
+    // Assigning the raw name straight onto the ObjectId path would throw a
+    // mongoose CastError on save. Accept either an ObjectId (already valid)
+    // or a breed name, creating the Breed record when it does not exist —
+    // exactly like createPet.
+    if (req.body.breed !== undefined) {
+      if (mongoose.Types.ObjectId.isValid(req.body.breed)) {
+        pet.breed = mongoose.Types.ObjectId(req.body.breed);
       } else {
-        const breedName = String(pet.breed).trim();
+        const breedName = String(req.body.breed).trim();
         if (!breedName) {
           return res.status(400).json({
             success: false,
             message: "Invalid breed.",
           });
         }
-        let breedDoc = await Breed.findOne({ name: new RegExp(`^${breedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") });
+        let breedDoc = await Breed.findOne({
+          name: new RegExp(`^${breedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        });
         if (!breedDoc) {
           const species = req.body.species || pet.species || "dog";
           breedDoc = await Breed.create({ name: breedName, species });
@@ -318,6 +320,12 @@ exports.updatePet = async (req, res) => {
         pet.breed = breedDoc._id;
       }
     }
+
+    updatable.forEach((key) => {
+      if (req.body[key] !== undefined) {
+        pet[key] = req.body[key];
+      }
+    });
 
     await pet.save();
 
@@ -328,6 +336,16 @@ exports.updatePet = async (req, res) => {
     });
   } catch (error) {
     logger.error("Update Pet Error:", error);
+
+    // A mongoose ValidationError means the payload violates the schema (bad
+    // enum, missing value, ...) — a client data problem, not a server fault.
+    // Return a friendly 400 instead of leaking the raw mongoose error.
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet data. Please check the values and try again.",
+      });
+    }
 
     res.status(500).json({
       success: false,
