@@ -1,7 +1,8 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { sendEmail } = require("../config/email");
+const { isEmailConfigured, sendEmail } = require("../config/email");
+const logger = require("../utils/logger");
 
 // =====================================================
 // FRONTEND BASE URL
@@ -9,21 +10,31 @@ const { sendEmail } = require("../config/email");
 
 const getClientBase = (req) => {
   // Prefer the host the user actually opened the app from (Origin header).
-  // Works on the same machine (http://localhost:5502) and over the LAN
-  // (http://192.168.x.x:5502) so emailed links always point somewhere reachable.
+  // Works on the same machine (http://localhost:8080) and over the LAN
+  // (http://192.168.x.x:8080) so emailed links always point somewhere reachable.
   // Falls back to the configured CLIENT_URL for mail clients that send no URL.
   const origin =
     (req && req.headers && req.headers.origin
       ? String(req.headers.origin)
       : "").trim();
 
-  if (/^https?:\/\/[a-zA-Z0-9.\-]+(?::\d{1,5})?$/.test(origin)) {
+  if (/^https?:\/\/[a-zA-Z0-9.-]+(?::\d{1,5})?$/.test(origin)) {
     return origin.replace(/\/$/, "");
   }
 
-  const envBase = (process.env.CLIENT_URL || "http://localhost:5502").trim();
+  // CLIENT_URL may be a comma-separated list (CORS allow-list); a single
+  // emailed link needs exactly one origin, so take the first entry.
+  const envBase = (process.env.CLIENT_URL || "http://localhost:8080")
+    .split(",")[0]
+    .trim();
   return envBase.replace(/\/$/, "");
 };
+
+// Returned whenever an email-dependent flow (registration verification,
+// resend, password reset) is hit while the SMTP transport is not configured.
+// Intentional and user-safe - never pretend a mail was delivered.
+const EMAIL_NOT_CONFIGURED_MESSAGE =
+  "Email service is not configured on this server. Please try again later or contact the site administrator.";
 
 // =====================================================
 // GENERATE JWT TOKEN
@@ -136,6 +147,20 @@ exports.register = async (req, res) => {
     }
 
     // -------------------------------------------------
+    // EMAIL CONFIGURATION GUARD
+    // -------------------------------------------------
+
+    if (!isEmailConfigured()) {
+      // No SMTP credentials means no verification email can ever be sent.
+      // Fail fast BEFORE creating the account - no orphaned unverified users
+      // - and tell the user why registration cannot complete right now.
+      return res.status(503).json({
+        success: false,
+        message: EMAIL_NOT_CONFIGURED_MESSAGE,
+      });
+    }
+
+    // -------------------------------------------------
     // GENERATE EMAIL VERIFICATION TOKEN
     // -------------------------------------------------
 
@@ -175,7 +200,7 @@ exports.register = async (req, res) => {
     // -------------------------------------------------
 
     const verificationUrl =
-      `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
+      `${getClientBase(req)}/verify-email/${verificationToken}`;
 
     // -------------------------------------------------
     // VERIFICATION EMAIL HTML
@@ -283,10 +308,10 @@ exports.register = async (req, res) => {
     // SEND EMAIL
     // -------------------------------------------------
 
-    console.log("=================================");
-    console.log("📧 SENDING VERIFICATION EMAIL");
-    console.log("Email:", user.email);
-    console.log("=================================");
+    logger.info("=================================");
+    logger.info("📧 SENDING VERIFICATION EMAIL");
+    logger.info("Email:", user.email);
+    logger.info("=================================");
 
     const sent = await sendEmail(
       user.email,
@@ -312,7 +337,7 @@ exports.register = async (req, res) => {
     // SUCCESS
     // -------------------------------------------------
 
-    console.log(
+    logger.info(
       "✅ Verification email sent to:",
       user.email
     );
@@ -325,7 +350,7 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Register Error:",
       error
     );
@@ -401,20 +426,20 @@ exports.verifyEmail = async (req, res) => {
 
     await user.save();
 
-    console.log(
+    logger.info(
       "================================="
     );
 
-    console.log(
+    logger.info(
       "✅ EMAIL VERIFIED"
     );
 
-    console.log(
+    logger.info(
       "Email:",
       user.email
     );
 
-    console.log(
+    logger.info(
       "================================="
     );
 
@@ -426,7 +451,7 @@ exports.verifyEmail = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Verify Email Error:",
       error
     );
@@ -479,6 +504,15 @@ exports.resendVerification = async (
       });
     }
 
+    if (!isEmailConfigured()) {
+      // Honest failure: no SMTP credentials, so no new verification email can
+      // go out. Leave the existing token untouched and say so clearly.
+      return res.status(503).json({
+        success: false,
+        message: EMAIL_NOT_CONFIGURED_MESSAGE,
+      });
+    }
+
     // -------------------------------------------------
     // GENERATE NEW TOKEN
     // -------------------------------------------------
@@ -503,12 +537,8 @@ exports.resendVerification = async (
     // VERIFICATION URL
     // -------------------------------------------------
 
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      "http://localhost:5502";
-
     const verificationUrl =
-      `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
+      `${getClientBase(req)}/verify-email/${verificationToken}`;
 
     // -------------------------------------------------
     // EMAIL
@@ -601,7 +631,7 @@ exports.resendVerification = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Resend Verification Error:",
       error
     );
@@ -704,7 +734,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Login Error:",
       error
     );
@@ -742,7 +772,7 @@ exports.getMe = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ GetMe Error:",
       error
     );
@@ -808,7 +838,7 @@ exports.updateProfile = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Update Profile Error:",
       error
     );
@@ -891,7 +921,7 @@ exports.changePassword = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Change Password Error:",
       error
     );
@@ -925,20 +955,34 @@ exports.forgotPassword = async (
       });
     }
 
-    console.log(
+    // -------------------------------------------------
+    // EMAIL CONFIGURATION GUARD
+    // -------------------------------------------------
+
+    if (!isEmailConfigured()) {
+      // No SMTP credentials means no reset email can ever be sent. Fail
+      // honestly - do not claim "a reset link has been sent" when nothing
+      // will go out.
+      return res.status(503).json({
+        success: false,
+        message: EMAIL_NOT_CONFIGURED_MESSAGE,
+      });
+    }
+
+    logger.info(
       "================================="
     );
 
-    console.log(
+    logger.info(
       "🔐 PASSWORD RESET REQUEST"
     );
 
-    console.log(
+    logger.info(
       "Email:",
       email
     );
 
-    console.log(
+    logger.info(
       "================================="
     );
 
@@ -952,7 +996,7 @@ exports.forgotPassword = async (
     // -------------------------------------------------
 
     if (!user) {
-      console.log(
+      logger.info(
         "⚠️ No user found for:",
         email
       );
@@ -990,19 +1034,15 @@ exports.forgotPassword = async (
     // RESET URL
     // -------------------------------------------------
 
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      "http://localhost:5502";
-
     const resetUrl =
-      `${getClientBase(req)}/pages/reset-password.html?token=${resetToken}`;
+      `${getClientBase(req)}/reset-password/${resetToken}`;
 
-    console.log(
+    logger.info(
       "✅ User found:",
       user.email
     );
 
-    console.log(
+    logger.info(
       "🔗 Reset URL:",
       resetUrl
     );
@@ -1115,7 +1155,7 @@ exports.forgotPassword = async (
     // SEND EMAIL
     // -------------------------------------------------
 
-    console.log(
+    logger.info(
       "📧 Sending reset email..."
     );
 
@@ -1127,7 +1167,7 @@ exports.forgotPassword = async (
       );
 
     if (!sent) {
-      console.error(
+      logger.error(
         "❌ Password reset email could not be sent."
       );
 
@@ -1146,7 +1186,7 @@ exports.forgotPassword = async (
       });
     }
 
-    console.log(
+    logger.info(
       "✅ Password reset email sent to:",
       user.email
     );
@@ -1158,7 +1198,7 @@ exports.forgotPassword = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Forgot Password Error:",
       error
     );
@@ -1249,7 +1289,7 @@ exports.resetPassword = async (
 
     await user.save();
 
-    console.log(
+    logger.info(
       "✅ Password reset successful for:",
       user.email
     );
@@ -1264,7 +1304,7 @@ exports.resetPassword = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Reset Password Error:",
       error
     );

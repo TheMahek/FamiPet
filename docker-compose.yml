@@ -1,0 +1,309 @@
+# =========================================================
+# FAMIPET - PRODUCTION DOCKER COMPOSE (root, canonical)
+# =========================================================
+# Full integrated application: React/Vite frontend + Node/Express
+# backend + MongoDB behind a single nginx entry point.
+#
+#   Internet
+#      |
+#   Cloudflare / cloudflared (starts with the stack; needs TUNNEL_TOKEN)
+#      |
+#   nginx :80  <-- the ONLY published application port
+#      |
+#      +-- /api/*     -> backend:5000  (private)
+#      +-- /uploads/* -> backend:5000  (private)
+#      +-- /*         -> frontend:5502 (private, React SPA)
+#                          |
+#   backend:5000 -> mongodb:27017 (private, named volume)
+#                 -> ai:8000       (private, Breed AI inference)
+#
+# Reuses the reviewed build definitions in docker-final/ (single source
+# of truth for the Dockerfiles). This file is the ONLY Compose file.
+#
+# RUN:
+#   docker compose up -d --build              # app at http://localhost:8080
+#   docker compose down -v                    # stop + drop volumes
+#
+# ENVIRONMENT: docker compose interpolates the root .env (the tracked
+# template is .env.example - the complete deployment contract) and passes
+# each service EXACTLY the variables it needs via `environment:` below.
+# No service-local .env file is read here; those exist only for running a
+# single service standalone (see backend/.env.example, ai/.env.example).
+# SECRETS: none are baked into any image; everything secret arrives at
+# runtime from the gitignored root .env.
+# =========================================================
+
+# Isolated project namespace: containers/volumes/networks are prefixed
+# famipet_... and never collide with any other stack on this host.
+name: famipet
+
+services:
+
+  # -------- FRONTEND (React SPA served by nginx, :5502) --------
+  # Multi-stage build (node:26-alpine -> nginx:alpine). The API base is
+  # the relative "/api", so the bundle contains no backend host and no
+  # secret. Internal only: reached exclusively by the nginx entry point.
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: ../docker-final/frontend/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    image: famipet-frontend:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "5502"
+    networks:
+      - famipet-frontend-net
+    mem_limit: 256m
+    cpus: 0.5
+
+  # -------- BACKEND (Node.js + Express API, :5000) --------
+  # Plain CommonJS project: no build step, production dependencies only,
+  # runs as the non-root "node" user on a read-only root filesystem.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker-final/backend/Dockerfile
+    image: famipet-backend:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Node listens on 5000 (>1024) and makes normal outbound sockets, so
+    # it needs no Linux capabilities at all.
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    # EXPLICIT configuration, interpolated from the root .env (the
+    # deployment source of truth - see .env.example). Only variables this
+    # service needs are passed; no service-local .env file is involved and
+    # the rest of the root .env never enters this container.
+    # `${VAR:?...}` fails fast when a required value is missing; every
+    # `:-default` matches the corresponding default in the backend code.
+    environment:
+      # Inside the Compose network the database resolves by service name.
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017/petDB}
+      # REQUIRED - session signing; Compose refuses to resolve without it.
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in the root .env}
+      - JWT_EXPIRE=${JWT_EXPIRE:-30d}
+      # Public origin used for emailed deep links (verify/reset) + CORS.
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
+      # Production mode: gates the legacy frontend fallback listener and the
+      # development-only CORS origins (localhost / private LAN ranges).
+      - NODE_ENV=${NODE_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Breed AI (the ML service in ai/) by internal Compose service name.
+      # Same pattern as MONGODB_URI: the stack points at its own service, so
+      # it never depends on a Python process running on the host.
+      - PET_BREED_AI_URL=${PET_BREED_AI_URL:-http://ai:8000}
+      - PET_BREED_AI_TIMEOUT_MS=${PET_BREED_AI_TIMEOUT_MS:-20000}
+      - PET_BREED_MAX_UPLOAD_BYTES=${PET_BREED_MAX_UPLOAD_BYTES:-8388608}
+      - PET_BREED_AI_TOP_K=${PET_BREED_AI_TOP_K:-5}
+      - PET_BREED_MIN_CONFIDENCE=${PET_BREED_MIN_CONFIDENCE:-0.35}
+      - PET_BREED_MIN_CONFIDENCE_GENERIC=${PET_BREED_MIN_CONFIDENCE_GENERIC:-0.55}
+      - PET_BREED_AI_ENRICH=${PET_BREED_AI_ENRICH:-true}
+      # PetGPT: the deployment-provided EXTERNAL OpenAI-compatible endpoint.
+      # All three unset/empty = PetGPT reports "no provider" and the rest of
+      # the app is unaffected. An endpoint on the host is reached through the
+      # host.docker.internal alias mapped below (a 172.x container IP is
+      # never used - it changes on every recreate).
+      - PETGPT_OPENAI_BASE_URL=${PETGPT_OPENAI_BASE_URL:-}
+      - PETGPT_OPENAI_API_KEY=${PETGPT_OPENAI_API_KEY:-}
+      - PETGPT_OPENAI_MODEL=${PETGPT_OPENAI_MODEL:-}
+      - PETGPT_TIMEOUT_MS=${PETGPT_TIMEOUT_MS:-25000}
+      - PETGPT_MAX_QUESTION_LENGTH=${PETGPT_MAX_QUESTION_LENGTH:-2000}
+      - PETGPT_MAX_HISTORY_MESSAGES=${PETGPT_MAX_HISTORY_MESSAGES:-20}
+      - PETGPT_WORKER_POLL_MS=${PETGPT_WORKER_POLL_MS:-300}
+      - PETGPT_WORKER_STALE_MS=${PETGPT_WORKER_STALE_MS:-60000}
+      - PETGPT_MAX_JOB_ATTEMPTS=${PETGPT_MAX_JOB_ATTEMPTS:-2}
+      - PETGPT_MAX_TOOL_ITERATIONS=${PETGPT_MAX_TOOL_ITERATIONS:-3}
+      - PETGPT_TOOL_MAX_RESULTS=${PETGPT_TOOL_MAX_RESULTS:-10}
+      - PETGPT_CONTEXT_MAX_PETS=${PETGPT_CONTEXT_MAX_PETS:-5}
+      - PETGPT_RATE_LIMIT_MAX=${PETGPT_RATE_LIMIT_MAX:-30}
+      - PETGPT_RATE_LIMIT_WINDOW_MS=${PETGPT_RATE_LIMIT_WINDOW_MS:-60000}
+      # Optional email transport; empty = mail is not delivered (app runs).
+      - EMAIL_SERVICE=${EMAIL_SERVICE:-}
+      - EMAIL_USER=${EMAIL_USER:-}
+      - EMAIL_PASS=${EMAIL_PASS:-}
+      # Optional image hosting; empty = local uploads fallback.
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      # Browser push; empty = push fails closed (app fully usable).
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@famipet.app}
+    # PetGPT calls an EXTERNAL OpenAI-compatible endpoint that the
+    # deployment provides. When that endpoint lives on the host, a
+    # container cannot reach the host's loopback address directly, so
+    # host.docker.internal is mapped to the host gateway and the endpoint
+    # is addressed by that STABLE name:
+    #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:<port>/v1
+    # (A 172.x container IP is never used - it changes on every recreate.)
+    # This mapping is inert when no host-local endpoint is used.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "5000"
+    volumes:
+      # Persist locally-stored fallback uploads (Cloudinary is used when
+      # its credentials are configured).
+      - backend_uploads:/app/uploads
+    networks:
+      - famipet-backend-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------- BREED AI (Python FastAPI + MobileNetV2, :8000, internal only) --------
+  # The EXISTING service in ai/ (GET /health, POST /predict), built from the
+  # reviewed Dockerfile in docker-final/. Private on the backend network and
+  # never published: only the backend talks to it, at http://ai:8000 (see the
+  # backend's `environment` above). The backend treats it as optional - if it
+  # is unhealthy the breed feature reports itself unavailable and the rest of
+  # FamiPet is unaffected - so nothing depends_on it.
+  #
+  # First start downloads the ~14 MB ImageNet weights into the container's
+  # ~/.keras; the Dockerfile healthcheck's start_period covers that, and a
+  # failed download leaves /health reporting `degraded` instead of crashing.
+  ai:
+    build:
+      context: ./ai
+      dockerfile: ../docker-final/ai/Dockerfile
+    image: famipet-ai:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Optional tuning from the root .env; the defaults match ai/main.py, so
+    # a normal deployment needs nothing set here.
+    environment:
+      - AI_MAX_UPLOAD_BYTES=${AI_MAX_UPLOAD_BYTES:-8388608}
+      - AI_TOP_K=${AI_TOP_K:-5}
+      - AI_INFERENCE_TIMEOUT_S=${AI_INFERENCE_TIMEOUT_S:-20}
+    expose:
+      - "8000"
+    networks:
+      - famipet-backend-net
+    mem_limit: 2g
+    cpus: 1.0
+
+  # -------- MONGODB (internal only, persistent) --------
+  # No host port is published: only the backend reaches it, by service
+  # name, over the backend network.
+  #
+  # Image is mongo:7, NOT mongo:8: MongoDB 8 refuses to start on Linux
+  # kernel 6.19+ (SERVER-121912) and this host runs that kernel. mongoose
+  # 8.4.4 supports MongoDB 4.4+, so 7.0 is fully supported by the app.
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - mongodb_data:/data/db
+    expose:
+      - "27017"
+    networks:
+      - famipet-backend-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 2g
+    cpus: 1.0
+
+  # -------- NGINX (single public entry point / reverse proxy) --------
+  # Joins BOTH networks so it can reach the private frontend and backend
+  # by service name. Terminates no TLS itself (Cloudflare edge does).
+  nginx:
+    build:
+      context: ./docker-final/nginx
+      dockerfile: Dockerfile
+    image: famipet-nginx:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${APP_PORT:-8080}:80"
+    networks:
+      - famipet-frontend-net
+      - famipet-backend-net
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+
+  # -------- CLOUDFLARED (Cloudflare Tunnel -> public HTTPS) --------
+  # Outbound-only. The public hostname -> http://nginx:80 mapping is
+  # configured in the Cloudflare Zero Trust dashboard for the named
+  # tunnel; this container only runs it. The TOKEN is injected at runtime
+  # from the gitignored root .env and is never baked into an image. It
+  # starts with a plain `docker compose up` and keeps restarting until
+  # TUNNEL_TOKEN is set.
+  cloudflared:
+    # Pinned to the version this deployment was verified with (2026.9.1):
+    # `latest` would silently upgrade the tunnel client on the next recreate.
+    image: cloudflare/cloudflared:2026.9.1
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+    networks:
+      - famipet-frontend-net
+    depends_on:
+      nginx:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+
+  # -------- AI PROVIDER (OpenAI-compatible endpoint) --------
+  # PetGPT talks to an EXTERNAL, OpenAI-compatible HTTP endpoint. That
+  # endpoint is a deployment concern, not a FamiPet service: this stack
+  # neither runs one nor depends on one. Nothing below is required for
+  # FamiPet to boot - PetGPT simply reports "no provider configured"
+  # until the deployment supplies a base URL.
+  #
+  # The backend reaches an endpoint on the host through the stable
+  # `host.docker.internal` name mapped to the host gateway (see
+  # `extra_hosts` on the backend above):
+  #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:<port>/v1
+  # A container IP (172.x) is never used - it changes on every recreate.
+  #
+  # The endpoint may be any OpenAI-compatible gateway (host-local, remote,
+  # or behind a tunnel). Only base URL + key + model matter; FamiPet does
+  # not care which implementation serves it. This is the ONLY place the
+  # endpoint is configured: there is no per-user AI setting and no
+  # in-app provider configuration, so a user can never redirect PetGPT.
+
+# -------- NETWORKS (frontend isolated from backend + database) --------
+networks:
+  famipet-frontend-net:
+    driver: bridge
+  famipet-backend-net:
+    driver: bridge
+
+# -------- PERSISTENT VOLUMES --------
+volumes:
+  mongodb_data:
+  backend_uploads:

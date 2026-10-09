@@ -4,10 +4,46 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const logger = require('./utils/logger');
+const { validateEnvAndExit } = require('./config/env');
+
+// Fail fast on a broken environment (missing MONGODB_URI/JWT_SECRET, wrong
+// typed vars, half-configured optional services) BEFORE any connection opens,
+// so a misconfigured deployment surfaces at startup, not as a half-working API.
+validateEnvAndExit();
+
+// Map multer errors (no HTTP status attached) to a client-safe message.
+const multerErrorMessage = (err) => {
+  if (!err || err.name !== 'MulterError') return null;
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    // No size here: the limit is per-upload (the pet/avatar upload and the
+    // transient breed-AI upload differ), and the router's own message is
+    // the one that knows which.
+    return 'File too large.';
+  }
+  return err.message || 'File upload failed.';
+};
+
+// Ensure the local uploads directory exists before multer writes to it.
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 const app = express();
+
+// Behind the nginx reverse proxy (Docker deployment, and the nginx.conf in
+// docker-final/) every request arrives from the proxy, so Express would
+// otherwise see ONE client IP for everybody. That collapses every in-memory
+// rate-limit bucket (auth, breed AI, PetGPT) into a single shared bucket:
+// 10 logins per minute for the whole site, trivially exhausted by anyone.
+// One trusted hop = nginx; the client IP is then the last entry of
+// X-Forwarded-For, which nginx sets (CF-Connecting-IP via the Cloudflare
+// tunnel, else the real socket address).
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet({
@@ -18,9 +54,14 @@ app.use(helmet({
 app.use(compression());
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5502').split(',').map(v => v.trim()).filter(Boolean);
 // Allow local development origins including LAN access (phone on same Wi-Fi).
+// Development convenience ONLY: in production (NODE_ENV=production) the only
+// allowed origins are the explicit CLIENT_URL list, so a page served from
+// localhost or a private LAN address can never make credentialed cross-origin
+// calls to the API.
 const isDevOrigin = function (origin) {
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;
+  if (process.env.NODE_ENV === 'production') return false;
   if (/^https?:\/\/localhost(?::\d+)?$/.test(origin)) return true;
   if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin)) return true;
   // Private network ranges used by Live Server / Vite on a LAN.
@@ -30,12 +71,37 @@ const isDevOrigin = function (origin) {
 app.use(cors({
   origin(origin, callback) {
     if (isDevOrigin(origin)) return callback(null, true);
-    return callback(new Error('CORS origin not allowed'));
+    // Reject with an explicit 403, not a bare Error. A bare Error carries no
+    // status, so the error handler below turns an origin the operator simply
+    // forgot to allowlist into "Internal Server Error" — which reads like a
+    // server fault and hides the only actionable fact (the allowed origins).
+    // Browsers send Origin on every non-GET, even same-origin ones, so a
+    // same-origin deploy whose public origin is missing from CLIENT_URL breaks
+    // every write while reads keep working.
+    const err = new Error('Origin not allowed by CORS');
+    err.status = 403;
+    return callback(err);
   },
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// PetGPT /api/ai bodies are small (message/title/idempotencyKey).
+// Bound them tightly BEFORE the app-wide parser so an oversized AI body is
+// rejected at 413 and never parsed into memory. body-parser skips the later
+// app-wide parse once req._body is set. (Phase 7 hardening.)
+app.use('/api/ai', express.json({ limit: '32kb' }));
+app.use('/api/ai', express.urlencoded({ extended: false, limit: '32kb' }));
+
+// App-wide JSON/urlencoded bounds: keep the 5MB cap so no endpoint (including
+// the new /api/ai routes) can ship over-sized bodies into memory.
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Request logging with URL redaction: reset / verify tokens are
+// passed in the URL path as long hex strings and must never be
+// written to the logs.
+morgan.token('url', (req) =>
+  String(req.originalUrl || req.url || '').replace(/[a-f0-9]{32,}/gi, '[REDACTED]')
+);
 app.use(morgan('dev'));
 
 // Static files
@@ -43,8 +109,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet')
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err));
+  .then(() => logger.info('✅ MongoDB Connected'))
+  .catch(err => logger.error('❌ MongoDB Error:', err));
+
+// Durable AI generation worker (Phase 4): in-process poller that picks
+// up queued GenerationJobs and runs them independent of any HTTP request
+// lifecycle. Mongoose buffers queries until the DB connection resolves.
+require('./jobs/generation.worker').startWorker();
 
 // Health Check (registered before the protected /api/health records router)
 app.get('/api/status', (req, res) => {
@@ -78,12 +149,32 @@ app.get("/",(req,res)=>{
   });
 });
 
-// Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
+// Error Handler — centralized, production-safe. Logs the full error
+// server-side but never leaks stack traces / internal details to the
+// client: only 4xx messages (which we author ourselves) are echoed.
+app.use((err, req, res, _next) => {
+  logger.error(err.stack || err.message || err);
+
+  // Multer file-upload errors carry a code but no HTTP status.
+  const multerMessage = multerErrorMessage(err);
+
+  if (multerMessage) {
+    return res.status(413).json({
+      success: false,
+      message: multerMessage,
+    });
+  }
+
+  const status = err.status || 500;
+
+  const message =
+    status >= 400 && status < 500 && err.message
+      ? err.message
+      : 'Internal Server Error';
+
+  res.status(status).json({
     success: false,
-    message: err.message || 'Internal Server Error'
+    message,
   });
 });
 
@@ -93,9 +184,27 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, () => {
+  logger.info(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// Graceful shutdown (Phase 7): a SIGINT/SIGTERM stops the HTTP server, lets the
+// durable generation worker finish/abandon its in-flight tick cleanly, then
+// closes MongoDB before exit. No job is cut off mid-provider-exchange; anything
+// left in "processing" is recovered by the worker reaper on next boot.
+function shutdown(signal) {
+  logger.info(`Received ${signal} — shutting down gracefully.`);
+  server.close(() => {
+    require("./jobs/generation.worker")
+      .stopWorker()
+      .then(() => mongoose.disconnect())
+      .then(() => process.exit(0));
+  });
+  // If a long provider exchange never settles, stop waiting after 10s.
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // ---------------------------------------------------------
 // FRONTEND FALLBACK LISTENER
@@ -112,7 +221,7 @@ function startFrontendFallback() {
   try {
     const clientUrl = new URL(process.env.CLIENT_URL || 'http://localhost:5502');
     clientPort = Number(clientUrl.port) || 5502;
-  } catch (e) { /* keep default */ }
+  } catch { /* keep default */ }
 
   if (clientPort === PORT) return;
 
@@ -125,18 +234,20 @@ function startFrontendFallback() {
   });
 
   const server = frontendApp.listen(clientPort, '0.0.0.0', () => {
-    console.log(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
+    logger.info(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
   });
 
   server.on('error', (err) => {
     if (err && err.code === 'EADDRINUSE') {
-      console.log(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
+      logger.info(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
     } else {
-      console.error('❌ Frontend fallback error:', err.message);
+      logger.error('❌ Frontend fallback error:', err.message);
     }
   });
 }
 
-startFrontendFallback();
+if (process.env.NODE_ENV !== 'production') {
+  startFrontendFallback();
+}
 
 module.exports = app;

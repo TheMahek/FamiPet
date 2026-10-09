@@ -17,6 +17,10 @@ router.get("/", petController.getAllPets);
 // GET /api/pets/featured
 router.get("/featured", petController.getFeaturedPets);
 
+// Public Pet Details by digital pet ID (QR lookup) — no auth, deliberate.
+// GET /api/pets/public/:petUid
+router.get("/public/:petUid", petController.getPublicPetByUid);
+
 // =====================================================
 // PROTECTED USER ROUTES
 // =====================================================
@@ -33,13 +37,17 @@ router.post("/", protect, petController.createPet);
 // PET ID ROUTES
 // =====================================================
 
-// Get single pet by ID
+// Get single pet by ID (owner or admin only, enforced in the controller)
 // GET /api/pets/:id
-router.get("/:id", petController.getPetById);
+router.get("/:id", protect, petController.getPetById);
 
 // Update pet
 // PUT /api/pets/:id
 router.put("/:id", protect, petController.updatePet);
+
+// List / unlist own pet for adoption
+// PUT /api/pets/:id/status
+router.put("/:id/status", protect, petController.updatePetStatus);
 
 // Delete pet
 // DELETE /api/pets/:id

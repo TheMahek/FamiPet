@@ -1,0 +1,35 @@
+graphify-out/
+
+# Local Playwright MCP browser-QA output (screenshots, traces, snapshots).
+.playwright-mcp/
+
+# Local Docker Compose environment for the root docker-compose.yml - the
+# deployment source of truth (see .env.example). Holds real values:
+# TUNNEL_TOKEN, JWT_SECRET, provider keys, VAPID keys, etc. Never commit.
+.env
+.env.*
+!.env.example
+
+# Runtime logs (winston) written by host runs of the backend and by any
+# local script. Never commit.
+logs/
+
+# LaTeX/XeLaTeX build artifacts. The blackbook source IS tracked
+# (main.tex, references.bib, sections/, appendices/, diagrams/,
+# figures/); only the by-products of `latexmk -xelatex` are ignored.
+# Scoped to docs/blackbook/ so a real PDF/asset elsewhere is never
+# swallowed by accident.
+/docs/blackbook/*.aux
+/docs/blackbook/*.bbl
+/docs/blackbook/*.blg
+/docs/blackbook/*.fdb_latexmk
+/docs/blackbook/*.fls
+/docs/blackbook/*.lof
+/docs/blackbook/*.log
+/docs/blackbook/*.lot
+/docs/blackbook/*.out
+/docs/blackbook/*.pdf
+/docs/blackbook/*.synctex.gz
+/docs/blackbook/*.toc
+/docs/blackbook/*.xdv
+/docs/blackbook/output/

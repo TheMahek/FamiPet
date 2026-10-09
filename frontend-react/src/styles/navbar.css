@@ -1,0 +1,360 @@
+/* ==========================================
+                NAVBAR
+========================================== */
+
+.header{
+
+    position:sticky;
+
+    top:0;
+
+    width:100%;
+
+    z-index:1000;
+
+    background:rgba(255,249,246,.9);
+
+    backdrop-filter:blur(12px);
+
+    box-shadow:0 8px 30px rgba(0,0,0,.05);
+
+}
+
+.navbar{
+
+    height:90px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+}
+
+/* ==========================
+        LOGO
+========================== */
+
+.logo{
+    display:flex;
+    align-items:center;
+}
+
+.logo img{
+    width:130px;
+    height:auto;
+    display:block;
+    object-fit:contain;
+    image-rendering:auto;
+}
+
+.logo:hover img{
+
+    transform:scale(1.03);
+
+}
+
+/* Navigation */
+
+.nav-links{
+
+    display:flex;
+
+    gap:40px;
+
+}
+
+.nav-links a{
+
+    font-size:15px;
+
+    font-weight:500;
+
+    color:#3D2314;
+
+    position:relative;
+
+    transition:.3s;
+
+}
+
+.nav-links a:hover{
+
+    color:#FF5C8A;
+
+}
+
+.nav-links a.active{
+
+    color:#FF5C8A;
+
+}
+
+.nav-links a.active::after{
+
+    content:"";
+
+    position:absolute;
+
+    left:0;
+
+    bottom:-8px;
+
+    width:100%;
+
+    height:2px;
+
+    background:#FF5C8A;
+
+}
+
+/* Right Side */
+
+.nav-right{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+}
+.theme-btn{
+
+    width:48px;
+
+    height:48px;
+
+    /* Legacy centred this with an inline FA <i> glyph. The port swaps in an
+       <svg>, which Tailwind's preflight makes display:block — a block box in
+       a display:block button sits on the left content edge, so the icon
+       measured 15px left of the circle's centre (free 1px left / 31px right).
+       Flex centring is the pattern dashboard.css already uses on its
+       .theme-btn. */
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:50%;
+
+    background:white;
+
+    border:1px solid #F3D8CB;
+
+    transition:.3s;
+
+}
+
+.theme-btn:hover{
+
+    background:#FF5C8A;
+
+    color:white;
+
+    transform:rotate(20deg);
+
+}
+
+/* Login */
+
+.login-btn{
+
+    padding:12px 24px;
+
+    border-radius:14px;
+
+    background:#FFEAF1;
+
+    color:#FF5C8A;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+.login-btn:hover{
+
+    background:#FF5C8A;
+
+    color:white;
+
+}
+
+/* Signup */
+
+.signup-btn{
+
+    padding:12px 24px;
+
+    border-radius:14px;
+
+    background:#FF5C8A;
+
+    color:white;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+.signup-btn:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:0 15px 30px rgba(255,92,138,.3);
+
+}
+
+/* Mobile */
+
+.menu-toggle{
+
+    display:none;
+
+    font-size:25px;
+
+    cursor:pointer;
+
+    /* It was a plain <div>, which is not focusable and has no button
+       semantics for the icon control it is. Now a real <button>; Tailwind
+       preflight already zeroes the padding and border, and .logo:hover's
+       transform is unaffected. */
+    padding:0;
+
+    background:none;
+
+    color:inherit;
+
+    line-height:1;
+
+}
+/* =========================================================
+   RESPONSIVE NAV — mirrors responsive.css lines 5-25.
+========================================================= */
+
+@media (max-width: 992px) {
+    .nav-menu {
+        display: none;
+    }
+
+    .nav-right {
+        display: none;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+
+    /* `.menu-toggle` had no click handler in Vanilla either, so on phones the
+       bar showed a hamburger that did nothing and the whole nav — Home
+       through Contact, plus Login/Sign Up — was unreachable. `.navbar.nav-open`
+       is set by Navbar.tsx and stacks the two collapsed groups under the bar.
+
+       The closed bar is deliberately left untouched (still height:90px, no
+       padding, no wrap): the 130x104 logo is taller than the bar and centres
+       with a -7px overhang, which is what Vanilla renders, so turning on wrap
+       or auto height here would change the resting header. Only the open state
+       adds wrapping and the panel. */
+    .menu-toggle {
+        order:1;
+    }
+
+    .nav-menu {
+        order:2;
+    }
+
+    .nav-right {
+        order:3;
+    }
+
+    .navbar.nav-open {
+        flex-wrap:wrap;
+
+        height:auto;
+
+        padding-bottom:10px;
+    }
+
+    /* flex:0 0 100% (not just flex-basis) so each group keeps its own line —
+       with the default flex-shrink they all squeezed onto the logo's line and
+       pushed the toggle down to the bottom of the panel. */
+    .navbar.nav-open .nav-menu,
+    .navbar.nav-open .nav-right {
+        flex:0 0 100%;
+
+        display:flex;
+    }
+
+    .navbar.nav-open .nav-menu {
+        flex-direction:column;
+
+        align-items:center;
+
+        padding:14px 0 6px;
+    }
+
+    .navbar.nav-open .nav-links {
+        flex-direction:column;
+
+        align-items:center;
+
+        gap:18px;
+    }
+
+    .navbar.nav-open .nav-links a {
+        font-size:16px;
+    }
+
+    .navbar.nav-open .nav-links a.active::after {
+        bottom:-6px;
+    }
+
+    .navbar.nav-open .nav-right {
+        justify-content:center;
+
+        padding:16px 0 10px;
+    }
+}
+
+/* =========================================================
+   DARK THEME — the theme toggle has always written
+   `body.dark-theme`, but no landing rule consumed it, so
+   pressing the button swapped the glyph and left the page
+   cream. Scoped to `.header`, which only LandingLayout
+   renders, so dashboard/sidebar chrome is untouched.
+
+   The hover/active rules are restated because these selectors
+   out-specify `.nav-links a:hover`, `.nav-links a.active` and
+   `.theme-btn:hover`, which would otherwise leave no hover
+   feedback at all in dark mode.
+   ========================================================= */
+
+body.dark-theme .header {
+    background:rgba(23,21,35,.9);
+}
+
+body.dark-theme .header .nav-links a {
+    color:#f5f2ff;
+}
+
+body.dark-theme .header .nav-links a:hover,
+body.dark-theme .header .nav-links a.active {
+    color:#FF5C8A;
+}
+
+body.dark-theme .header .theme-btn {
+    background:#211e30;
+    border-color:#332e45;
+    color:#f5f2ff;
+}
+
+body.dark-theme .header .theme-btn:hover {
+    background:#FF5C8A;
+    color:#fff;
+}
+

@@ -1,0 +1,619 @@
+/* =========================================================
+   FAMIPET - ADMIN PANEL STYLES
+   Scoped to `.admin-wrap` (the admin shell) so nothing leaks into
+   non-admin pages (the Vanilla file reset `*` and `body`, which bled
+   onto every page of the SPA). Tailwind's preflight already provides
+   the box-sizing/margin/padding reset.
+   ========================================================= */
+
+.admin-wrap {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #fdf3f6;
+  color: #1e293b;
+}
+
+/* ---------------- SIDEBAR ---------------- */
+
+.admin-sidebar {
+  width: 250px;
+  background: linear-gradient(180deg, #ff5c8a 0%, #f43f5e 100%);
+  color: #fff;
+  padding: 1.4rem 1rem;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.4rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  margin-bottom: 1.2rem;
+}
+
+.admin-brand img {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.admin-brand h3 {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.admin-brand small {
+  display: block;
+  font-size: 0.68rem;
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.admin-nav a:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.admin-nav a.active {
+  background: #fff;
+  color: #f43f5e;
+}
+
+.admin-nav a i {
+  width: 18px;
+  text-align: center;
+}
+
+.admin-sidebar-foot {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.admin-sidebar-foot a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.admin-sidebar-foot a:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ---------------- MAIN ---------------- */
+
+.admin-main {
+  flex: 1;
+  padding: 1.6rem 2rem;
+  min-width: 0;
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.6rem;
+}
+
+.admin-topbar h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.admin-topbar h2 span {
+  color: #ff5c8a;
+}
+
+.admin-topbar p {
+  font-size: 0.8rem;
+  color: #8a96a8;
+  margin-top: 0.25rem;
+}
+
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.admin-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fff;
+  border: 1px solid #ffe0e7;
+  border-radius: 50px;
+  padding: 0.35rem 0.9rem 0.35rem 0.4rem;
+}
+
+.admin-user-chip img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.admin-user-chip strong {
+  font-size: 0.8rem;
+  color: #1e293b;
+}
+
+.admin-user-chip small {
+  display: block;
+  font-size: 0.68rem;
+  color: #ff5c8a;
+  text-transform: uppercase;
+}
+
+.admin-btn-outline {
+  border: 1px solid #ffc2d3;
+  background: #fff;
+  color: #f43f5e;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.55rem 1rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-btn-outline:hover {
+  background: #fff5f7;
+}
+
+/* ---------------- CARDS / GRID ---------------- */
+
+.admin-card {
+  background: #fff;
+  border: 1px solid #f1eff5;
+  border-radius: 18px;
+  padding: 1.3rem;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+}
+
+.admin-wrap .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.admin-wrap .stat-card {
+  background: #fff;
+  border: 1px solid #f1eff5;
+  border-radius: 18px;
+  padding: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+}
+
+.admin-wrap .stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.admin-wrap .stat-icon.pink { background: #ff5c8a; }
+.admin-wrap .stat-icon.green { background: #10b981; }
+.admin-wrap .stat-icon.lavender { background: #8b7cf6; }
+.admin-wrap .stat-icon.amber { background: #f59e0b; }
+.admin-wrap .stat-icon.cyan { background: #06b6d4; }
+
+.admin-wrap .stat-card h4 {
+  font-size: 0.78rem;
+  color: #8a96a8;
+  font-weight: 600;
+}
+
+.admin-wrap .stat-card .stat-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-top: 0.1rem;
+}
+
+/* ---------------- TABLES ---------------- */
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 0.75rem 0.8rem;
+  color: #8a96a8;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #f1eff5;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #f8f6fa;
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-wrap .pill {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.admin-wrap .pill.green { background: #e1f7eb; color: #059669; }
+.admin-wrap .pill.amber { background: #fef3c7; color: #d97706; }
+.admin-wrap .pill.red { background: #ffe4e6; color: #e11d48; }
+.admin-wrap .pill.lavender { background: #ece8ff; color: #6d5ae0; }
+.admin-wrap .pill.gray { background: #f1f5f9; color: #64748b; }
+
+.admin-btn-sm {
+  border: none;
+  border-radius: 10px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.admin-btn-sm:hover { opacity: 0.85; }
+
+.admin-wrap .btn-block { background: #fef3c7; color: #d97706; }
+.admin-wrap .btn-unblock { background: #e1f7eb; color: #059669; }
+.admin-wrap .btn-danger { background: #ffe4e6; color: #e11d48; }
+.admin-wrap .btn-approve { background: #e1f7eb; color: #059669; }
+.admin-wrap .btn-reject { background: #ffe4e6; color: #e11d48; }
+
+.admin-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8a96a8;
+}
+
+.admin-empty p {
+  margin-top: 0.4rem;
+}
+
+.admin-empty i {
+  font-size: 2rem;
+  color: #ffc2d3;
+  margin-bottom: 0.6rem;
+}
+
+/* helpers used by the React admin pages (Vanilla equivalents were inline) */
+
+.recent-card {
+  margin-bottom: 1.4rem;
+}
+
+.admin-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.admin-section-title i {
+  color: #ff5c8a;
+}
+
+.admin-muted {
+  font-size: 0.72rem;
+  color: #8a96a8;
+}
+
+.admin-protected {
+  font-size: 0.75rem;
+  color: #8a96a8;
+}
+
+.admin-reason {
+  max-width: 240px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.admin-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8a96a8;
+}
+
+.admin-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2000;
+  background: #fff;
+  border: 1px solid #f1eff5;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  color: #334155;
+  padding: 0.8rem 1.1rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-toast i { color: #10b981; }
+
+.admin-toast.error i { color: #dc2626; }
+
+/* ---------------- DARK MODE ----------------
+   The Vanilla admin had no dark theme; the React app's theme context toggles
+   `body.dark-theme`, so admin surfaces mirror the app dark palette
+   (rgb(23,21,35) bg / rgb(33,30,48) cards, matching settings/dashboard). */
+
+body.dark-theme .admin-wrap {
+  background: #171523;
+  color: #f5f2ff;
+}
+
+body.dark-theme .admin-card,
+body.dark-theme .stat-card,
+body.dark-theme .admin-user-chip {
+  background: #211e30;
+  border-color: #332e45;
+  box-shadow: none;
+}
+
+body.dark-theme .admin-topbar h2,
+body.dark-theme .admin-section-title,
+body.dark-theme .admin-wrap .stat-card .stat-val,
+body.dark-theme .admin-user-chip strong,
+body.dark-theme .admin-table td,
+body.dark-theme .admin-table td strong,
+body.dark-theme .admin-empty,
+body.dark-theme .admin-loading {
+  color: #f5f2ff;
+}
+
+body.dark-theme .admin-topbar p,
+body.dark-theme .admin-wrap .admin-table th,
+body.dark-theme .admin-wrap .stat-card h4,
+body.dark-theme .admin-muted,
+body.dark-theme .admin-protected,
+body.dark-theme .admin-reason,
+body.dark-theme .admin-user-chip small {
+  color: #b7b0c9;
+}
+
+body.dark-theme .admin-table th,
+body.dark-theme .admin-table td {
+  border-color: #332e45;
+}
+
+body.dark-theme .admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+body.dark-theme .admin-empty i {
+  color: #4a4461;
+}
+
+body.dark-theme .admin-toast {
+  background: #211e30;
+  border-color: #332e45;
+  color: #e2e8f0;
+}
+
+/* ---------------- ADOPTION REVIEW DIALOGS ----------------
+   Replaces the page-level window.confirm() with explicit dialogs so an
+   admin's approval can carry a custom acceptance message and a rejection
+   always records a required reason (backend refuses Rejected without one). */
+
+.admin-wrap .admin-review-note {
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.admin-wrap .admin-review-note strong {
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-bottom: 0.1rem;
+}
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1900;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.admin-modal {
+  background: #fff;
+  border: 1px solid #f1eff5;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  width: 100%;
+  max-width: 460px;
+  padding: 1.4rem;
+}
+
+.admin-modal h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.35rem;
+}
+
+.admin-modal h3 i { color: #6d5ae0; }
+
+.admin-modal-sub {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+
+.admin-modal-field {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+.admin-modal-field span {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.4rem;
+}
+
+.admin-modal-field textarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  resize: vertical;
+}
+
+.admin-modal-field textarea:focus {
+  outline: 3px solid rgba(109, 90, 224, 0.2);
+  border-color: #8b7cf6;
+}
+
+.admin-modal-error {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #ffe4e6;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.admin-modal-actions .admin-btn-sm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body.dark-theme .admin-wrap .admin-review-note {
+  background: #211e30;
+  border-color: #332e45;
+  color: #b7b0c9;
+}
+
+body.dark-theme .admin-wrap .admin-review-note strong {
+  color: #8b8399;
+}
+
+body.dark-theme .admin-modal {
+  background: #1b1828;
+  border-color: #332e45;
+}
+
+body.dark-theme .admin-modal h3 { color: #f5f2ff; }
+
+body.dark-theme .admin-modal-sub { color: #b7b0c9; }
+
+body.dark-theme .admin-modal-field span { color: #d8d2e8; }
+
+body.dark-theme .admin-modal-field textarea {
+  background: #12101c;
+  border-color: #332e45;
+  color: #f5f2ff;
+}
+
+body.dark-theme .admin-modal-error {
+  background: #3a2030;
+  border-color: #5c2f41;
+  color: #ff9fb4;
+}
+
+@media (max-width: 768px) {
+  .admin-wrap { flex-direction: column; }
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+  }
+  .admin-main { padding: 1.2rem; }
+  .admin-topbar { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+}

@@ -1,0 +1,496 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+@custom-variant dark (&:where(body.dark-theme, body.dark-theme *));
+@import './navbar.css';
+@import './landing.css';
+@import './footer.css';
+@import './sidebar.css';
+@import './dashboard.css';
+@import './admin.css';
+@import './login.css';
+@import './signup.css';
+@import './mypet.css';
+@import './petid.css';
+@import './health.css';
+@import './appointments.css';
+@import './reminders.css';
+@import './community.css';
+@import './lostFound.css';
+@import './adoption.css';
+@import './breeds.css';
+@import './settings.css';
+@import './petgpt.css';
+
+/* =========================================================
+   GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1
+   (values copied verbatim from frontend/css/style.css)
+   ========================================================= */
+@theme {
+  --color-primary: #ff5c8a;
+  --color-primary-dark: #f5427b;
+  --color-primary-light: #ffeaf2;
+  --color-secondary: #4aa8ff;
+  --color-secondary-light: #eaf6ff;
+  --color-success: #38c976;
+  --color-success-light: #eafbf2;
+  --color-purple: #9b6dff;
+  --color-purple-light: #f2ecff;
+  --color-orange: #ffb84d;
+  --color-orange-light: #fff3dd;
+  --color-ink: #3d2314;
+  --color-ink-light: #777;
+  --color-canvas: #fff9f6;
+  --color-line: #ffe7ee;
+
+  --radius-card: 22px;
+  --shadow-card: 0 15px 35px rgba(0, 0, 0, 0.08);
+  --navbar-height: 90px;
+  --font-sans:
+    'Poppins', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* =========================================================
+   VANILLA-NMED TOKENS — exact names from docs/design.md §1.1
+   (frontend/css/style.css `:root`). References the @theme
+   tokens above so ported component CSS using `var(--primary)`
+   etc keeps working with a single source of values.
+   ========================================================= */
+:root {
+  --primary: var(--color-primary);
+  --primary-dark: var(--color-primary-dark);
+  --primary-light: var(--color-primary-light);
+  --secondary: var(--color-secondary);
+  --secondary-light: var(--color-secondary-light);
+  --success: var(--color-success);
+  --success-light: var(--color-success-light);
+  --purple: var(--color-purple);
+  --purple-light: var(--color-purple-light);
+  --orange: var(--color-orange);
+  --orange-light: var(--color-orange-light);
+  --text-dark: var(--color-ink);
+  --text-light: var(--color-ink-light);
+  --white: #fff;
+  --background: var(--color-canvas);
+  --border: var(--color-line);
+  --radius: var(--radius-card);
+  --section-padding: 100px;
+  --shadow: var(--shadow-card);
+  --transition: 0.35s ease;
+}
+
+/* =========================================================
+   BASE RESETS — mirrors frontend/css/style.css
+   ========================================================= */
+
+/* Bundled lucide icons (Icon component in place of the FA/lucide CDNs) fill
+   their `<i>` wrapper by em, so existing `i` font-size rules size them. */
+svg.lucide {
+  width: 1em;
+  height: 1em;
+}
+
+@keyframes lucide-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lucide-spin {
+  animation: lucide-spin 1s linear infinite;
+}
+@layer base {
+  /* Vanilla parity: frontend/css/style.css zeroes every margin/padding.
+     This lives in the base layer on purpose. As an unlayered `*` rule it
+     outranked @layer utilities, which silently killed `p-4`, `mt-3`,
+     `px-3` and every other spacing utility in the app. */
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--navbar-height, 90px);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    overflow-x: hidden;
+  }
+
+  img {
+    width: 100%;
+    display: block;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  button {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  ::selection {
+    background: var(--primary);
+    color: var(--white);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 20px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+  }
+}
+
+/* =========================================================
+   LAYOUT PRIMITIVE — mirrors frontend/css/style.css `.container`
+
+   Kept OUT of `@layer components` on purpose. Tailwind v4 ships
+   its own `.container` utility in `@layer utilities`, and layers
+   rank after `components`, so a layered `.container` loses to it
+   and collapses to `width: 100%; max-width: 1280px` — full-bleed,
+   pinned left, no gutters. Unlayered, this wins, and the specific
+   `min(90%, 1350px)` + auto margins also beat the `* { margin: 0 }`
+   reset in dashboard.css.
+
+   `max-width: none` is required as well. Tailwind's utility also declares a
+   `max-width` ladder (`@media (width >= 40rem) { max-width: 40rem }` and 48 /
+   64 / 80 / 96rem) and nothing here overrode it, so it kept winning every
+   cascade contest against a property we simply did not set. Result: the
+   container was silently clamped to 768px from 768px up to 1023px (881px
+   expected at 992, 801px at 900) and to 1280px from 1280px up to 1535px,
+   which re-centred the whole page against the wrong box and pulled the
+   navbar logo, links and toggles inward. The width cap this rule wants is
+   already inside `min(90%, 1350px)`, so dropping the inherited one restores
+   the Vanilla geometry without changing the intended max.
+   ========================================================= */
+.container {
+  width: min(90%, 1350px);
+  max-width: none;
+  margin-inline: auto;
+}
+
+/* =========================================================
+   GLOBAL COMPONENT PRIMITIVES — mirrors frontend/css/style.css
+
+   Also kept OUT of `@layer components`, for the same reason as
+   `.container` above: dashboard.css ships an unlayered
+   `* { margin: 0; padding: 0 }` reset, and unlayered rules outrank
+   every layer, so the layered `padding: 16px 34px` lost and every
+   `.btn-primary`/`.btn-secondary` rendered unpadded. Measured on the
+   landing CTA: both buttons 28px tall instead of 60px; footer subscribe
+   button 81x24px — flat text inside a 62px pill. Unlayered, the padding
+   applies again. Only 3 call sites use these classes and none add
+   overriding utilities, so nothing loses to them.
+   ========================================================= */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 34px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: var(--white);
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(255, 92, 138, 0.25);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transition: 0.7s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 35px rgba(255, 92, 138, 0.35);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 34px;
+  background: var(--white);
+  color: var(--text-dark);
+  border: 2px solid var(--primary-light);
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-4px);
+}
+
+/* =========================================================
+   PUBLIC PET DETAILS PAGE (PublicPetDetailsPage.tsx) —
+   the QR destination, rendered outside any auth guard.
+   ========================================================= */
+
+.public-pet-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.25rem;
+  background: linear-gradient(180deg, #fff9f6 0%, #fff 60%);
+}
+
+body.dark-theme .public-pet-page {
+  background: linear-gradient(180deg, #171523 0%, #1b1828 60%);
+}
+
+.public-pet-state {
+  text-align: center;
+  color: #777;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2rem;
+}
+
+.public-pet-state h2 {
+  color: #3d2314;
+  font-size: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+body.dark-theme .public-pet-state {
+  color: #b7b0c9;
+}
+
+body.dark-theme .public-pet-state h2 {
+  color: #f5f2ff;
+}
+
+.public-pet-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  background: #fff;
+  border: 1px solid #ffe7ee;
+  border-radius: 24px;
+  box-shadow: 0 18px 45px rgba(61, 35, 20, 0.1);
+  padding: 2rem;
+  max-width: 720px;
+  width: 100%;
+}
+
+body.dark-theme .public-pet-card {
+  background: #1b1828;
+  border-color: #332e45;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
+}
+
+.public-pet-photo {
+  flex: 0 0 220px;
+}
+
+.public-pet-photo img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 18px;
+  display: block;
+}
+
+.public-pet-photo-fallback {
+  width: 220px;
+  height: 220px;
+  border-radius: 18px;
+  background: #ffeaf2;
+  color: #ff5c8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.dark-theme .public-pet-photo-fallback {
+  background: #2a2a38;
+}
+
+.public-pet-info {
+  flex: 1;
+  min-width: 260px;
+}
+
+.public-pet-badge {
+  display: inline-block;
+  background: #eaf6ff;
+  color: #2b7be4;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+body.dark-theme .public-pet-badge {
+  background: #14243a;
+  color: #7cc0ff;
+}
+
+.public-pet-info h1 {
+  color: #3d2314;
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+body.dark-theme .public-pet-info h1 {
+  color: #f5f2ff;
+}
+
+.public-pet-breed {
+  color: #777;
+  font-size: 0.95rem;
+  margin: 0.25rem 0 1rem;
+}
+
+body.dark-theme .public-pet-breed {
+  color: #b7b0c9;
+}
+
+.public-pet-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+.public-pet-facts div {
+  background: #fff9f6;
+  border: 1px solid #ffe7ee;
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+}
+
+body.dark-theme .public-pet-facts div {
+  background: #12101c;
+  border-color: #332e45;
+}
+
+.public-pet-facts dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #999;
+  font-weight: 600;
+}
+
+.public-pet-facts dd {
+  margin: 0.1rem 0 0;
+  font-weight: 700;
+  color: #3d2314;
+  font-size: 0.9rem;
+}
+
+body.dark-theme .public-pet-facts dd {
+  color: #f5f2ff;
+}
+
+.public-pet-desc {
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+body.dark-theme .public-pet-desc {
+  color: #d8d2e8;
+}
+
+.public-pet-owner {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #777;
+  font-size: 0.85rem;
+  margin: 0 0 1.25rem;
+}
+
+.public-pet-owner i {
+  color: #ff5c8a;
+}
+
+body.dark-theme .public-pet-owner {
+  color: #b7b0c9;
+}
+
+.public-pet-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.6rem;
+  background: #ff5c8a;
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.public-pet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 92, 138, 0.3);
+}
+
+@media (max-width: 560px) {
+  .public-pet-card {
+    padding: 1.25rem;
+    gap: 1.25rem;
+  }
+
+  .public-pet-photo,
+  .public-pet-photo img,
+  .public-pet-photo-fallback {
+    width: 100%;
+    height: 180px;
+  }
+}

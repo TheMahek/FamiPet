@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FamiPet</title>
+    <script>
+      // Apply the persisted theme before first paint so page loads/refreshes
+      // never flash the light background (Phase 09 polish; ThemeContext reads
+      // the same key).
+      try {
+        if (localStorage.getItem('famipetTheme') === 'dark') document.body.classList.add('dark-theme')
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
